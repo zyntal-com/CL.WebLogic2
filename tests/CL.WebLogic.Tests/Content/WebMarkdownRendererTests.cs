@@ -29,10 +29,24 @@ public sealed class WebMarkdownRendererTests
     public void Pathological_input_renders_in_linear_time(string unit, int length)
     {
         // Regression (security review): unbounded delimiter searches made these quadratic (~3.5 s for 160 KB).
-        var input = string.Concat(Enumerable.Repeat(unit, 160_000 / length));
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-        Md(input);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1.5), $"{watch.Elapsed.TotalMilliseconds:F0} ms");
+        // Compares scaling instead of wall-clock time, so a busy CI runner cannot fail it: 4x the input
+        // costs ~4x when linear and ~16x when quadratic.
+        var small = BestOf(string.Concat(Enumerable.Repeat(unit, 40_000 / length)));
+        var large = BestOf(string.Concat(Enumerable.Repeat(unit, 160_000 / length)));
+        Assert.True(large < small * 8 + 20, $"40 KB: {small:F1} ms, 160 KB: {large:F1} ms");
+    }
+
+    private static double BestOf(string input)
+    {
+        Md(input); // warm-up
+        var best = double.MaxValue;
+        for (var i = 0; i < 3; i++)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            Md(input);
+            best = Math.Min(best, watch.Elapsed.TotalMilliseconds);
+        }
+        return best;
     }
 
     [Fact]

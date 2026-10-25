@@ -11,7 +11,7 @@ ARG SAMPLE=StarterWebsite
 WORKDIR /src
 COPY . .
 # A unique version per build, so the cached NuGet folder can never serve an older pack.
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
     VERSION="4.9.0-docker.$(date +%s)" \
  && dotnet pack src/CL.WebLogic/CL.WebLogic.csproj -c Release -o /feed -p:Version=$VERSION \
  && dotnet publish samples/${SAMPLE}/${SAMPLE}.csproj -c Release -o /app \

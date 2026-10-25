@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using CL.WebLogic.Templates.Rendering;
 using CL.WebLogic.Testing.Services;
 
@@ -70,5 +69,19 @@ public sealed class GoldenTemplateTests
         }
     };
 
-    private static string SourceDirectory([CallerFilePath] string path = "") => Path.GetDirectoryName(path)!;
+    /// <summary>
+    /// The source <c>Templates</c> folder (so updates and <c>.actual.html</c> land next to the committed
+    /// snapshots), found by walking up from the test output. CI builds use deterministic source paths
+    /// (<c>/_/…</c>), so <c>[CallerFilePath]</c> cannot be used; without a source tree the copies in
+    /// the output folder are used.
+    /// </summary>
+    private static string SourceDirectory()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "CL.WebLogic.Tests.csproj")))
+                return Path.Combine(dir.FullName, "Templates");
+        }
+        return Path.Combine(AppContext.BaseDirectory, "Templates");
+    }
 }
