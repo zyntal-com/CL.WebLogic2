@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The blog's admin area as a CodeLogic plugin. It compiles against CL.WebLogic and MiniBlog.Data
+    but ships only its own assembly: at runtime both come from the host, so the types match.
+  -->
+  <PropertyGroup>
+    <RootNamespace>MiniBlog.Admin</RootNamespace>
+    <UsesWebLogic>true</UsesWebLogic>
+    <WebLogicAsHostShared>true</WebLogicAsHostShared>
+    <!-- Everything else is provided by the host. -->
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The plugin's own templates; b.MapTemplates(...) registers them (the site theme can override any of them). -->
+    <EmbeddedResource Include="theme\**\*.html" LogicalName="theme/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CodeLogic" ExcludeAssets="runtime" PrivateAssets="all" />
+    <ProjectReference Include="..\..\MiniBlog.Data\MiniBlog.Data.csproj" Private="false" ExcludeAssets="runtime" />
+  </ItemGroup>
+</Project>

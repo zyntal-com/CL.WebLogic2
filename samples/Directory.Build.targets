@@ -1,0 +1,24 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    How a sample gets CL.WebLogic (set UsesWebLogic=true in the project):
+      default                      project reference to src/CL.WebLogic (edit the toolkit and the sample together)
+      -p:WebLogicFromPackage=true  the CodeLogic.WebLogic package at $(WebLogicPackageVersion), the way an app
+                                   consumes it (CI and the Docker build pack to a local feed first)
+    Plugins set WebLogicAsHostShared=true: they compile against CL.WebLogic but use the host's copy at runtime.
+  -->
+  <ItemGroup Condition="'$(UsesWebLogic)' == 'true' and '$(WebLogicFromPackage)' != 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/CL.WebLogic/CL.WebLogic.csproj" Condition="'$(WebLogicAsHostShared)' != 'true'" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/CL.WebLogic/CL.WebLogic.csproj" Condition="'$(WebLogicAsHostShared)' == 'true'" Private="false" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UsesWebLogic)' == 'true' and '$(WebLogicFromPackage)' == 'true'">
+    <PackageReference Include="CodeLogic.WebLogic" Condition="'$(WebLogicAsHostShared)' != 'true'" />
+    <PackageReference Include="CodeLogic.WebLogic" Condition="'$(WebLogicAsHostShared)' == 'true'" ExcludeAssets="runtime" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Shared sample hosting helpers (config patching, data paths, the container health probe). -->
+  <ItemGroup Condition="'$(UsesSampleHosting)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/**/*.cs" LinkBase="Shared" />
+  </ItemGroup>
+</Project>

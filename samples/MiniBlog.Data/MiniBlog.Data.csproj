@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MiniBlog's data layer on CL.MySQL2: posts plus the stores WebLogic asks the app for (users,
+    sessions, recovery codes, widget settings, dashboard layouts). Shared by the host and the
+    admin plugin. CL.MySQL2 lives here — never in the toolkit.
+  -->
+  <PropertyGroup>
+    <RootNamespace>MiniBlog.Data</RootNamespace>
+    <UsesWebLogic>true</UsesWebLogic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CodeLogic" />
+    <PackageReference Include="CodeLogic.MySQL2" />
+  </ItemGroup>
+</Project>

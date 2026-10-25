@@ -1,0 +1,10 @@
+{layout:layouts/test-main}
+{section:head}<meta name="description" content="{model:title}"><script>window.data = {model:rows|json};</script>{/section}
+<a href="{model:url}" title="{model:title}">{model:title}</a>
+<a href="{model:bad_url}">bad</a>
+<img src="/img/{model:file|url}" alt="{{title}}">
+<div data-config="{model:rows|json}">{model:body|nl2br}</div>
+<style>p { color: {model:color|css}; }</style>
+<section>{model:md|markdown}</section>
+<section>{model:html|sanitize}</section>
+<script src="/static.js"></script>

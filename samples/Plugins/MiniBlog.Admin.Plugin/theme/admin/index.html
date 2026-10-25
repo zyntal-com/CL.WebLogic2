@@ -1,0 +1,24 @@
+{layout:layouts/main}
+<div class="admin-head">
+  <h1>Posts</h1>
+  <a class="button" href="/admin/posts/new">New post</a>
+</div>
+{if:model:saved}<p class="notice">Saved. The public pages were refreshed.</p>{/if}
+{if:model:deleted}<p class="notice">Deleted.</p>{/if}
+<table class="posts">
+  <thead><tr><th>Title</th><th>Tags</th><th>Status</th><th>Updated</th></tr></thead>
+  <tbody>
+  {foreach:model:posts as p}
+    <tr>
+      <td><a href="/admin/posts/{p:id|urlencode}">{p:title}</a></td>
+      <td>{p:tags}</td>
+      <td>{if:p:published}<a href="{p:url}">published</a>{else}draft{/if}</td>
+      <td>{p:updatedAt|timeago}</td>
+    </tr>
+  {empty}
+    <tr><td colspan="4">No posts yet.</td></tr>
+  {/foreach}
+  </tbody>
+</table>
+<p><small>This page and the editor come from the <code>MiniBlog.Admin.Plugin</code> plugin; the
+editor form is registered by the plugin at runtime with <code>b.MapForm&lt;PostEditorForm&gt;()</code>.</small></p>

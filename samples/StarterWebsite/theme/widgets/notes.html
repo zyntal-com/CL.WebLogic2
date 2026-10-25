@@ -1,0 +1,5 @@
+<div class="card card-body" data-wl-module="note">
+  <label class="form-label small text-body-secondary" for="note-{model:instanceId}">Private note</label>
+  <textarea class="form-control" id="note-{model:instanceId}" rows="4" maxlength="{model:maxNoteLength}">{model:text}</textarea>
+  <div class="mt-2"><button class="btn btn-sm btn-primary" type="button" data-wl-action="/_weblogic/widgets/notes/actions/save?instance={model:instanceId|urlencode}" data-wl-payload="{}">Save</button></div>
+</div>

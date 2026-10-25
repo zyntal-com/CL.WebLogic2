@@ -1,0 +1,160 @@
+name: Build And Release
+
+on:
+  push:
+    branches:
+      - release
+      - prerelease
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weblogic-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # Publishing to nuget.org cannot be undone - a version can be delisted but never
+  # replaced or reused. Nothing is packed until the full suite is green.
+  verify:
+    uses: ./.github/workflows/ci-tests.yml
+
+  release:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    # Must match the nuget.org Trusted Publishing policy (workflow release.yml, environment production).
+    environment: production
+    permissions:
+      contents: write
+      id-token: write   # OIDC token exchanged for a short-lived nuget.org API key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # ── Composed version: {major.minor from version.txt}.{run_number}[+sha] ──
+      # Nothing is written back to the repo; the version is composed at pack time.
+      - name: Compute version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          root=$(head -n1 version.txt | tr -d '[:space:]')
+          sha=${GITHUB_SHA::7}
+          if [ "${GITHUB_REF_NAME}" = "prerelease" ]; then
+            version="$root.${GITHUB_RUN_NUMBER}-preview+$sha"
+          else
+            version="$root.${GITHUB_RUN_NUMBER}+$sha"
+          fi
+          echo "Composed version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          v='${{ steps.version.outputs.version }}'
+          mkdir -p artifacts
+          for proj in src/CL.WebLogic/CL.WebLogic.csproj src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj; do
+            dotnet pack "$proj" --configuration Release --output artifacts \
+              -p:ContinuousIntegrationBuild=true \
+              -p:PackageVersion="$v" -p:Version="$v" -p:InformationalVersion="$v"
+          done
+
+      # NuGet normalizes the CodeLogic PackageReference range to the restored version as
+      # its lower bound. Rewrite it to the literal supported range so WebLogic keeps
+      # accepting every CodeLogic 4.9.x+ (4.9 is the floor: IConfigReloadable).
+      - name: Rewrite CodeLogic dependency range
+        shell: pwsh
+        run: |
+          $targetRange = '[4.9.0, 5.0.0)'
+          foreach ($nupkg in Get-ChildItem artifacts -Filter '*.nupkg') {
+            $tmp = "$env:RUNNER_TEMP/nupkg-$([Guid]::NewGuid())"
+            New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+            Expand-Archive $nupkg.FullName -DestinationPath $tmp -Force
+            $nuspec = Get-ChildItem $tmp -Filter '*.nuspec' | Select-Object -First 1
+            [xml]$doc = Get-Content $nuspec.FullName
+            $ns = New-Object System.Xml.XmlNamespaceManager($doc.NameTable)
+            $ns.AddNamespace('n', $doc.DocumentElement.NamespaceURI)
+            $deps = $doc.SelectNodes('//n:dependency[@id="CodeLogic"]', $ns)
+            if ($deps.Count -gt 0) {
+              foreach ($d in $deps) { $d.version = $targetRange }
+              $doc.Save($nuspec.FullName)
+              Remove-Item $nupkg.FullName
+              Compress-Archive -Path "$tmp/*" -DestinationPath $nupkg.FullName
+              Write-Host "Rewrote CodeLogic dependency → $targetRange in $($nupkg.Name)"
+            }
+            Remove-Item $tmp -Recurse -Force
+          }
+
+      # Validate every package BEFORE pushing any of them - a partial push cannot be undone.
+      - name: Pre-flight packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+          for pkg in artifacts/*.nupkg; do
+            name=$(basename "$pkg")
+            nuspec=$(unzip -p "$pkg" '*.nuspec' | tr -d '\n')
+            notes=$(printf '%s' "$nuspec" | sed -n 's|.*<releaseNotes>\(.*\)</releaseNotes>.*|\1|p' | wc -c)
+            if [ "$notes" -gt 35000 ]; then
+              echo "::error::$name: releaseNotes is $notes chars, nuget.org caps at 35000"; fail=1
+            fi
+            if ! printf '%s' "$nuspec" | grep -q '<id>'; then
+              echo "::error::$name: nuspec has no <id>"; fail=1
+            fi
+            # Database rule (AGENTS.md): the toolkit never depends on a specific database.
+            if printf '%s' "$nuspec" | grep -qi '<dependency id="CodeLogic\.MySQL2"'; then
+              echo "::error::$name: depends on CodeLogic.MySQL2 - the toolkit core must stay database-agnostic"; fail=1
+            fi
+            # Dependency rule (AGENTS.md): packages depend on CodeLogic* only (plus each other).
+            for dep in $(printf '%s' "$nuspec" | grep -o '<dependency id="[^"]*"' | sed 's/<dependency id="//; s/"$//' | sort -u); do
+              case "$dep" in
+                CodeLogic|CodeLogic.*) ;;
+                *) echo "::error::$name: depends on $dep - only CodeLogic packages are allowed"; fail=1 ;;
+              esac
+            done
+            # The bundler is a build tool only; it must never become a package dependency.
+            if printf '%s' "$nuspec" | grep -qi '<dependency id="[^"]*ClientBundler'; then
+              echo "::error::$name: depends on the client bundler (build tool)"; fail=1
+            fi
+            # The core package must carry the embedded client runtime.
+            if [ "${name#CodeLogic.WebLogic.[0-9]}" != "$name" ]; then
+              if ! unzip -p "$pkg" 'lib/net10.0/CL.WebLogic.dll' | grep -aq 'CL.WebLogic.Client.weblogic.esm.js'; then
+                echo "::error::$name: the client runtime is not embedded in CL.WebLogic.dll"; fail=1
+              fi
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::refusing to publish - a partial push cannot be undone"
+            exit 1
+          fi
+          echo "pre-flight OK"
+
+      # Trusted Publishing: no long-lived API key. The temporary key is valid for ~1 hour.
+      - name: NuGet login (OIDC)
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet.org
+        run: dotnet nuget push 'artifacts/*.nupkg' --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name == 'prerelease' && format('weblogic-preview-v{0}', github.run_number) || format('weblogic-v{0}', github.run_number) }}
+          name: ${{ github.ref_name == 'prerelease' && format('CodeLogic.WebLogic preview {0}', github.run_number) || format('CodeLogic.WebLogic {0}', github.run_number) }}
+          prerelease: ${{ github.ref_name == 'prerelease' }}
+          generate_release_notes: true
+          files: artifacts/*.nupkg

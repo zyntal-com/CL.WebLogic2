@@ -1,0 +1,50 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "src/CL.WebLogic/CL.WebLogic.csproj",
+            "src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj"
+          ],
+          "src": "../"
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["api/**.yml", "api/index.md"]
+      },
+      {
+        "files": ["guides/**.md", "guides/**/toc.yml", "scenarios/**.md", "scenarios/**/toc.yml", "toc.yml", "getting-started.md", "index.md"]
+      }
+    ],
+    "resource": [
+      {
+        "files": ["images/**"]
+      }
+    ],
+    "dest": "../docs-output",
+    "globalMetadata": {
+      "_appTitle": "CodeLogic.WebLogic",
+      "_appLogoPath": "images/logo.svg",
+      "_appFaviconPath": "images/logo.svg",
+      "_enableSearch": true,
+      "_appFooter": "Copyright &copy; 2026 Zyntal.com &middot; MIT-licensed &middot; Built with <a href='https://dotnet.github.io/docfx'>DocFX</a>.",
+      "_appName": "CodeLogic.WebLogic",
+      "_disableContribution": false
+    },
+    "template": ["default", "modern", "templates/cl"],
+    "sitemap": {
+      "baseUrl": "https://zyntal-com.github.io/CL.WebLogic2"
+    },
+    "xref": [],
+    "exportRawModel": false,
+    "exportViewModel": false
+  }
+}

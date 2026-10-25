@@ -1,0 +1,22 @@
+{layout:layouts/main}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <h1 class="h3">Forms gallery</h1>
+    <p class="text-body-secondary">One model class (<code>EventSignupForm</code>) drives the markup, client rules, server validation and binding. Try choosing &ldquo;Somewhere else&rdquo;, adding guests, attending online with guests, or uploading a non-image renamed to .png.</p>
+    {if:model:done}<div class="alert alert-success">Thanks {model:done}! (That was the no-JavaScript path: a 303 redirect.)</div>{/if}
+    {form:event-signup}
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body small">
+      <h2 class="h6">What happens here</h2>
+      <ul class="mb-0">
+        <li>CSRF field, honeypot and a signed timestamp are added automatically.</li>
+        <li>Rules run in the browser from the server schema, then again on the server.</li>
+        <li><code>EventSignupValidator</code> adds a cross-field rule.</li>
+        <li>Uploads are sniffed by content and measured &mdash; the extension is not trusted.</li>
+        <li>Without JavaScript the same form posts normally and errors come back with status 422.</li>
+      </ul>
+      <p class="mt-2 mb-0"><a href="/forms/wizard">Multi-step wizard &rarr;</a></p>
+    </div></div>
+  </div>
+</div>

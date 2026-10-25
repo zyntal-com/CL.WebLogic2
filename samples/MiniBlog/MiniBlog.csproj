@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    A small blog on CL.WebLogic + CL.MySQL2: public pages from the output cache, MySQL-backed
+    accounts and sessions, and an admin area that is a CodeLogic plugin loaded at startup.
+  -->
+  <PropertyGroup>
+    <RootNamespace>MiniBlog</RootNamespace>
+    <UsesWebLogic>true</UsesWebLogic>
+    <UsesSampleHosting>true</UsesSampleHosting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CodeLogic" />
+    <ProjectReference Include="..\MiniBlog.Data\MiniBlog.Data.csproj" />
+    <!-- Built with the host but not referenced: it is loaded from plugins/ at runtime. -->
+    <ProjectReference Include="..\Plugins\MiniBlog.Admin.Plugin\MiniBlog.Admin.Plugin.csproj" ReferenceOutputAssembly="false" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="theme\**\*" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Ship the plugin's own assembly under plugins/<Name>.Plugin/ (shared assemblies come from the host). -->
+  <PropertyGroup>
+    <AdminPluginOutput>$(MSBuildThisFileDirectory)..\Plugins\MiniBlog.Admin.Plugin\bin\$(Configuration)\$(TargetFramework)\</AdminPluginOutput>
+  </PropertyGroup>
+  <Target Name="CopyAdminPluginToOutput" AfterTargets="Build">
+    <ItemGroup>
+      <_AdminPluginFile Include="$(AdminPluginOutput)MiniBlog.Admin.Plugin.*" Exclude="$(AdminPluginOutput)*.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AdminPluginFile)" DestinationFolder="$(OutDir)plugins\MiniBlog.Admin.Plugin" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="CopyAdminPluginToPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <_AdminPluginPublish Include="$(AdminPluginOutput)MiniBlog.Admin.Plugin.*" Exclude="$(AdminPluginOutput)*.runtimeconfig.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AdminPluginPublish)" DestinationFolder="$(PublishDir)plugins\MiniBlog.Admin.Plugin" />
+  </Target>
+</Project>

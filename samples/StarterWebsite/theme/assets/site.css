@@ -1,0 +1,8 @@
+.demo-card { text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+.demo-card:hover { border-color: var(--bs-primary); transform: translateY(-2px); }
+.shouts { max-height: 60vh; overflow-y: auto; }
+.shouts .list-group-item div { overflow-wrap: anywhere; }
+.recovery-codes { columns: 2; }
+.qr { image-rendering: pixelated; border: 8px solid #fff; }
+[data-wl-dashboard-zone] { min-height: 6rem; }
+[data-wl-dashboard-item] + [data-wl-dashboard-item] { margin-top: 1rem; }

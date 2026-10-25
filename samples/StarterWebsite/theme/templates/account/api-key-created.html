@@ -1,0 +1,8 @@
+{layout:layouts/main}
+<div class="alert alert-success">
+  <h2 class="h6">Key &ldquo;{model:name}&rdquo; created</h2>
+  <p class="small mb-1">Copy it now &mdash; only its hash is stored, so it cannot be shown again.</p>
+  <code class="user-select-all d-block text-break">{model:key}</code>
+  <p class="small mt-2 mb-0"><code>curl -H "X-Api-Key: {model:key}" {model:public_base_url}/api/v1/me</code></p>
+  <a class="btn btn-sm btn-primary mt-2" href="/account">Done</a>
+</div>

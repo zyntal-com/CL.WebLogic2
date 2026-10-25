@@ -1,0 +1,27 @@
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="/">{model:site_name}</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Menu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="/forms">Forms</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/live">Live wall</a></li>
+        <li class="nav-item"><a class="nav-link" href="/cache">Caching</a></li>
+      </ul>
+      <ul class="navbar-nav align-items-lg-center">
+        {if:auth}
+        <li class="nav-item"><a class="nav-link" href="/account">{user:name}</a></li>
+        <li class="nav-item">
+          <form method="post" action="/account/logout" class="d-inline">{csrf}<button class="btn btn-sm btn-outline-secondary ms-lg-2" type="submit">Sign out</button></form>
+        </li>
+        {else}
+        <li class="nav-item"><a class="nav-link" href="/account/login">Sign in</a></li>
+        <li class="nav-item"><a class="btn btn-sm btn-primary ms-lg-2" href="/account/register">Create account</a></li>
+        {/if}
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CL.WebLogic</RootNamespace>
+    <AssemblyName>CL.WebLogic</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>CodeLogic.WebLogic</PackageId>
+    <Description>Web application toolkit for CodeLogic 4 — routing, templates, forms, an ordered security pipeline, auth flows and realtime. No third-party dependencies beyond CodeLogic.*.</Description>
+    <PackageTags>codelogic;web;aspnetcore;templates;forms;security;realtime;plugins</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="CodeLogic" />
+    <PackageReference Include="CodeLogic.GitHelper" />
+    <PackageReference Include="CodeLogic.NetUtils" />
+    <PackageReference Include="CodeLogic.Storage" />
+    <PackageReference Include="CodeLogic.TwoFactorAuth" />
+    <PackageReference Include="CodeLogic.Mail" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.nuget.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!--
+    Client runtime: tools/CL.WebLogic.ClientBundler (our own, built first, never packed) links
+    Client/src into bundles under obj/, which are embedded as CL.WebLogic.Client.<file>.
+    Incremental: only re-runs when a file under Client/src changes.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="../../tools/CL.WebLogic.ClientBundler/CL.WebLogic.ClientBundler.csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all" SkipGetTargetFrameworkProperties="true" />
+    <ClientSource Include="Client\src\**\*" />
+    <EmbeddedResource Include="Explorer\Assets\*" LogicalName="CL.WebLogic.Explorer.%(Filename)%(Extension)" WithCulture="false" />
+    <None Remove="Client\src\**\*" />
+    <None Include="Client\weblogic.d.ts" Pack="true" PackagePath="client/weblogic.d.ts" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ClientBundlerPath>$(MSBuildThisFileDirectory)../../tools/CL.WebLogic.ClientBundler/bin/$(Configuration)/net10.0/CL.WebLogic.ClientBundler.dll</ClientBundlerPath>
+  </PropertyGroup>
+
+  <Target Name="ResolveWebLogicClientPaths">
+    <PropertyGroup>
+      <ClientOutputDir>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)client</ClientOutputDir>
+    </PropertyGroup>
+  </Target>
+
+  <!-- After ResolveProjectReferences (which builds the bundler), before resources are named. -->
+  <Target Name="BundleWebLogicClient" AfterTargets="ResolveProjectReferences" DependsOnTargets="ResolveProjectReferences;ResolveWebLogicClientPaths"
+          Inputs="@(ClientSource);$(ClientBundlerPath)" Outputs="$(ClientOutputDir)/client-manifest.json">
+    <Exec Command="dotnet &quot;$(ClientBundlerPath)&quot; --src &quot;$(MSBuildThisFileDirectory)Client/src&quot; --out &quot;$(ClientOutputDir)&quot; --version $(Version)" />
+  </Target>
+
+  <Target Name="EmbedWebLogicClient" AfterTargets="BundleWebLogicClient" BeforeTargets="PrepareResourceNames;AssignTargetPaths">
+    <ItemGroup>
+      <_WebLogicClientFile Include="$(ClientOutputDir)/*" />
+      <EmbeddedResource Include="@(_WebLogicClientFile)" LogicalName="CL.WebLogic.Client.%(_WebLogicClientFile.Filename)%(_WebLogicClientFile.Extension)" WithCulture="false" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CL.WebLogic.Tests" />
+    <InternalsVisibleTo Include="CL.WebLogic.IntegrationTests" />
+  </ItemGroup>
+</Project>

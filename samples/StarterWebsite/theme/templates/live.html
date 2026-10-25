@@ -1,0 +1,35 @@
+{layout:layouts/main}
+<div class="row g-4" data-wl-module="live-wall">
+  <div class="col-lg-7">
+    <h1 class="h3">Live wall</h1>
+    <p class="text-body-secondary small">Messages arrive over server-sent events (<span data-live-status>connecting&hellip;</span>). Open this page in two browsers.</p>
+    <ul class="list-group shouts" data-live-list>
+      {foreach:model:shouts as s}
+      <li class="list-group-item"><strong>{s:author}</strong> <span class="text-body-secondary small">{s:at|timeago}</span><div>{s:text}</div></li>
+      {empty}
+      <li class="list-group-item text-body-secondary" data-live-empty>Nothing yet &mdash; say something.</li>
+      {/foreach}
+    </ul>
+  </div>
+  <div class="col-lg-5">
+    {if:auth}
+    <form method="post" action="/live" class="card card-body" data-live-form>
+      {csrf}
+      <label class="form-label" for="shout-text">Your message</label>
+      <input class="form-control" id="shout-text" name="text" maxlength="{model:maxLength}" required autocomplete="off">
+      <button class="btn btn-primary mt-2" type="submit">Post</button>
+      <div class="form-text" data-live-error></div>
+    </form>
+    {if:permission:starter.wall.moderate}
+    <form method="post" action="/live/clear" class="mt-2">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Clear the wall</button></form>
+    {/if}
+    {else}
+    <div class="card card-body"><a href="/account/login?returnUrl=%2Flive">Sign in</a> to post. You can still watch.</div>
+    {/if}
+    <div class="card card-body mt-3 small">
+      <h2 class="h6">Post with an API key</h2>
+      <code>curl -X POST -H "X-Api-Key: wl_…" -H "Content-Type: application/json" -d '&#123;"text":"hi"&#125;' {model:public_base_url}/api/v1/wall</code>
+      <p class="mb-0 mt-2">The key needs the <code>wall:write</code> scope.</p>
+    </div>
+  </div>
+</div>

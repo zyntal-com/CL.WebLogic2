@@ -1,0 +1,107 @@
+# Templates and themes
+
+A theme is a folder of HTML templates and static assets. Templates use a small brace syntax that is
+parsed once, compiled to delegates and cached. Every value is **encoded for the place it is written**
+(text, attribute, URL, script string, CSS), and contexts that cannot be made safe are rejected when
+the template is parsed, not at runtime.
+
+## Layout
+
+```
+theme/
+  layouts/main.html        {renderbody}, {renderhead}, {rendersection:name}
+  templates/...            pages (WebResult.Page("templates/home"))
+  partials/...             {partial:partials/nav}
+  widgets/...              widget templates
+  forms/fields/{type}.html optional field overrides
+  errors/404.html, errors/error.html   themed error pages
+  assets/...               served at /assets/... (extension allowlist)
+```
+
+Templates, layouts, partials and dotfiles are never served as assets; requests that escape the theme
+folder get a 404. `{asset:site.css}` writes a fingerprinted URL served with an immutable cache header.
+
+## Syntax
+
+| Syntax | Meaning |
+|---|---|
+| `{model:title}` | A value from the page model (property names are case-insensitive; nested: `model:author.name`) |
+| `{page:...}`, `{query:q}`, `{route:slug}`, `{user:name}` | Page meta, query string, route values, the signed-in user |
+| `{model:title\|upper\|truncate:60}` | Filters, chained left to right |
+| `{if:model:items}...{else}...{/if}` | Truthiness; comparisons: `{if:model:count gt 0}` (`eq ne gt gte lt lte`) |
+| `{if:auth}`, `{ifnot:...}` | Signed in / negation |
+| `{foreach:model:posts as p}{p:title}{/foreach}` | Loops; `{loop:index}`, `{loop:first}`, `{loop:last}` |
+| `{switch:model:status}{case:draft}...{default}...{/switch}` | Switch |
+| `{layout:layouts/main}` | First line of a page: render inside a layout |
+| `{section:scripts}...{/section}` / `{rendersection:scripts}` | Named sections |
+| `{partial:partials/card}` | Include (relative to the current template unless it starts with `/`) |
+| `{form:contact}` | A registered form ([Forms](forms.md)) |
+| `{widget:name}`, `{widgetarea:sidebar}` | Widgets ([Widgets](widgets-dashboards.md)) |
+| `{t:key}` | Localized text (`IWebTextLocalizer`) |
+| `{csrf}`, `{csrf_token}`, `{csrf_meta}` | CSRF field, raw token, meta tag |
+| `{nonce}` | The CSP nonce (added automatically to static `<script>` and `<style>` tags) |
+| `{renderhead}` | Title, meta, canonical, Open Graph, JSON-LD from `WebPageMeta` |
+| `{weblogic_scripts}` | The client bundle and its config, with the nonce |
+| `{raw:model:html}` | Write without encoding. Prefer `WebHtml` values or `\|sanitize` |
+| `{verbatim}...{/verbatim}` | Literal braces |
+
+An unknown scope word stays literal text, so inline CSS like `{color:red}` is left alone.
+
+## Encoding contexts
+
+The parser tracks where each value lands:
+
+| Where | Encoding |
+|---|---|
+| Text | HTML-encoded |
+| Attribute value | Attribute-encoded |
+| `href`, `src`, `action`, ... | Attribute-encoded, and URL schemes other than `http`, `https`, `mailto`, `tel` and relative are replaced by `#` |
+| `style` attribute | CSS-encoded |
+| Event handler attributes (`on*`), `srcdoc` | Rejected at parse time |
+| Unquoted attribute values, inside a tag name or between attributes | Rejected at parse time |
+| `<script>` | Only `\|json`, or `\|js` inside a quoted JS string; anything else is a parse error |
+| `<style>` | Only `\|css` |
+
+Values of type `WebHtml` (rendered Markdown, sanitized HTML, forms, widgets) are written as-is in text
+context. Everything else is a string and gets encoded.
+
+## Filters
+
+Text: `upper`, `lower`, `capitalize`, `trim`, `truncate:n`, `replace:a:b`, `prefix:x`, `suffix:x`,
+`default:x`, `slug`, `wordcount`, `length`/`count`, `join:sep`, `reverse`.
+Numbers and dates: `number`, `round:n`, `percent`, `abbreviate` (1.2k), `filesize`, `date:format`,
+`timeago`, `format:fmt`.
+Markup and contexts: `markdown`, `sanitize`, `nl2br` (encodes first), `attr`, `url`/`urlencode`, `js`,
+`json`, `css`.
+
+Add your own with `web.AddTemplateFilter<T>()` (`ITemplateFilter`). Return `WebHtml` only when the
+filter itself guarantees safe markup.
+
+## Markdown and sanitizing
+
+`|markdown` uses WebLogic's own CommonMark-subset renderer: raw HTML is encoded, link and image URLs
+go through the scheme policy, and pathological input is bounded. `|sanitize` runs an allowlist
+sanitizer on WebLogic's own HTML tokenizer (`web.UseSanitizerOptions(...)` to change the allowlist).
+Use it for rich-text form fields and any stored HTML.
+
+## Template globals
+
+`ITemplateGlobalsProvider` adds values every template sees (`web.AddTemplateGlobals<T>()`), for example
+the site name, the current year or navigation items.
+
+## Theme sources
+
+`theme.source`:
+
+- `local`: a folder (`theme.localPath`).
+- `git`: a repository cloned and pulled through CL.GitHelper (`repositoryUrl`, `branch`, `themeSubPath`).
+- `storage`: a CL.Storage connection (S3, Azure, ...), synced to a local cache.
+
+Templates are re-checked at most every `theme.templateChangeCheckSeconds` (2 s by default; 0 for
+immutable production themes). Plugins can ship templates as embedded resources
+([Plugins](plugins.md)); a theme file with the same path wins.
+
+## Engines
+
+`theme.templateEngine` is `closure` (compiled delegates, default) or `interpreter` (the reference AST
+walker). Both produce identical output; the test suite checks this against golden files.

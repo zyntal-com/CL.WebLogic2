@@ -1,0 +1,20 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - prerelease
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    uses: ./.github/workflows/ci-tests.yml

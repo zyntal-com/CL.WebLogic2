@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{renderhead}
+<link rel="stylesheet" href="{asset:vendor/bootstrap/bootstrap.min.css}">
+<link rel="stylesheet" href="{asset:site.css}">
+{weblogic_scripts}
+<script src="{asset:site.js}" defer></script>
+<script src="{asset:vendor/bootstrap/bootstrap.bundle.min.js}" defer></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+{partial:partials/nav}
+<main class="container py-4 flex-grow-1" id="main" data-wl-shell>
+{renderbody}
+</main>
+<footer class="border-top py-3 mt-4">
+  <div class="container d-flex flex-wrap justify-content-between small text-body-secondary">
+    <span>{model:site_name} &middot; built on CL.WebLogic 4.9 and CodeLogic</span>
+    <span><a class="link-secondary" href="/_weblogic/health/ready">health</a> &middot; <a class="link-secondary" href="/_weblogic/explorer">explorer</a></span>
+  </div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,75 @@
+name: Dependabot auto-merge
+
+# Merges a Dependabot pull request once the required checks are green.
+#
+#   github-actions  - auto-merged at every level. A bad Actions bump breaks CI loudly
+#                     rather than shipping anything.
+#   nuget           - patch and minor only. These go INTO the build output.
+#   CodeLogic minor - never. A CodeLogic minor moves the 4.x line this toolkit is
+#                     versioned against, so it is a deliberate version.txt decision.
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch update metadata
+        id: meta
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Decide
+        id: decide
+        run: |
+          set -euo pipefail
+          type='${{ steps.meta.outputs.update-type }}'
+          names='${{ steps.meta.outputs.dependency-names }}'
+          eco='${{ steps.meta.outputs.package-ecosystem }}'
+          echo "ecosystem=$eco type=$type names=$names"
+
+          if [ "$eco" = "github_actions" ]; then
+            echo "merge=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          case "$names" in
+            *CodeLogic*)
+              if [ "$type" != "version-update:semver-patch" ]; then
+                echo "reason=a CodeLogic minor/major update, which moves the version line (edit version.txt deliberately)" >> "$GITHUB_OUTPUT"
+                echo "merge=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              ;;
+          esac
+
+          if [ "$type" = "version-update:semver-major" ]; then
+            echo "reason=a major version bump of a dependency" >> "$GITHUB_OUTPUT"
+            echo "merge=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "merge=true" >> "$GITHUB_OUTPUT"
+
+      - name: Merge
+        if: steps.decide.outputs.merge == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr merge --auto --squash "$PR" || gh pr merge --squash --delete-branch "$PR"
+
+      - name: Explain why it was left alone
+        if: steps.decide.outputs.merge == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.html_url }}" --body "Not auto-merged: ${{ steps.decide.outputs.reason }}. Merge it normally once you are happy."

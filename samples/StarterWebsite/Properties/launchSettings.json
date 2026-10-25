@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "StarterWebsite": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DEMO_PUBLIC_URL": "http://localhost:5080"
+      }
+    }
+  }
+}

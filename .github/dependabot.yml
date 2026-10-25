@@ -1,0 +1,30 @@
+version: 2
+
+# Dependency updates arrive as pull requests, which run the full suite before anyone
+# looks at them. WebLogic takes runtime dependencies on CodeLogic.* only, so the
+# CodeLogic packages are grouped together and always move as one line.
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+    groups:
+      codelogic:
+        patterns:
+          - "CodeLogic*"
+      test-tooling:
+        patterns:
+          - "xunit*"
+          - "Microsoft.NET.Test.Sdk"
+      build-tooling:
+        patterns:
+          - "Microsoft.CodeAnalysis*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies"]

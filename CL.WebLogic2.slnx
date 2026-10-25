@@ -1,0 +1,21 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj" />
+    <Project Path="src/CL.WebLogic/CL.WebLogic.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/CL.WebLogic.ClientBundler/CL.WebLogic.ClientBundler.csproj" />
+    <Project Path="tools/CL.WebLogic.LoadTest/CL.WebLogic.LoadTest.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/MiniBlog.Data/MiniBlog.Data.csproj" />
+    <Project Path="samples/MiniBlog/MiniBlog.csproj" />
+    <Project Path="samples/Plugins/MiniBlog.Admin.Plugin/MiniBlog.Admin.Plugin.csproj" />
+    <Project Path="samples/StarterWebsite/StarterWebsite.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CL.WebLogic.ClientBundler.Tests/CL.WebLogic.ClientBundler.Tests.csproj" />
+    <Project Path="tests/CL.WebLogic.IntegrationTests/CL.WebLogic.IntegrationTests.csproj" />
+    <Project Path="tests/CL.WebLogic.Tests/CL.WebLogic.Tests.csproj" />
+  </Folder>
+</Solution>

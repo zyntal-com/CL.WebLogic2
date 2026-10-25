@@ -1,0 +1,7 @@
+{layout:layouts/main}
+<div class="alert alert-warning">
+  <h2 class="h5">Your recovery codes</h2>
+  <p class="small">Each works once if you lose your authenticator. They are shown only now &mdash; store them somewhere safe.</p>
+  <ul class="recovery-codes list-unstyled mb-2">{foreach:model:codes}<li><code>{item}</code></li>{/foreach}</ul>
+  <a class="btn btn-sm btn-primary" href="/account">Done</a>
+</div>

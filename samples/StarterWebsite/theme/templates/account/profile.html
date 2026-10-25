@@ -1,0 +1,75 @@
+{layout:layouts/main}
+<h1 class="h3 mb-3">Hello, {model:user.userName}</h1>
+{if:model:welcome}<div class="alert alert-success">Welcome! We sent a verification link to your e-mail address.</div>{/if}
+{if:model:sent}<div class="alert alert-info">A new verification link is on its way.</div>{/if}
+{if:model:changed}<div class="alert alert-success">Password changed. Your other sessions were signed out.</div>{/if}
+{if:model:recovered}<div class="alert alert-warning">You signed in with a recovery code. Consider generating new codes below.</div>{/if}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <section class="card mb-4">
+      <div class="card-body">
+        <h2 class="h5">Profile</h2>
+        <dl class="row mb-0 small">
+          <dt class="col-4">User id</dt><dd class="col-8 text-break"><code>{model:user.id}</code></dd>
+          <dt class="col-4">E-mail</dt><dd class="col-8">{model:user.email|default:none}
+            {if:model:user.email}{if:model:user.emailConfirmed}<span class="badge text-bg-success">verified</span>{else}<span class="badge text-bg-warning">not verified</span>
+            <form method="post" action="/account/resend-verification" class="d-inline">{csrf}<button class="btn btn-link btn-sm p-0 align-baseline" type="submit">resend</button></form>{/if}{/if}</dd>
+          <dt class="col-4">Groups</dt><dd class="col-8">{model:user.groups|default:none}</dd>
+          <dt class="col-4">Signed in with</dt><dd class="col-8">{model:methods}</dd>
+          <dt class="col-4">Member since</dt><dd class="col-8">{model:user.createdAt|timeago}</dd>
+        </dl>
+      </div>
+    </section>
+    <section class="card mb-4" id="two-factor-panel">
+      <div class="card-body">
+        <h2 class="h5">Two-factor authentication</h2>
+        {if:model:user.twoFactorEnabled}
+        <p><span class="badge text-bg-success">on</span> {model:recoveryCodes} recovery code(s) left.</p>
+        <div class="d-flex gap-2">
+          <form method="post" action="/account/recovery-codes" data-wl-form>{csrf}<button class="btn btn-outline-primary btn-sm" type="submit">New recovery codes</button></form>
+          <form method="post" action="/account/two-factor/disable">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Turn off</button></form>
+        </div>
+        {else}
+        <p>Protect your account with an authenticator app (TOTP).</p>
+        <a class="btn btn-primary btn-sm" href="/account/two-factor/setup">Set up two-factor</a>
+        {/if}
+      </div>
+    </section>
+    <section class="card mb-4">
+      <div class="card-body">
+        <h2 class="h5">Change password</h2>
+        {form:change-password action="/account/password"}
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-body">
+        <h2 class="h5">Sessions</h2>
+        <p class="small">Signs out every browser and device (also this one).</p>
+        <form method="post" action="/account/sign-out-everywhere">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Sign out everywhere</button></form>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-6">
+    <section class="card">
+      <div class="card-body">
+        <h2 class="h5">API keys</h2>
+        <p class="small">Call <code>/api/v1/me</code> with <code>X-Api-Key: &lt;key&gt;</code>. Keys inherit your groups, carry scopes and can expire.</p>
+        <div id="api-key-result"></div>
+        {if:model:apiKeys}
+        <ul class="list-group mb-3">
+          {foreach:model:apiKeys as k}
+          <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
+            <div class="small">
+              <strong>{k:name}</strong> <code>wl_{k:prefix}_…</code><br>
+              <span class="text-body-secondary">{k:scopes} &middot; created {k:createdAt|timeago}{if:k:lastUsedAt} &middot; used {k:lastUsedAt|timeago}{/if}{if:k:expiresAt} &middot; expires {k:expiresAt|timeago}{/if}</span>
+            </div>
+            <form method="post" action="/account/api-keys/{k:id|urlencode}/revoke">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Revoke</button></form>
+          </li>
+          {/foreach}
+        </ul>
+        {/if}
+        {form:api-key action="/account/api-keys"}
+      </div>
+    </section>
+  </div>
+</div>

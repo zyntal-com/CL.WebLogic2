@@ -1,0 +1,20 @@
+- name: Overview
+  href: index.md
+- name: Marketing site
+  href: marketing-site.md
+- name: CMS / blog
+  href: cms.md
+- name: Admin back office
+  href: admin.md
+- name: SaaS, multi-tenant
+  href: saas-multi-tenant.md
+- name: API for SPA and mobile
+  href: spa-mobile-api.md
+- name: Intranet behind a proxy
+  href: intranet.md
+- name: Gaming community (Steam)
+  href: steam-community.md
+- name: Plugin-heavy platform
+  href: plugin-platform.md
+- name: Cluster
+  href: cluster.md

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{renderhead}
+<link rel="alternate" type="application/rss+xml" title="{model:site_name}" href="/feed.xml">
+<link rel="stylesheet" href="{asset:blog.css}">
+{weblogic_scripts}
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <a class="brand" href="/">{model:site_name}</a>
+    <nav>
+      <a href="/">Posts</a>
+      <a href="/feed.xml">RSS</a>
+      {if:group:admin}<a href="/admin">Admin</a>{/if}
+      {if:auth}
+      <form method="post" action="/logout" class="inline">{csrf}<button class="link" type="submit">Sign out</button></form>
+      {else}
+      <a href="/login">Sign in</a>
+      {/if}
+    </nav>
+  </div>
+</header>
+<div class="wrap layout">
+  <main id="main" data-wl-shell>
+{renderbody}
+  </main>
+  <aside>
+    {widgetarea:sidebar}
+    <section class="box">
+      <h2>About</h2>
+      <p>The MiniBlog sample: CL.WebLogic on CL.MySQL2, with the admin area loaded as a plugin.</p>
+    </section>
+  </aside>
+</div>
+<footer class="wrap"><small>{model:site_name} &middot; <a href="/sitemap.xml">sitemap</a></small></footer>
+</body>
+</html>

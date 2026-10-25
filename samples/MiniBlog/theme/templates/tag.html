@@ -1,0 +1,10 @@
+{layout:layouts/main}
+<h1>Posts tagged #{model:tag}</h1>
+{foreach:model:posts as p}
+<article class="card">
+  <h2><a href="{p:url}">{p:title}</a></h2>
+  <p class="meta">{p:author} &middot; {p:publishedAt|timeago}</p>
+  <p>{p:summary}</p>
+</article>
+{/foreach}
+{partial:partials/pager}

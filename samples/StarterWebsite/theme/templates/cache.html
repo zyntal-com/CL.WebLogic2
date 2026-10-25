@@ -1,0 +1,20 @@
+{layout:layouts/main}
+<h1 class="h3">Caching</h1>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card card-body">
+      <p class="mb-1">This page was rendered at <strong data-rendered-at>{model:renderedAt}</strong> UTC.</p>
+      <p class="mb-3">{model:fragment}</p>
+      <p class="small text-body-secondary">Anonymous visitors get it from the output cache (reload: the time stays). Signed-in visitors always get a fresh render &mdash; WebLogic never caches a response that could be personal (session, cookies, CSRF token, credentials).</p>
+      <div data-wl-module="cache-evict"><button class="btn btn-outline-primary btn-sm" type="button">Evict tag &ldquo;cache-demo&rdquo;</button> <span class="small" data-evict-status></span></div>
+    </div>
+  </div>
+  <div class="col-lg-5 small">
+    <h2 class="h6">How</h2>
+    <ul>
+      <li><code>.WithOutputCache("cache-demo")</code> on the route; the policy tags it <code>cache-demo</code>.</li>
+      <li>The report fragment uses <code>request.Cache.GetOrAddAsync</code> with the same tag (and a single factory run under load).</li>
+      <li>The button POSTs <code>/cache/evict</code>; the client fetches a CSRF token on demand, so the cached page holds none.</li>
+    </ul>
+  </div>
+</div>

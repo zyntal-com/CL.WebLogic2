@@ -1,0 +1,121 @@
+# WebLogic sample sites: StarterWebsite (JSON-file persistence) and MiniBlog (MySQL), with Mailpit
+# catching the security e-mails. Optional Caddy reverse proxy with automatic HTTPS:
+#
+#   docker compose up -d --build                 # http://localhost:5080, :5081, mail UI :8025
+#   docker compose --profile proxy up -d --build # https://$STARTER_DOMAIN, https://$BLOG_DOMAIN
+#
+# Configuration: copy .env.example to .env. State lives in named volumes (docker compose down -v resets).
+name: weblogic-demo
+
+x-app: &app
+  restart: unless-stopped
+  networks: [web]
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+services:
+  starter:
+    <<: *app
+    build:
+      context: ../..
+      dockerfile: samples/docker/Dockerfile
+      args: { SAMPLE: StarterWebsite }
+    image: weblogic-demo/starter:latest
+    environment:
+      DEMO_SITE_NAME: WebLogic Starter
+      DEMO_PUBLIC_URL: ${STARTER_PUBLIC_URL:-http://localhost:5080}
+      DEMO_ADMIN_PASSWORD: ${STARTER_ADMIN_PASSWORD:-}
+      DEMO_EXPLORER: ${DEMO_EXPLORER:-true}
+      DEMO_TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      DEMO_HTTPS: ${DEMO_HTTPS:-false}
+      DEMO_MAIL_FROM: starter@weblogic.local
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      STEAM_SIGNIN: ${STEAM_SIGNIN:-false}
+    ports: ["${STARTER_PORT:-5080}:8080"]
+    volumes: [starter-data:/data]
+    depends_on: [mailpit]
+
+  miniblog:
+    <<: *app
+    build:
+      context: ../..
+      dockerfile: samples/docker/Dockerfile
+      args: { SAMPLE: MiniBlog }
+    image: weblogic-demo/miniblog:latest
+    environment:
+      DEMO_SITE_NAME: Northwind Journal
+      DEMO_PUBLIC_URL: ${MINIBLOG_PUBLIC_URL:-http://localhost:5081}
+      DEMO_ADMIN_PASSWORD: ${MINIBLOG_ADMIN_PASSWORD:-}
+      # The users live in MySQL; set a pepper here so the hashes do not depend on the app volume.
+      DEMO_PASSWORD_PEPPER: ${MINIBLOG_PASSWORD_PEPPER:-}
+      DEMO_EXPLORER: ${DEMO_EXPLORER:-true}
+      DEMO_TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      DEMO_HTTPS: ${DEMO_HTTPS:-false}
+      DEMO_MAIL_FROM: blog@weblogic.local
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURITY: none
+      MINIBLOG_MYSQL_HOST: mysql
+      MINIBLOG_MYSQL_DATABASE: miniblog
+      MINIBLOG_MYSQL_USERNAME: miniblog
+      MINIBLOG_MYSQL_PASSWORD: ${MYSQL_PASSWORD:-miniblog-demo-password}
+    ports: ["${MINIBLOG_PORT:-5081}:8080"]
+    volumes: [miniblog-data:/data]
+    depends_on:
+      mysql: { condition: service_healthy }
+      mailpit: { condition: service_started }
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    networks: [web]
+    environment:
+      MYSQL_DATABASE: miniblog
+      MYSQL_USER: miniblog
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-miniblog-demo-password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root-demo-password}
+    volumes: [mysql-data:/var/lib/mysql]
+    # Local development only (dotnet run samples/MiniBlog); loopback, never public.
+    ports: ["127.0.0.1:${MYSQL_PORT:-3307}:3306"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    networks: [web]
+    ports: ["${MAILPIT_PORT:-8025}:8025"]
+
+  proxy:
+    image: caddy:2
+    profiles: [proxy]
+    restart: unless-stopped
+    networks:
+      web: { ipv4_address: 172.30.0.10 }
+    environment:
+      STARTER_DOMAIN: ${STARTER_DOMAIN:-starter.localhost}
+      BLOG_DOMAIN: ${BLOG_DOMAIN:-blog.localhost}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [starter, miniblog]
+
+networks:
+  web:
+    ipam:
+      config: [{ subnet: 172.30.0.0/24 }]
+
+volumes:
+  starter-data:
+  miniblog-data:
+  mysql-data:
+  caddy-data:

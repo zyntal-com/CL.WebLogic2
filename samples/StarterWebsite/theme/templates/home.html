@@ -1,0 +1,18 @@
+{layout:layouts/main}
+<div class="row g-4 align-items-center mb-4">
+  <div class="col-lg-8">
+    <h1 class="display-6 fw-semibold">A web toolkit you build on</h1>
+    <p class="lead">This site is the reference app for <strong>CL.WebLogic</strong>: routing, templates, an ordered security pipeline, accounts with two-factor and API keys, forms, widgets, dashboards, realtime and caching &mdash; with persistence owned by the app (JSON files here).</p>
+    <p class="text-body-secondary">{model:members} member(s) &middot; {model:online} live connection(s)</p>
+    {ifnot:auth}{if:model:registration}<a class="btn btn-primary" href="/account/register">Create an account</a>{/if} <a class="btn btn-outline-secondary" href="/account/login">Sign in</a>{/ifnot}
+  </div>
+  <div class="col-lg-4">{widgetarea:home}</div>
+</div>
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+  <div class="col"><a class="card h-100 demo-card" href="/account"><div class="card-body"><h2 class="h5">Accounts</h2><p class="card-text">Registration, e-mail verification, password reset, TOTP two-factor with recovery codes, Steam sign-in and personal API keys.</p></div></a></div>
+  <div class="col"><a class="card h-100 demo-card" href="/forms"><div class="card-body"><h2 class="h5">Forms</h2><p class="card-text">Model-driven forms: validation on both sides, conditional fields, repeaters, uploads checked by content, a wizard, a honeypot.</p></div></a></div>
+  <div class="col"><a class="card h-100 demo-card" href="/dashboard"><div class="card-body"><h2 class="h5">Dashboard</h2><p class="card-text">Widgets you arrange with drag and drop or Alt+arrow keys. Layouts are saved per user with optimistic versions.</p></div></a></div>
+  <div class="col"><a class="card h-100 demo-card" href="/live"><div class="card-body"><h2 class="h5">Live wall</h2><p class="card-text">Server-sent events with audiences and replay on reconnect. Post from the page or with an API key.</p></div></a></div>
+  <div class="col"><a class="card h-100 demo-card" href="/cache"><div class="card-body"><h2 class="h5">Caching</h2><p class="card-text">Output cache for anonymous pages (never for personal ones) and a tagged fragment cache.</p></div></a></div>
+  <div class="col"><a class="card h-100 demo-card" href="/_weblogic/explorer"><div class="card-body"><h2 class="h5">Explorer</h2><p class="card-text">Every route with its protection, the security pipeline, widgets and forms. Open in Development; admins only in production.</p></div></a></div>
+</div>

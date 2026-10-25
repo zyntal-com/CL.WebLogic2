@@ -1,0 +1,8 @@
+{layout:layouts/main}
+<div class="text-center py-5">
+  <h1 class="display-5">{model:status_code} {model:reason}</h1>
+  <p class="lead">Something went wrong.</p>
+  {if:model:trace_id}<p class="small text-body-secondary">Reference: <code>{model:trace_id}</code></p>{/if}
+  {if:model:error_message}<pre class="text-start small bg-body-tertiary p-3">{model:error_message}</pre>{/if}
+  <a class="btn btn-primary" href="/">Home</a>
+</div>

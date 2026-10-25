@@ -1,0 +1,47 @@
+<Project>
+  <!--
+    Derive AssemblyVersion from $(Version) — strip any -prerelease suffix AND
+    any +build-metadata (e.g. 4.9.142-preview+a1b2c3d → 4.9.142) so the value
+    parses as a numeric System.Version, then keep only Major.Minor.0.0 so every
+    patch loads interchangeably.
+  -->
+  <PropertyGroup>
+    <_CleanVersion>$(Version.Split('-')[0].Split('+')[0])</_CleanVersion>
+    <AssemblyVersion>$([System.Version]::Parse($(_CleanVersion)).Major).$([System.Version]::Parse($(_CleanVersion)).Minor).0.0</AssemblyVersion>
+  </PropertyGroup>
+
+  <!--
+    Packable projects get the shared InternalLibraryVersion helper (so
+    LibraryManifest.Version tracks the package version), the repo LICENSE and
+    the root CHANGELOG.md.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/InternalLibraryVersion.cs"
+             Link="Shared/InternalLibraryVersion.cs" />
+    <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="/" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    Populate PackageReleaseNotes from the root CHANGELOG.md so the "Release Notes"
+    section on NuGet.org shows what changed. NuGet rejects release notes over
+    35 000 characters, so long notes are cut back to a line boundary and point
+    at the CHANGELOG.md that ships inside the package.
+  -->
+  <Target Name="_InjectChangelogIntoPackageReleaseNotes"
+          BeforeTargets="GenerateNuspec"
+          Condition="Exists('$(MSBuildThisFileDirectory)CHANGELOG.md')">
+    <PropertyGroup>
+      <_ChangelogText>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)CHANGELOG.md'))</_ChangelogText>
+      <_ChangelogLimit>30000</_ChangelogLimit>
+      <_ChangelogHead>$(_ChangelogText.Substring(0, $([System.Math]::Min($(_ChangelogLimit), $(_ChangelogText.Length)))))</_ChangelogHead>
+      <_ChangelogTrimmed>$(_ChangelogHead.Substring(0, $([System.Math]::Max(0, $(_ChangelogHead.LastIndexOf('%0A'))))))</_ChangelogTrimmed>
+      <PackageReleaseNotes Condition="$(_ChangelogText.Length) &lt;= $(_ChangelogLimit)">$(_ChangelogText)</PackageReleaseNotes>
+      <PackageReleaseNotes Condition="$(_ChangelogText.Length) &gt; $(_ChangelogLimit)">$(_ChangelogTrimmed)
+
+---
+
+Release notes truncated to fit NuGet's 35 000 character limit. The complete changelog ships inside this package as CHANGELOG.md.</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
+</Project>

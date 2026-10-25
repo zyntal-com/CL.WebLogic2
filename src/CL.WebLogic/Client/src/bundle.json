@@ -1,0 +1,11 @@
+{
+  "header": "WebLogic client {version} | MIT | https://github.com/zyntal-com/CL.WebLogic2",
+  "bundles": [
+    { "name": "weblogic", "entry": "index.js", "formats": ["esm", "iife"] },
+    { "name": "weblogic.bootstrap5", "entry": "adapters/bootstrap5.js", "formats": ["esm", "iife"] },
+    { "name": "weblogic.tests", "entry": "tests/index.js", "formats": ["esm"] }
+  ],
+  "assets": [
+    { "name": "weblogic.css", "source": "weblogic.css" }
+  ]
+}

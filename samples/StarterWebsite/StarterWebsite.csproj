@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!--
+    The reference website for CL.WebLogic: every toolkit area in use, with app-owned JSON-file
+    persistence under the data folder (no database). See README.md.
+  -->
+  <PropertyGroup>
+    <RootNamespace>StarterWebsite</RootNamespace>
+    <UsesWebLogic>true</UsesWebLogic>
+    <UsesSampleHosting>true</UsesSampleHosting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CodeLogic" />
+  </ItemGroup>
+
+  <!-- The theme is read from the content root: the project folder under `dotnet run`, the app folder when published. -->
+  <ItemGroup>
+    <None Update="theme\**\*" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

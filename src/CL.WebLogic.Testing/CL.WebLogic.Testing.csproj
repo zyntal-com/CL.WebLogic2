@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.Testing</RootNamespace>
+    <AssemblyName>CL.WebLogic.Testing</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>CodeLogic.WebLogic.Testing</PackageId>
+    <Description>Test helpers for CodeLogic.WebLogic apps — an in-process Kestrel test host and fakes for the toolkit context. No third-party dependencies beyond CodeLogic.*.</Description>
+    <PackageTags>codelogic;web;testing</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\CL.WebLogic\CL.WebLogic.csproj" />
+  </ItemGroup>
+</Project>

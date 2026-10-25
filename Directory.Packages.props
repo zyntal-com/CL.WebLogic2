@@ -1,0 +1,39 @@
+<Project>
+  <!--
+    Central package management. Dependency rule (see AGENTS.md):
+      - runtime: CodeLogic and CodeLogic.* packages only, plus the ASP.NET shared framework
+      - build-time only: Microsoft.CodeAnalysis.CSharp for the template source generator (never shipped)
+      - tests only: xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk (same as CodeLogic)
+    CodeLogic.MySQL2 is referenced by the MiniBlog sample only — never by src/.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="CodeLogic">
+    <PackageVersion Include="CodeLogic" Version="4.9.24" />
+    <PackageVersion Include="CodeLogic.Common" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.GitHelper" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.NetUtils" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.Storage" Version="4.9.99" />
+    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.Mail" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.MySQL2" Version="4.9.98" />
+  </ItemGroup>
+
+  <ItemGroup Label="Samples only">
+    <!-- Used when a sample builds with -p:WebLogicFromPackage=true (CI, Docker). -->
+    <PackageVersion Include="CodeLogic.WebLogic" Version="$(WebLogicPackageVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Build-time only">
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="Tests only">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+</Project>

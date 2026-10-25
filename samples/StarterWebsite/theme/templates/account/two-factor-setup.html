@@ -1,0 +1,13 @@
+{layout:layouts/main}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h1 class="h3 mb-3">Set up two-factor</h1>
+    <ol>
+      <li>Scan the code with an authenticator app (or type the key).</li>
+      <li>Enter the 6-digit code it shows.</li>
+    </ol>
+    <div class="text-center my-3">{model:qr}</div>
+    <p class="text-center"><code class="user-select-all">{model:secret}</code></p>
+    <div id="two-factor-panel">{form:two-factor-setup}</div>
+  </div>
+</div>

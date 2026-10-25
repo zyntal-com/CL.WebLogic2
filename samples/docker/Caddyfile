@@ -1,0 +1,16 @@
+# TLS terminating reverse proxy for the samples (docker compose --profile proxy up).
+# The apps trust X-Forwarded-For/-Proto only from this container (TRUSTED_PROXIES=172.30.0.10).
+{
+	# Uncomment for Let's Encrypt notices:
+	# email you@example.com
+}
+
+{$STARTER_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy starter:8080
+}
+
+{$BLOG_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy miniblog:8080
+}

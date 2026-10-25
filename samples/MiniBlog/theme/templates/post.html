@@ -1,0 +1,7 @@
+{layout:layouts/main}
+<article class="post">
+  <h1>{model:title}</h1>
+  <p class="meta">{model:author} &middot; {model:publishedAt|date:yyyy-MM-dd}</p>
+  <div class="body">{model:body|markdown}</div>
+  <p class="tags">{foreach:model:tags as t}<a class="tag" href="{t:url}">#{t:name}</a> {/foreach}</p>
+</article>

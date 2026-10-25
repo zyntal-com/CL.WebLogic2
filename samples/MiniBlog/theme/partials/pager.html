@@ -1,0 +1,5 @@
+<nav class="pager">
+  {if:model:previousUrl}<a href="{model:previousUrl}">&larr; Newer</a>{/if}
+  <span>Page {model:page} of {model:totalPages}</span>
+  {if:model:nextUrl}<a href="{model:nextUrl}">Older &rarr;</a>{/if}
+</nav>

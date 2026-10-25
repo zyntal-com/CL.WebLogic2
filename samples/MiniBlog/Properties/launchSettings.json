@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "MiniBlog": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5081",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DEMO_PUBLIC_URL": "http://localhost:5081",
+        "MINIBLOG_MYSQL_HOST": "127.0.0.1",
+        "MINIBLOG_MYSQL_PORT": "3307",
+        "MINIBLOG_MYSQL_DATABASE": "miniblog",
+        "MINIBLOG_MYSQL_USERNAME": "miniblog",
+        "MINIBLOG_MYSQL_PASSWORD": "miniblog-demo-password"
+      }
+    }
+  }
+}

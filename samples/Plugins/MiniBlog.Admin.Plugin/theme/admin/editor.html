@@ -1,0 +1,10 @@
+{layout:layouts/main}
+<h1>{model:heading}</h1>
+{form:post-editor}
+{if:model:id}
+<form method="post" action="/admin/posts/{model:id|urlencode}/delete" class="danger-zone">
+  {csrf}
+  <button type="submit" class="danger">Delete this post</button>
+  {if:model:url}<a href="{model:url}">View on the site</a>{/if}
+</form>
+{/if}

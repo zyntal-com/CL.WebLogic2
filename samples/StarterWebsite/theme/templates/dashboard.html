@@ -1,0 +1,15 @@
+{layout:layouts/main}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">Your dashboard</h1>
+  <div class="d-flex gap-2">
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Add widget</button>
+      <ul class="dropdown-menu" data-wl-module="dashboard-add" data-dashboard="{model:key}">
+        {foreach:model:widgets as w}<li><button class="dropdown-item" type="button" data-widget="{w:name}">{w:name} <small class="text-body-secondary d-block">{w:description}</small></button></li>{/foreach}
+      </ul>
+    </div>
+    <button class="btn btn-primary btn-sm" type="button" data-wl-dashboard-edit="{model:key}" aria-pressed="false">Edit layout</button>
+  </div>
+</div>
+<p class="small text-body-secondary">In edit mode: drag widgets between columns, or focus one and use Alt+arrow keys. Saved per user, with a version check so two tabs cannot overwrite each other.</p>
+{model:dashboard}

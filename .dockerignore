@@ -1,0 +1,13 @@
+# Build context for samples/docker/Dockerfile is the repo root: send sources only.
+**/bin/
+**/obj/
+**/data/
+**/node_modules/
+.git/
+.github/
+.vs/
+.idea/
+tests/
+docs/
+artifacts/
+*.user

@@ -1,0 +1,13 @@
+{layout:layouts/main}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-5">
+    <h1 class="h3 mb-3">E-mail verification</h1>
+    {if:model:confirmed}
+    <div class="alert alert-success">Thanks &mdash; your e-mail address is confirmed.</div>
+    <a class="btn btn-primary" href="/account">Go to your account</a>
+    {else}
+    <div class="alert alert-warning">This link is invalid, expired or was already used.</div>
+    {if:auth}<form method="post" action="/account/resend-verification">{csrf}<button class="btn btn-outline-primary" type="submit">Send a new link</button></form>{/if}
+    {/if}
+  </div>
+</div>

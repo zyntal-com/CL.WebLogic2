@@ -1,0 +1,9 @@
+{layout:layouts/main}
+<div class="row justify-content-center">
+  <div class="col-md-9 col-lg-7">
+    <h1 class="h3">Wizard</h1>
+    <p class="text-body-secondary">Each step is validated on its own; progress travels in a signed token, so the server keeps no state between steps.</p>
+    {if:model:done}<div class="alert alert-success">Project &ldquo;{model:done}&rdquo; created.</div>{/if}
+    {form:project-wizard}
+  </div>
+</div>

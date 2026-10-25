@@ -1,0 +1,5 @@
+[*.cs]
+# Test names use Method_Scenario_Expectation underscores.
+dotnet_diagnostic.CA1707.severity = none
+# Tests are not a public API.
+dotnet_diagnostic.CA1515.severity = none
