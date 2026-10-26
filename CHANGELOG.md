@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 4.9.2-preview (2026-10-26)
 
 ### Added
 
