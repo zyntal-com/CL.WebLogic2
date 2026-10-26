@@ -18,8 +18,8 @@ report lists exactly what to fix.
 | Contract | Holds | Register with |
 |---|---|---|
 | `IWebSessionStore` | Sessions | `web.UseSessionStore<T>()` |
-| `IWebUserStore`, `IWebApiKeyStore`, `IWebRecoveryCodeStore` | Accounts | `UseUserStore`, `UseApiKeyStore`, `UseRecoveryCodeStore` |
-| `IWebOneTimeUseStore` | Spent TOTP steps, single-use links | `web.UseOneTimeUseStore<T>()` |
+| `IWebUserStore`, `IWebApiKeyStore`, `IWebRecoveryCodeStore`, `IWebPasskeyStore` | Accounts | `UseUserStore`, `UseApiKeyStore`, `UseRecoveryCodeStore`, `UsePasskeyStore` |
+| `IWebOneTimeUseStore` | Spent TOTP steps, single-use links, spent passkey challenges | `web.UseOneTimeUseStore<T>()` |
 | `IWebLoginThrottle` | Sign-in back-off | `web.UseLoginThrottle<T>()` |
 | `IWebRateLimitStore` | Rate-limit buckets | `web.UseRateLimitStore<T>()` |
 | `IWebRealtimeBackplane` | Realtime fan-out | `web.UseRealtimeBackplane<T>()` |
@@ -38,7 +38,8 @@ every store above plus the key ring (`UseMySqlStores`, `PersistKeysToMySql`); Mi
 ```csharp
 builder.Services.AddDataProtection()
     .SetApplicationName("my-site")                 // the same on every node
-    .PersistKeysToFileSystem(new DirectoryInfo("/shared/keys"));   // or a database/Redis/blob repository
+    .PersistKeysToCodeLogicStorage("shared")       // CL.Storage; or PersistKeysToMySql(...) with the MySQL add-on
+    .ProtectKeysWithSecret("KEYRING_SECRET");     // encrypted at rest
 ```
 
 Without a shared key ring a session started on node A cannot be read on node B, and 2FA secrets

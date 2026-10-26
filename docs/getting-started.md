@@ -173,6 +173,7 @@ web.UseUserStore<MyUserStore>()
    .UseSessionStore<MySessionStore>()
    .UseApiKeyStore<MyApiKeyStore>()              // only if you offer API keys
    .UseRecoveryCodeStore<MyRecoveryCodeStore>()  // only if you offer two-factor sign-in
+   .UsePasskeyStore<MyPasskeyStore>()            // only if you offer passkeys
    .UseMailNotifications();                      // security e-mails via CL.Mail
 ```
 

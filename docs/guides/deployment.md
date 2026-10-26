@@ -4,7 +4,7 @@
 
 | | Setting / code | Why |
 |---|---|---|
-| ☐ | Real stores for users, sessions, API keys, recovery codes | The app refuses to start with in-memory security stores outside Development |
+| ☐ | Real stores for users, sessions, API keys, recovery codes, passkeys | The app refuses to start with in-memory security stores outside Development |
 | ☐ | `UseMailNotifications()` (or your own notifier) | Reset, verification and alert e-mails; the outbox notifier refuses to run in production |
 | ☐ | DataProtection keys persisted (`PersistKeysToCodeLogicStorage(...)` or another `PersistKeysTo...`), encrypted at rest, and an application name set | Session tokens, 2FA secrets, link tokens and wizard state are protected with these keys; losing them signs everybody out and breaks 2FA |
 | ☐ | `publicBaseUrl` = the public `https://` URL | Links in e-mails, canonical redirects, secure cookies behind a TLS proxy |
@@ -12,6 +12,7 @@
 | ☐ | `security.forwardedHeaders` with the proxy's address (behind a proxy) | Real client IPs for rate limits, lockout and audit |
 | ☐ | `auth.passwords.pepper` (optional), `security.audit.ipHashKey` | Secrets: keep them out of source control |
 | ☐ | `auth.twoFactor.issuer`, `auth.notifications.fromAddress` | What users see in authenticator apps and e-mails |
+| ☐ | `PublicBaseUrl` (or `auth.passkeys.relyingPartyId` and `origins`) when you offer passkeys | Passkeys are bound to the RP id; changing it later orphans every registered passkey |
 | ☐ | Review `/_weblogic/explorer.json` in a staging run | Every anonymous route should be intended |
 | ☐ | `theme.templateChangeCheckSeconds = 0` for immutable themes | No file checks per render |
 

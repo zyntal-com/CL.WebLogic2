@@ -4,8 +4,9 @@
 rebuilt from the ground up.
 
 WebLogic gives a CodeLogic application the runtime pieces of a web stack — routing on real
-ASP.NET Core endpoints, an ordered security pipeline, auth flow helpers, templates, forms,
-widgets and realtime — while the application keeps ownership of persistence and policy.
+ASP.NET Core endpoints, an ordered security pipeline, auth flow helpers (passwords, passkeys,
+TOTP, magic links, API keys, external providers), templates, forms, widgets and realtime — while
+the application keeps ownership of persistence and policy.
 
 > **Status:** preview (4.9.x). The rebuild is milestone based; see `CHANGELOG.md` for what has
 > landed. The previous `CL.WebLogic` 0.x line is not compatible.

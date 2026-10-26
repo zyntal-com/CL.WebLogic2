@@ -9,6 +9,9 @@ application has to supply.
 | [Routing and results](routing.md) | Contributors, route groups, handlers, results, minimal APIs alongside |
 | [Security pipeline](security-pipeline.md) | Stages, authorization policies, CSRF, headers, proxies, rate limits, audit |
 | [Authentication and accounts](authentication.md) | Stores, sign-in, two-factor, recovery codes, links, API keys, external providers, tenants |
+| [Passkeys](passkeys.md) | Passwordless sign-in, passkey as second factor and step-up, the client buttons, what is verified, testing |
+| [External logins (add-on)](external-logins.md) | Steam and OAuth 2.0 / OpenID Connect providers with presets |
+| [MySQL stores (add-on)](mysql-stores.md) | Every store and the key ring on CL.MySQL2 |
 | [Forms](forms.md) | Form models, rendering, validation, options, uploads, wizards, anti-bot |
 | [Templates and themes](templates.md) | Syntax, encoding contexts, filters, layouts, Markdown, theme sources |
 | [JavaScript client](client.md) | Modules, http, forms, navigation, commands, UI adapters |

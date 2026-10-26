@@ -7,7 +7,7 @@ CodeLogic application the runtime parts of a web stack and leaves the decisions 
 |---|---|
 | Routes on real ASP.NET Core endpoints, route groups, results | What your pages and APIs do |
 | An ordered security pipeline: hosts, HTTPS, IP rules, rate limits, authentication, authorization, CSRF, hardened responses, audit | Which policies apply where |
-| Sign-in flows: passwords, TOTP two-factor with recovery codes, magic links, API keys, bearer tokens, external providers | Where users, sessions and keys are stored |
+| Sign-in flows: passwords, passkeys, TOTP two-factor with recovery codes, magic links, API keys, bearer tokens, external providers | Where users, sessions and keys are stored |
 | Templates with context-aware encoding, Markdown, an HTML sanitizer | Your theme |
 | Model-driven forms: rendering, client and server validation, uploads, wizards | Your form models |
 | Widgets, widget areas, dashboards | Your widgets and dashboard storage |

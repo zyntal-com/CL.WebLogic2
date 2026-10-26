@@ -15,6 +15,8 @@ What WebLogic protects, with what, and where your application has to take over.
 | Credential stuffing | PBKDF2 600k, per-login back-off, lockout, per-IP cap, one attempt at a time per login, generic errors |
 | Account enumeration | Constant work for unknown users; reset/magic-link requests answer the same |
 | 2FA bypass / replay | Pending second factor is a separate session stage; each TOTP step used once; attempts throttled |
+| Phishing, passkey replay or cloning | Passkey assertions are bound to the origin and RP id; each challenge is sealed and single-use; signatures are verified against the stored key; a counter that goes backwards refuses the sign-in |
+| Lockout abuse via passkeys | Failed passkey attempts are throttled per credential and IP but never count towards account lockout (credential ids are not secret) |
 | Link token abuse | DataProtection, purpose, expiry, bound to the security stamp, single-use, mail rate-limited per address |
 | Account pre-hijacking | Magic-link confirmation of a never-confirmed address drops the pre-set password |
 | Stale sessions | Security stamp checks end other sessions after password/2FA/e-mail changes |

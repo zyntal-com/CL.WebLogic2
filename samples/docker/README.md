@@ -4,7 +4,7 @@ Two sample sites built on CL.WebLogic, ready to run locally or deploy to a serve
 
 | Service | What it shows | Local URL |
 |---|---|---|
-| `starter` | The reference site: accounts (verification, password reset, TOTP two-factor with recovery codes, API keys, optional Steam sign-in), forms gallery and wizard, per-user dashboards, live wall over SSE, output and fragment caching, the API explorer. Persistence: JSON files on its volume. | http://localhost:5080 |
+| `starter` | The reference site: accounts (verification, password reset, passkeys, TOTP two-factor with recovery codes, API keys, optional Steam, Google, Microsoft, GitHub and Discord sign-in), forms gallery and wizard, per-user dashboards, live wall over SSE, output and fragment caching, the API explorer. Persistence: JSON files on its volume. | http://localhost:5080 |
 | `miniblog` | A blog on MySQL (CL.MySQL2): cached public pages, RSS and sitemap, MySQL-backed accounts and sessions, and an admin area that is a **plugin** loaded at startup. | http://localhost:5081 |
 | `mysql` | MySQL 8.4 for MiniBlog. | 127.0.0.1:3307 (local dev only) |
 | `mailpit` | Catches every security e-mail (verification, reset links). | http://localhost:8025 |

@@ -25,6 +25,7 @@ builder.Services.AddDataProtection()
 | `IWebRateLimitStore` | `wl_rate_limits` | Token buckets, one round trip per limited request |
 | `IWebAuditSink` | `wl_audit` | Retention via `AuditRetention` (90 days) |
 | `IWebWidgetSettingsStore`, `IWebDashboardLayoutStore` | `wl_widget_settings`, `wl_dashboards` | Optimistic versions for dashboards |
+| `IWebPasskeyStore` | `wl_passkeys` | Unique credential ids; the signature counter is a compare-and-swap |
 | DataProtection key ring | `wl_dataprotection_keys` | `PersistKeysToMySql` |
 
 Tables are created and updated at startup (`SyncSchemaOnStart`), and a background sweep deletes

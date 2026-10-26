@@ -21,8 +21,8 @@ store contracts and WebLogic calls them.
 
 `web.UseInMemoryAccounts()` registers in-memory users, sessions, keys and codes for development and
 tests. Outside Development the app refuses to start while any of them is still in memory. The
-samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructure`, MySQL in
-`samples/MiniBlog.Data/Stores`.
+samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructure`; MiniBlog uses
+the [`CodeLogic.WebLogic.MySql`](mysql-stores.md) add-on.
 
 ## Signing in
 
@@ -74,8 +74,14 @@ web.AddAuthorizationPolicy("payouts", p => p.RequireAnyGroup("finance").RequireR
 When it fails, pages redirect to the login path with `reauth=1&returnUrl=…` and APIs answer `401`
 with `WWW-Authenticate: WebLogic error="reauthentication_required"`. Users prove themselves with
 `request.Auth.ReauthenticateAsync(password, code)` (the code is required when they use two-factor
-authentication) or by simply signing in again; refreshing the session does not count. Users without a
-password sign in again through their magic link or provider.
+authentication), `ReauthenticateWithPasskeyAsync` ([Passkeys](passkeys.md)) or by simply signing in
+again; refreshing the session does not count. Users without a password sign in again through their
+magic link, provider or passkey.
+
+The listed methods must **all** have been used in the latest sign-in. The method names are `pwd`,
+`otp`, `recovery`, `passkey`, `link` and `ext:{provider}`. A passkey sign-in records only `passkey`,
+so `"pwd", "otp"` above sends passkey users to prove themselves again with a password and code. List
+the methods you really need, or none to accept any recent sign-in.
 
 ## Sessions as devices
 

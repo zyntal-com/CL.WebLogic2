@@ -6,13 +6,12 @@ wall, and admins post announcements. The StarterWebsite has the Steam sign-in an
 
 ## Steam sign-in
 
-`samples/StarterWebsite/Steam/SteamOpenIdProvider.cs` is a complete `IWebExternalLoginProvider` for
-Steam's OpenID 2.0 (no API key needed; the assertion is verified by posting it back to Steam). Copy it
-into your app and register it:
+The `CodeLogic.WebLogic.ExternalLogins` add-on has a complete provider for Steam's OpenID 2.0 (no API
+key needed; the assertion is verified by posting it back to Steam). Reference the package and register
+it ([External logins](../guides/external-logins.md)):
 
 ```csharp
-web.Services.AddHttpClient(SteamOpenIdProvider.HttpClientName, c => c.Timeout = TimeSpan.FromSeconds(10));
-web.AddExternalLoginProvider<SteamOpenIdProvider>();
+web.AddSteamLogin();
 ```
 
 Two routes start and finish the flow:
@@ -45,7 +44,8 @@ async ValueTask<WebResult> CallbackAsync(WebRequestContext r, CancellationToken 
 ```
 
 `WebExternalLoginFlow` keeps state and expiry in a protected `__Host-` cookie and only returns to local
-URLs. `SignInExternalAsync` (not `SignInAsync`) makes players who turned on two-factor authentication
+URLs. Players can add a passkey afterwards and skip Steam on their next visit ([Passkeys](../guides/passkeys.md)).
+`SignInExternalAsync` (not `SignInAsync`) makes players who turned on two-factor authentication
 enter their code, records `ext:steam` as the sign-in method, and `persistent: true` keeps them
 signed in across browser restarts.
 

@@ -28,6 +28,11 @@ support agent of region A editing a customer of region B).
   `.RequireRecentSignIn(TimeSpan.FromMinutes(10), "pwd", "otp")` on refunds or user management. Staff
   without 2FA are sent to the admin login page; a "confirm it's you" form calls
   `request.Auth.ReauthenticateAsync(password, code)`.
+- Passkeys are the easiest strong option for staff: a passkey sign-in counts as multi-factor, a passkey
+  can stand in for the TOTP code, and `ReauthenticateWithPasskeyAsync` answers the "confirm it's you"
+  step. Mind the method names: `RequireRecentSignIn` needs *all* the listed methods, and a passkey records
+  `passkey` (not `otp`). For a passkey-only staff area require `"passkey"`; to accept either, list no
+  methods and rely on two-factor being enforced at sign-in. See [Passkeys](../guides/passkeys.md).
 - External sign-in (company SSO) goes through `SignInExternalAsync`, so the same two-factor rules apply.
 - `auth.lockout`, the per-login throttle and the per-IP cap are on by default.
 - Shorter sessions: `security.session.idleTimeoutMinutes: 30`, `absoluteTimeoutHours: 12`.

@@ -5,7 +5,8 @@ Web application toolkit for [CodeLogic](https://github.com/zyntal-com/CodeLogic)
 - Real ASP.NET Core endpoints for pages, APIs, fragments and SSE — mixes freely with minimal APIs
 - An ordered, extensible security pipeline (proxy trust, hosts, HTTPS, IP rules, reputation, rate
   limits, authentication, policy authorization, CSRF, response hardening, audit)
-- Auth flows: password sign-in with lockout, TOTP 2FA with recovery codes, magic links, API keys,
+- Auth flows: password sign-in with lockout, passkeys (WebAuthn, verified in-house), TOTP 2FA with
+  recovery codes, magic links, API keys,
   bearer tokens, external providers, tenants — on stores your app supplies
 - Template engine with context-aware encoding, CSP nonces, Markdown and an HTML sanitizer
 - Model-driven forms: validation, conditional fields, repeaters, wizards, uploads, anti-bot

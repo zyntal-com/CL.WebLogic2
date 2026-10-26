@@ -35,6 +35,8 @@ public async Task Anonymous_post_without_a_csrf_token_is_refused()
 - `DelegateContributor`: map routes inline in a test.
 - `TemplateTestRenderer` + `InMemoryTemplateLoader`: render templates without a host.
 - `ManualTimeProvider`: control time for lockouts, token expiry and sessions.
+- `WebTestAuthenticator`: a software passkey authenticator; turns your passkey endpoints' options into
+  the JSON a browser posts back, with real keys, signatures and attestation (none, packed, fido-u2f).
 - `FakeWebLogicContext` + `RecordingLogger`: assert on what the toolkit logged.
 
 Works with any test framework. No third-party dependencies beyond CodeLogic.*.

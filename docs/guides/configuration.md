@@ -46,6 +46,7 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `auth.passwords` | PBKDF2 iterations, pepper, length limits |
 | `auth.lockout` | Failures before lockout, lockout minutes, per-login back-off, per-IP cap |
 | `auth.twoFactor` | Issuer, recovery code count, minutes allowed for the second step |
+| `auth.passkeys` | On/off, RP id and name, allowed origins, timeout, touch-only security keys as second factor, attestation, passkeys per user ([Passkeys](passkeys.md)) |
 | `auth.tokens` | Lifetimes and paths of reset, verification, magic-link and e-mail-change links |
 | `auth.apiKeys` | On/off, header name, last-used touch interval |
 | `auth.trustedHeader` | Sign-in from a fronting proxy (oauth2-proxy and similar), headers and shared secret |
