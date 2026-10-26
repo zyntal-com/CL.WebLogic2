@@ -1,5 +1,26 @@
 # Changelog
 
+## 4.9.6-preview (2026-10-27)
+
+### Security
+
+- New-device e-mails no longer carry the raw `User-Agent` header. When the browser was not
+  recognised, the header (chosen by the client) went into the mail as the `device` value, and a CL.Mail
+  HTML template using it could be injected into. Unrecognised browsers are now named "an unknown
+  browser".
+
+### Added
+
+- `WebSignInResult.Error`: when `CompletePasswordChangeAsync` refuses the new password, the result keeps
+  the token and carries the password policy's message ("Use at least 10 characters.", "The password
+  must not contain your user name or e-mail."), so the page can say why.
+
+### Changed
+
+- `UseUserStore<T>()` and the other `Use…<T>()` registrations add `T` as a singleton of its own type and
+  resolve the contract to that same instance. Apps can inject their store by type (for app-specific
+  methods) without casting `IWebUserStore`, and a class registered for several contracts is one instance.
+
 ## 4.9.5-preview (2026-10-26)
 
 ### Added

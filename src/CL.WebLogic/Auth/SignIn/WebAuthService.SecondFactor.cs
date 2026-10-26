@@ -55,7 +55,7 @@ public sealed partial class WebAuthService
 
         var changed = await _accounts.SetPasswordAsync(validated.Value!.User, newPassword, viaReset: false, cancellationToken).ConfigureAwait(false);
         if (changed.IsFailure)
-            return new WebSignInResult { Status = WebSignInStatus.RequiresPasswordChange, User = validated.Value.User, PasswordChangeToken = token };
+            return new WebSignInResult { Status = WebSignInStatus.RequiresPasswordChange, User = validated.Value.User, PasswordChangeToken = token, Error = changed.Error };
 
         var data = (validated.Value.Data ?? "pwd").Split('|');
         var methods = data[0].Split(',', StringSplitOptions.RemoveEmptyEntries);

@@ -145,7 +145,10 @@ public static class WebLogicAuthBuilderExtensions
         where TImplementation : class, TService
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Services.Replace(ServiceDescriptor.Singleton<TService, TImplementation>());
+        // The implementation is a singleton of its own, so the app can inject it by its type (for
+        // its extra methods) and gets the same instance WebLogic uses through TService.
+        builder.Services.TryAddSingleton<TImplementation>();
+        builder.Services.Replace(ServiceDescriptor.Singleton<TService>(sp => sp.GetRequiredService<TImplementation>()));
         return builder;
     }
 }

@@ -162,7 +162,14 @@ public sealed class SignInTests
         Assert.Null(await AuthTestSite.MeAsync(host.Client));
 
         var token = json.GetProperty("token").GetString();
-        Assert.Equal("RequiresPasswordChange", await AuthTestSite.PostAsync(host.Client, "/auth/complete-change", new { token, newPassword = "short" }));
+        var weak = await AuthTestSite.PostRawAsync(host.Client, "/auth/complete-change", new { token, newPassword = "short" });
+        var weakJson = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<System.Text.Json.JsonElement>(weak.Content);
+        Assert.Equal("RequiresPasswordChange", weakJson.GetProperty("status").GetString());
+        Assert.Contains("at least", weakJson.GetProperty("error").GetString(), StringComparison.Ordinal); // the policy's reason, for the page
+
+        var named = await AuthTestSite.PostRawAsync(host.Client, "/auth/complete-change", new { token, newPassword = "alice is my password" });
+        var namedJson = await System.Net.Http.Json.HttpContentJsonExtensions.ReadFromJsonAsync<System.Text.Json.JsonElement>(named.Content);
+        Assert.Equal("The password must not contain your user name or e-mail.", namedJson.GetProperty("error").GetString());
         Assert.Equal("Succeeded", await AuthTestSite.PostAsync(host.Client, "/auth/complete-change", new { token, newPassword = "a brand new passphrase" }));
         Assert.NotNull(await AuthTestSite.MeAsync(host.Client));
         Assert.Equal("Succeeded", await AuthTestSite.LoginAsync(host.CreateClient(), "alice", "a brand new passphrase"));

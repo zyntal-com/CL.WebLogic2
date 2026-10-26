@@ -14,6 +14,9 @@ namespace CL.WebLogic.Auth.Sessions;
 /// </summary>
 public sealed class WebSessionDevices
 {
+    /// <summary>The device name in a new-device mail when the user agent is not recognised (the raw header is never mailed).</summary>
+    internal const string UnknownDevice = "an unknown browser";
+
     private readonly IWebSessionStore _store;
     private readonly WebLogicConfigHolder _config;
     private readonly WebNotificationDispatcher _notifications;
@@ -93,7 +96,7 @@ public sealed class WebSessionDevices
         // Same browser and OS family = same device, so a browser update is not a "new device".
         var device = WebUserAgent.DeviceKey(userAgent);
         if (notify && device.Length > 0 && others.All(s => !string.Equals(WebUserAgent.DeviceKey(s.UserAgent), device, StringComparison.Ordinal)))
-            _notifications.Enqueue(user, WebSecurityNotificationKind.NewDeviceSignIn, values: new Dictionary<string, string> { ["device"] = WebUserAgent.Describe(userAgent) ?? userAgent! });
+            _notifications.Enqueue(user, WebSecurityNotificationKind.NewDeviceSignIn, values: new Dictionary<string, string> { ["device"] = WebUserAgent.Describe(userAgent) ?? UnknownDevice });
 
         // The new session counts too, so keep at most max - 1 of the others.
         if (max > 0 && others.Count >= max)

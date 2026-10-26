@@ -1,4 +1,5 @@
 using CL.WebLogic.Auth.Users;
+using CodeLogic.Core.Results;
 
 namespace CL.WebLogic.Auth.SignIn;
 
@@ -19,6 +20,12 @@ public sealed class WebSignInResult
 
     /// <summary>The suspension, when <see cref="Status"/> is <see cref="WebSignInStatus.Suspended"/>.</summary>
     public WebSuspension? Suspension { get; init; }
+
+    /// <summary>
+    /// Why a step was refused, when the reason may be shown to the user: the password policy
+    /// message when <see cref="WebAuthService.CompletePasswordChangeAsync"/> rejects the new password.
+    /// </summary>
+    public Error? Error { get; init; }
 
     /// <summary>True when this attempt caused the lockout.</summary>
     public bool LockedNow { get; init; }

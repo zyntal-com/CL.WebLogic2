@@ -19,6 +19,9 @@ store contracts and WebLogic calls them.
 | `IWebLoginThrottle` | Back-off per login, cap per client (in memory by default) | `web.UseLoginThrottle<T>()` |
 | `IWebSecurityNotifier` | Sends security e-mails | `web.UseMailNotifications()` (CL.Mail) or your own |
 
+Each `Use…<T>()` registers `T` as one singleton for its own type and the contract, so the app can
+inject its store by type (for its extra methods) and gets the instance WebLogic uses.
+
 `web.UseInMemoryAccounts()` registers in-memory users, sessions, keys and codes for development and
 tests. Outside Development the app refuses to start while any of them is still in memory. The
 samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructure`; MiniBlog uses
@@ -47,7 +50,8 @@ switch (result.Status)
 
 Other `request.Auth` members: `CompleteTwoFactorAsync(code)`, `RedeemRecoveryCodeAsync(code)`,
 `SignInWithMagicLinkAsync(token)`, `SignInExternalAsync(user, provider)`,
-`CompletePasswordChangeAsync(token, password)`, `ReauthenticateAsync(password, code)`,
+`CompletePasswordChangeAsync(token, password)` (a refused password keeps the token and sets
+`result.Error` to the policy message, safe to show), `ReauthenticateAsync(password, code)`,
 `SignInAsync(user)` (after your own checks; skips the second factor), `SignOutAsync(everywhere)`,
 `RefreshAsync()`, `ChangePasswordAsync(current, new)`, `ListSessionsAsync()`,
 `RevokeSessionAsync(idHash)` and `GetCurrentUserAsync()`.
@@ -104,7 +108,8 @@ needs a session store that implements the optional `IWebSessionListStore`
 - `Auth.Notifications.NotifyNewDevice`: an e-mail when someone signs in from a browser none of the
   user's other sessions use. Browsers are compared by browser and system family ("Chrome on Windows",
   `WebUserAgent`), so a browser update is not a new device; the e-mail and `WebSessionInfo.Device`
-  carry that name.
+  carry that name. An unrecognised user agent is named "an unknown browser": the raw header, which
+  the client controls, never goes into the e-mail (the `device` template value).
 - Ending a session (`RevokeAsync`, the per-user cap, a password reset) also closes its realtime
   connections: at once on the same node, and within `Realtime.SessionCheckSeconds` on the others.
 

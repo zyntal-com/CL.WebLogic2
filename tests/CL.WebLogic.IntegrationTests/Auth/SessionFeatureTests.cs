@@ -130,7 +130,8 @@ public sealed class SessionFeatureTests
             await Task.Delay(20);
         var notices = outbox.Messages.Where(m => m.Kind == WebSecurityNotificationKind.NewDeviceSignIn).ToList();
         Assert.Equal(2, notices.Count);
-        Assert.Equal("Phone/2.0", notices[^1].Values["device"]);
+        // An unrecognised user agent is named generically: the raw header (attacker-controlled) never reaches the mail.
+        Assert.Equal("an unknown browser", notices[^1].Values["device"]);
     }
 
     [Fact]
