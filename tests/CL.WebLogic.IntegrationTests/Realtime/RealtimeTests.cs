@@ -7,8 +7,10 @@ using CL.WebLogic.Auth.Events;
 using CL.WebLogic.IntegrationTests.Security;
 using CL.WebLogic.Realtime.Models;
 using CL.WebLogic.Realtime.Services;
+using CL.WebLogic.Security.Sessions;
 using CL.WebLogic.Testing.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace CL.WebLogic.IntegrationTests.Realtime;
 
@@ -98,6 +100,34 @@ public sealed class RealtimeTests
 
         Assert.Null(await stream.NextAsync(TimeSpan.FromSeconds(3)));
         Assert.Equal(1, Hub(host).ConnectionCount);
+    }
+
+    [Fact]
+    public async Task A_connection_closes_when_its_session_is_revoked_on_any_node()
+    {
+        await using var host = await SecurityTestSite.StartAsync();
+        var laptop = host.CreateClient();
+        var phone = host.CreateClient();
+        await laptop.GetAsync("/signin?user=u1");
+        await phone.GetAsync("/signin?user=u1");
+
+        await using var laptopStream = await SseStream.OpenAsync(laptop, Sse);
+        var laptopSession = Hub(host).Connections.Single().Identity.SessionId;
+        Assert.NotNull(laptopSession);
+        await using var phoneStream = await SseStream.OpenAsync(phone, Sse);
+
+        // Revoked elsewhere (another node, or straight in the store): the periodic check closes it.
+        await host.Services.GetRequiredService<IWebSessionStore>().DeleteAsync(laptopSession!, default);
+        var monitor = host.Services.GetServices<IHostedService>().OfType<RealtimeSessionMonitor>().Single();
+        Assert.Equal(1, await monitor.CheckAsync(default));
+        Assert.Null(await laptopStream.NextAsync(TimeSpan.FromSeconds(3)));
+        Assert.Equal(1, Hub(host).ConnectionCount);
+
+        // Revoked on this node: closed at once.
+        var phoneSession = Hub(host).Connections.Single().Identity.SessionId!;
+        await host.Context.Events.PublishAsync(new SessionEndedEvent("u1", phoneSession));
+        Assert.Null(await phoneStream.NextAsync(TimeSpan.FromSeconds(3)));
+        Assert.Equal(0, Hub(host).ConnectionCount);
     }
 
     [Fact]

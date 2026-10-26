@@ -61,8 +61,11 @@ public sealed class WebRouteSettings
     /// <summary>Step-up: how recently the user must have proven their credentials (null = no requirement).</summary>
     public TimeSpan? RecentSignInMaxAge { get; set; }
 
-    /// <summary>Methods the recent sign-in must have used (with <see cref="RecentSignInMaxAge"/>).</summary>
-    public List<string> RecentSignInMethods { get; } = [];
+    /// <summary>
+    /// Sets of methods the recent sign-in must have used, all of one set (with
+    /// <see cref="RecentSignInMaxAge"/>; empty = any method).
+    /// </summary>
+    public List<IReadOnlyList<string>> RecentSignInAlternatives { get; } = [];
 
     /// <summary>Extra Content-Security-Policy sources for these routes.</summary>
     public Security.Models.WebCspAdditions Csp { get; } = new();
@@ -88,7 +91,8 @@ public sealed class WebRouteSettings
         if (RecentSignInMaxAge is null && source.RecentSignInMaxAge is not null)
         {
             RecentSignInMaxAge = source.RecentSignInMaxAge;
-            RecentSignInMethods.InsertRange(0, source.RecentSignInMethods.Except(RecentSignInMethods, StringComparer.OrdinalIgnoreCase));
+            RecentSignInAlternatives.Clear();
+            RecentSignInAlternatives.AddRange(source.RecentSignInAlternatives);
         }
         Csp.MergeFrom(source.Csp);
     }

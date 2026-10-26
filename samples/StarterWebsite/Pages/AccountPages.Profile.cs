@@ -33,7 +33,7 @@ public sealed partial class AccountPages
             }).ToList(),
             Sessions = (await request.Auth.ListSessionsAsync(cancellationToken).ConfigureAwait(false)).Select(s => new
             {
-                s.IdHash, Device = s.UserAgent ?? "Unknown browser", s.CreatedAt, s.LastSeenAt, s.Persistent, s.IsCurrent
+                s.IdHash, Device = s.Device ?? s.UserAgent ?? "Unknown browser", s.CreatedAt, s.LastSeenAt, s.Persistent, s.IsCurrent
             }).ToList(),
             Welcome = request.GetQuery("welcome") == "1",
             Sent = request.GetQuery("sent") == "1",

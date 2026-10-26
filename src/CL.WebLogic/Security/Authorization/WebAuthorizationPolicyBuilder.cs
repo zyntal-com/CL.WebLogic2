@@ -26,6 +26,9 @@ public sealed class WebAuthorizationPolicyBuilder
     /// <summary>Requires credentials proven within <paramref name="maxAge"/> with all of <paramref name="methods"/> (step-up).</summary>
     public WebAuthorizationPolicyBuilder RequireRecentSignIn(TimeSpan maxAge, params string[] methods) => Add(WebAuthorizationRequirements.RecentSignIn(maxAge, methods));
 
+    /// <summary>Requires credentials proven within <paramref name="maxAge"/> with all methods of one of <paramref name="alternatives"/> (step-up), e.g. <c>["pwd", "otp"], ["passkey"]</c>.</summary>
+    public WebAuthorizationPolicyBuilder RequireRecentSignInAnyOf(TimeSpan maxAge, params string[][] alternatives) => Add(WebAuthorizationRequirements.RecentSignInAnyOf(maxAge, alternatives));
+
     /// <summary>Adds a custom requirement.</summary>
     public WebAuthorizationPolicyBuilder Require(IWebAuthorizationRequirement requirement) => Add(requirement ?? throw new ArgumentNullException(nameof(requirement)));
 

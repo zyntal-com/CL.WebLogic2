@@ -9,7 +9,7 @@ public sealed record WebRealtimeIdentity
     /// <summary>User id (null = anonymous).</summary>
     public string? UserId { get; init; }
 
-    /// <summary>Session id (null for tickets and non-session schemes).</summary>
+    /// <summary>Id hash of the session the user signed in with (null for anonymous and non-session schemes); the connection closes when that session ends.</summary>
     public string? SessionId { get; init; }
 
     /// <summary>Tenant.</summary>

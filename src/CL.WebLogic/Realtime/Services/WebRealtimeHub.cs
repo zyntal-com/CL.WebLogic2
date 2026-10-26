@@ -129,6 +129,18 @@ public sealed partial class WebRealtimeHub : IDisposable
         return closed;
     }
 
+    /// <summary>Closes the connections opened with session <paramref name="sessionIdHash"/> (the session was revoked or expired).</summary>
+    public int CloseSession(string sessionIdHash)
+    {
+        var closed = 0;
+        foreach (var connection in _connections.Values.Where(c => string.Equals(c.Identity.SessionId, sessionIdHash, StringComparison.Ordinal)))
+        {
+            Disconnect(connection);
+            closed++;
+        }
+        return closed;
+    }
+
     /// <summary>Closes every connection (shutdown); clients reconnect elsewhere or later.</summary>
     public void CloseAll()
     {

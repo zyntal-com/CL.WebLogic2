@@ -51,6 +51,8 @@ internal static class PasskeyTestSite
             return Status((await r.Auth.RenamePasskeyAsync(body.State, body.Name ?? "", ct)).ToString());
         }, "POST");
         b.MapApi("/pk/delete", async (r, ct) => Status((await r.Auth.DeletePasskeyAsync((await Body(r, ct)).State, ct)).ToString()), "POST");
+        b.MapApi("/pk/admin", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Text("admin")))
+            .RequireRecentSignInAnyOf(TimeSpan.FromMinutes(10), ["pwd", "otp"], ["passkey"]);
     }
 
     private static async Task<WebPasskeyRequest> Body(WebRequestContext request, CancellationToken cancellationToken) =>

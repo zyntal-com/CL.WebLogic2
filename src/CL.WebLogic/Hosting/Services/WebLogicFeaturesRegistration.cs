@@ -43,6 +43,7 @@ internal static class WebLogicFeaturesRegistration
         services.TryAddSingleton<WebRealtimeBridge>();
         services.TryAddSingleton<RealtimeContributor>();
         services.AddHostedService<RealtimeStartupService>();
+        services.AddHostedService<RealtimeSessionMonitor>();
 
         // Caching: the shared-framework output cache with WebLogic's safety policy in front.
         services.AddOutputCache();

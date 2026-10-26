@@ -238,6 +238,23 @@ public sealed class PasskeyTests
     }
 
     [Fact]
+    public async Task Step_up_any_of_accepts_a_password_with_a_code_or_a_passkey()
+    {
+        await using var host = await StartAsync();
+        using var authenticator = await EnrolAsync(host, signOut: false);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await host.Client.GetAsync("/pk/admin")).StatusCode); // password only
+
+        var user = (await host.Services.GetRequiredService<IWebUserStore>().FindByLoginAsync("alice", default))!;
+        var secret = await AuthTestSite.EnableTwoFactorAsync(host, user);
+        Assert.Equal("Succeeded", await AuthTestSite.PostAsync(host.Client, "/auth/reauth", new { password = AuthTestSite.Password, code = AuthTestSite.NextCode(secret) }));
+        Assert.Equal(HttpStatusCode.OK, (await host.Client.GetAsync("/pk/admin")).StatusCode); // pwd + otp
+
+        Assert.Equal("SignedOut", await AuthTestSite.PostAsync(host.Client, "/auth/logout", new { }));
+        Assert.Equal("Succeeded", await AssertAsync(host.Client, authenticator));
+        Assert.Equal(HttpStatusCode.OK, (await host.Client.GetAsync("/pk/admin")).StatusCode); // passkey
+    }
+
+    [Fact]
     public async Task One_users_passkey_cannot_prove_another_user()
     {
         await using var host = await StartAsync();

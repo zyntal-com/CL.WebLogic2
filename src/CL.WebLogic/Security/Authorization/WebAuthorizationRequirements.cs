@@ -42,6 +42,10 @@ public static class WebAuthorizationRequirements
     public static IWebAuthorizationRequirement RecentSignIn(TimeSpan maxAge, params string[] methods) =>
         new RecentSignInRequirement(maxAge, methods);
 
+    /// <summary>Step-up: credentials proven within <paramref name="maxAge"/> with all methods of one of <paramref name="alternatives"/>.</summary>
+    public static IWebAuthorizationRequirement RecentSignInAnyOf(TimeSpan maxAge, params string[][] alternatives) =>
+        new RecentSignInRequirement(maxAge, [.. (alternatives ?? throw new ArgumentNullException(nameof(alternatives))).Select(a => (IReadOnlyList<string>)a)]);
+
     /// <summary>A custom check.</summary>
     public static IWebAuthorizationRequirement Assert(string description, Func<WebAuthorizationContext, CancellationToken, ValueTask<bool>> check) =>
         new Assertion(description, check);

@@ -137,13 +137,25 @@ public static class WebRouteSettingsExtensions
     /// redirect to the login path with <c>reauth=1</c> and APIs answer 401. Users prove it again with
     /// <c>request.Auth.ReauthenticateAsync</c> (or any new sign-in).
     /// </summary>
-    public static T RequireRecentSignIn<T>(this T builder, TimeSpan maxAge, params string[] methods) where T : IWebRouteSettingsBuilder
+    public static T RequireRecentSignIn<T>(this T builder, TimeSpan maxAge, params string[] methods) where T : IWebRouteSettingsBuilder =>
+        builder.RequireRecentSignInAnyOf(maxAge, methods is { Length: > 0 } ? [methods] : []);
+
+    /// <summary>
+    /// Step-up with alternatives: the user must have proven their credentials within
+    /// <paramref name="maxAge"/> using every method of at least one set, e.g.
+    /// <c>RequireRecentSignInAnyOf(TimeSpan.FromHours(8), ["pwd", "otp"], ["passkey"])</c> accepts a
+    /// password with an authenticator code, or a passkey. No sets = any method.
+    /// </summary>
+    public static T RequireRecentSignInAnyOf<T>(this T builder, TimeSpan maxAge, params string[][] alternatives) where T : IWebRouteSettingsBuilder
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxAge, TimeSpan.Zero);
+        ArgumentNullException.ThrowIfNull(alternatives);
+        if (alternatives.Any(a => a is null || a.Length == 0 || a.Any(string.IsNullOrWhiteSpace)))
+            throw new ArgumentException("Each alternative needs at least one method name.", nameof(alternatives));
         builder.Settings.AllowAnonymous = false;
         builder.Settings.RecentSignInMaxAge = maxAge;
-        builder.Settings.RecentSignInMethods.Clear();
-        builder.Settings.RecentSignInMethods.AddRange(methods);
+        builder.Settings.RecentSignInAlternatives.Clear();
+        builder.Settings.RecentSignInAlternatives.AddRange(alternatives);
         return builder;
     }
 

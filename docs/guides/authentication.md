@@ -80,8 +80,14 @@ magic link, provider or passkey.
 
 The listed methods must **all** have been used in the latest sign-in. The method names are `pwd`,
 `otp`, `recovery`, `passkey`, `link` and `ext:{provider}`. A passkey sign-in records only `passkey`,
-so `"pwd", "otp"` above sends passkey users to prove themselves again with a password and code. List
-the methods you really need, or none to accept any recent sign-in.
+so `"pwd", "otp"` above sends passkey users to prove themselves again with a password and code.
+
+To accept several ways of proving it, give alternatives; each is a set that must be complete:
+
+```csharp
+b.MapGroup("/admin").RequireRecentSignInAnyOf(TimeSpan.FromHours(8), ["pwd", "otp"], ["passkey"]);
+web.AddAuthorizationPolicy("payouts", p => p.RequireRecentSignInAnyOf(TimeSpan.FromMinutes(5), ["otp"], ["passkey"]));
+```
 
 ## Sessions as devices
 
@@ -96,7 +102,11 @@ needs a session store that implements the optional `IWebSessionListStore`
 
 - `Session.MaxPerUser`: the oldest sessions end when a new sign-in exceeds the cap.
 - `Auth.Notifications.NotifyNewDevice`: an e-mail when someone signs in from a browser none of the
-  user's other sessions use.
+  user's other sessions use. Browsers are compared by browser and system family ("Chrome on Windows",
+  `WebUserAgent`), so a browser update is not a new device; the e-mail and `WebSessionInfo.Device`
+  carry that name.
+- Ending a session (`RevokeAsync`, the per-user cap, a password reset) also closes its realtime
+  connections: at once on the same node, and within `Realtime.SessionCheckSeconds` on the others.
 
 ## Passwords
 

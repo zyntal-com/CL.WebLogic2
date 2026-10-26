@@ -11,7 +11,7 @@ One passkey covers three uses:
 |---|---|---|
 | Passwordless sign-in | `BeginPasskeySignInAsync` / `PasskeySignInAsync` | Discoverable passkeys with user verification. This counts as multi-factor, so users with TOTP are not asked for a code. |
 | Second factor | `BeginPasskeySecondFactorAsync` / `CompleteTwoFactorWithPasskeyAsync` | Instead of the TOTP code after a password. A touch-only security key is accepted only with `AllowUnverifiedSecondFactor`. |
-| Step-up | `BeginPasskeyReauthenticationAsync` / `ReauthenticateWithPasskeyAsync` | For `RequireRecentSignIn`. Recorded as method `passkey`. |
+| Step-up | `BeginPasskeyReauthenticationAsync` / `ReauthenticateWithPasskeyAsync` | For `RequireRecentSignIn`. Recorded as method `passkey`: accept it next to a password and code with `RequireRecentSignInAnyOf(age, ["pwd", "otp"], ["passkey"])`. |
 
 ## Setup
 

@@ -3,6 +3,7 @@ using CL.WebLogic.Realtime.Models;
 using CL.WebLogic.Security.Authorization;
 using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
+using CL.WebLogic.Security.Sessions;
 
 namespace CL.WebLogic.Realtime.Services;
 
@@ -29,10 +30,19 @@ public sealed class WebRealtimeIdentityFactory
         return new WebRealtimeIdentity
         {
             UserId = identity.UserId,
+            SessionId = SessionIdHash(security),
             TenantId = identity.TenantId ?? security.TenantId,
             Groups = identity.Groups,
             Permissions = permissions,
             IsInternal = WebPermissionMatcher.Grants(permissions, _config.Current.Realtime.InternalPermission)
         };
     }
+
+    // The session behind a session-scheme identity, so the connection can end with it.
+    private static string? SessionIdHash(WebSecurityContext security) =>
+        security.Identity.Scheme == WebAuthenticationSchemes.Session
+        && security.HttpContext.Features.Get<IWebSession>() is LazyWebSession { AuthStage: WebSessionAuthStage.Authenticated } session
+        && string.Equals(session.UserId, security.Identity.UserId, StringComparison.Ordinal)
+            ? session.Loaded?.IdHash
+            : null;
 }

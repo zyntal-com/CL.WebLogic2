@@ -29,7 +29,7 @@ public sealed class WebRealtimeTickets
     {
         ArgumentNullException.ThrowIfNull(identity);
         var expires = _time.GetUtcNow().AddSeconds(_config.Current.Realtime.TicketSeconds);
-        var payload = new Payload(identity.UserId, identity.TenantId, [.. identity.Groups], [.. identity.Permissions], identity.IsInternal, expires.ToUnixTimeSeconds());
+        var payload = new Payload(identity.UserId, identity.TenantId, [.. identity.Groups], [.. identity.Permissions], identity.IsInternal, expires.ToUnixTimeSeconds(), identity.SessionId);
         return (_protector.Protect(JsonSerializer.Serialize(payload)), expires);
     }
 
@@ -46,6 +46,7 @@ public sealed class WebRealtimeTickets
             return new WebRealtimeIdentity
             {
                 UserId = payload.UserId,
+                SessionId = payload.SessionId,
                 TenantId = payload.TenantId,
                 Groups = payload.Groups ?? [],
                 Permissions = payload.Permissions ?? [],
@@ -58,5 +59,5 @@ public sealed class WebRealtimeTickets
         }
     }
 
-    private sealed record Payload(string? UserId, string? TenantId, string[]? Groups, string[]? Permissions, bool IsInternal, long ExpiresAt);
+    private sealed record Payload(string? UserId, string? TenantId, string[]? Groups, string[]? Permissions, bool IsInternal, long ExpiresAt, string? SessionId = null);
 }

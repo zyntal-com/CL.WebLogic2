@@ -53,6 +53,10 @@ resumes from `Last-Event-ID`; the replay buffer only replays events the connecti
 
 - Connections are re-grouped on sign-in, sign-out and permission changes; signing out closes the user's
   connections.
+- A connection opened by a signed-in session ends with that session: a revoked device, an evicted or
+  expired session closes it at once on the same node (`SessionEndedEvent`) and within
+  `realtime.sessionCheckSeconds` (30) on every other node, which look the session up in the shared
+  session store. Tickets carry the session too.
 - WebSocket upgrades check `Origin` against the site and `realtime.allowedOrigins`.
 - Cross-origin clients get a short-lived ticket from `/_weblogic/realtime/ticket` (60 s by default,
   `realtime.ticketSeconds`). A ticket can be used more than once inside that window, so keep it short

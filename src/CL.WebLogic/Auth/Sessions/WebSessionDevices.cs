@@ -1,3 +1,4 @@
+using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.Notifications;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
@@ -47,6 +48,7 @@ public sealed class WebSessionDevices
                 LastSeenAt = s.LastSeenAt,
                 AuthenticatedAt = s.AuthenticatedAt,
                 UserAgent = s.UserAgent,
+                Device = WebUserAgent.Describe(s.UserAgent),
                 Persistent = s.Persistent,
                 AuthenticationMethods = s.AuthenticationMethods,
                 IsCurrent = string.Equals(s.IdHash, currentIdHash, StringComparison.Ordinal)
@@ -61,6 +63,7 @@ public sealed class WebSessionDevices
             || !string.Equals(record.UserId, userId, StringComparison.Ordinal))
             return false;
         await _store.DeleteAsync(idHash, cancellationToken).ConfigureAwait(false);
+        _context.Events.Publish(new SessionEndedEvent(userId, idHash));
         return true;
     }
 
@@ -87,14 +90,19 @@ public sealed class WebSessionDevices
             .Where(s => !string.Equals(s.IdHash, currentIdHash, StringComparison.Ordinal))
             .ToList();
 
-        if (notify && userAgent is not null && others.All(s => !string.Equals(s.UserAgent, userAgent, StringComparison.Ordinal)))
-            _notifications.Enqueue(user, WebSecurityNotificationKind.NewDeviceSignIn, values: new Dictionary<string, string> { ["device"] = userAgent });
+        // Same browser and OS family = same device, so a browser update is not a "new device".
+        var device = WebUserAgent.DeviceKey(userAgent);
+        if (notify && device.Length > 0 && others.All(s => !string.Equals(WebUserAgent.DeviceKey(s.UserAgent), device, StringComparison.Ordinal)))
+            _notifications.Enqueue(user, WebSecurityNotificationKind.NewDeviceSignIn, values: new Dictionary<string, string> { ["device"] = WebUserAgent.Describe(userAgent) ?? userAgent! });
 
         // The new session counts too, so keep at most max - 1 of the others.
         if (max > 0 && others.Count >= max)
         {
             foreach (var oldest in others.OrderBy(s => s.CreatedAt).Take(others.Count - (max - 1)))
+            {
                 await _store.DeleteAsync(oldest.IdHash, cancellationToken).ConfigureAwait(false);
+                _context.Events.Publish(new SessionEndedEvent(user.Id, oldest.IdHash));
+            }
         }
     }
 

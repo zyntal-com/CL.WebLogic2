@@ -2,6 +2,24 @@
 
 ## 4.9.5-preview (2026-10-26)
 
+### Added
+
+- Step-up with alternatives: `RequireRecentSignInAnyOf(maxAge, ["pwd", "otp"], ["passkey"])` on routes,
+  groups and policies accepts any one complete set of methods. `RecentSignInRequirement.Alternatives`
+  replaces `Methods`, and `WebRouteSettings.RecentSignInAlternatives` replaces `RecentSignInMethods`.
+- `WebUserAgent`: browser and system family of a user agent ("Chrome on Windows"), and
+  `WebSessionInfo.Device`.
+- `Realtime.SessionCheckSeconds` (30) and `SessionEndedEvent`.
+
+### Fixed
+
+- A revoked session kept its realtime connection. Signing a device out, the per-user session cap and
+  password-reset sign-outs ended the session, but its SSE/WebSocket stream stayed open for up to
+  `MaxConnectionMinutes` (60) and kept receiving that user's messages. Connections now record their
+  session and close when it ends: at once on the same node, and within `SessionCheckSeconds` on others.
+- New-device e-mails compared the exact user-agent string, so every browser update was mailed as a new
+  sign-in. They now compare browser and system family and name the device ("Chrome on Windows").
+
 ### Changed
 
 - CodeLogic.WebLogic.MySql uses only CL.MySQL2's typed API (now CodeLogic.MySQL2 4.9.101): the add-on

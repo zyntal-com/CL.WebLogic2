@@ -18,6 +18,9 @@ public sealed record WebSessionInfo
     /// <summary>The browser's user agent, if known.</summary>
     public string? UserAgent { get; init; }
 
+    /// <summary>The browser and OS for people, e.g. <c>Chrome on Windows</c> (null = not recognised).</summary>
+    public string? Device { get; init; }
+
     /// <summary>Signed in with "remember me".</summary>
     public bool Persistent { get; init; }
 

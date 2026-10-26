@@ -33,6 +33,13 @@ public sealed class RealtimeConfig
     [ConfigField(Label = "Max Connection Minutes", Min = 1, Max = 1440, Group = "Realtime", Order = 7, Collapsed = true)]
     public int MaxConnectionMinutes { get; set; } = 60;
 
+    /// <summary>
+    /// How often open connections of session-signed-in users are checked against the session store;
+    /// a connection whose session was revoked, evicted or expired is closed (on every node). 0 = off.
+    /// </summary>
+    [ConfigField(Label = "Session Check Seconds", Min = 0, Max = 3600, Group = "Realtime", Order = 17, Collapsed = true)]
+    public int SessionCheckSeconds { get; set; } = 30;
+
     /// <summary>Maximum open connections on this node.</summary>
     [ConfigField(Label = "Max Connections", Min = 1, Max = 1000000, Group = "Realtime", Order = 8, Collapsed = true)]
     public int MaxConnections { get; set; } = 10000;

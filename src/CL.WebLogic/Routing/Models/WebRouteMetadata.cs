@@ -96,7 +96,7 @@ public sealed class WebRouteMetadata
         LoginPath = settings.LoginPath,
         Layout = settings.Layout,
         AccessDeniedPath = settings.AccessDeniedPath,
-        RecentSignIn = settings.RecentSignInMaxAge is { } maxAge ? new Security.Authorization.RecentSignInRequirement(maxAge, [.. settings.RecentSignInMethods]) : null,
+        RecentSignIn = settings.RecentSignInMaxAge is { } maxAge ? new Security.Authorization.RecentSignInRequirement(maxAge, [.. settings.RecentSignInAlternatives]) : null,
         CspAdditions = settings.Csp.Sources
     };
 }

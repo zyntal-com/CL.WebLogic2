@@ -133,6 +133,30 @@ public sealed class SessionFeatureTests
         Assert.Equal("Phone/2.0", notices[^1].Values["device"]);
     }
 
+    [Fact]
+    public async Task A_browser_update_is_not_mailed_as_a_new_device_and_mails_name_the_browser()
+    {
+        const string chrome120 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        const string chrome131 = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.86 Safari/537.36";
+        const string firefox = "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0";
+        await using var host = await AuthTestSite.StartAsync(c => c.Auth.Notifications.NotifyNewDevice = true);
+        await AuthTestSite.CreateUserAsync(host);
+        var outbox = host.Services.GetRequiredService<OutboxSecurityNotifier>();
+        int Notices() => outbox.Messages.Count(m => m.Kind == WebSecurityNotificationKind.NewDeviceSignIn);
+
+        Assert.Equal("Succeeded", await AuthTestSite.LoginAsync(Browser(host, chrome120)));
+        await AuthTestSite.WaitForMailAsync(host, WebSecurityNotificationKind.NewDeviceSignIn);
+        Assert.Equal("Chrome on Windows", outbox.Messages.Last(m => m.Kind == WebSecurityNotificationKind.NewDeviceSignIn).Values["device"]);
+
+        Assert.Equal("Succeeded", await AuthTestSite.LoginAsync(Browser(host, chrome131))); // the same browser, updated
+        Assert.Equal("Succeeded", await AuthTestSite.LoginAsync(Browser(host, firefox)));
+        for (var i = 0; i < 100 && Notices() < 2; i++)
+            await Task.Delay(20);
+        await Task.Delay(100);
+        Assert.Equal(2, Notices());
+        Assert.Equal("Firefox on Linux", outbox.Messages.Last(m => m.Kind == WebSecurityNotificationKind.NewDeviceSignIn).Values["device"]);
+    }
+
     private static HttpClient Browser(WebLogicTestHost host, string userAgent)
     {
         var client = host.CreateClient();
