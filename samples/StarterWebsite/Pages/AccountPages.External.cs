@@ -43,7 +43,13 @@ public sealed partial class AccountPages
             await _external.LinkAsync(user, info, cancellationToken).ConfigureAwait(false);
         }
 
-        await request.Auth.SignInAsync(user, ["ext:" + info.Provider], cancellationToken).ConfigureAwait(false);
-        return Redirect(returnUrl);
+        // Applies the account rules and asks two-factor users for their code, like a password sign-in.
+        var result = await request.Auth.SignInExternalAsync(user, info.Provider, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result.Status switch
+        {
+            CL.WebLogic.Auth.SignIn.WebSignInStatus.Succeeded => Redirect(returnUrl),
+            CL.WebLogic.Auth.SignIn.WebSignInStatus.RequiresTwoFactor => Redirect("/account/two-factor?returnUrl=" + Uri.EscapeDataString(returnUrl)),
+            _ => WebResult.Page("templates/account/external-failed", new { Message = "This account cannot sign in right now." }, PageModels.Meta("Sign-in failed"))
+        };
     }
 }

@@ -4,8 +4,41 @@
 
 ### Added
 
+- `request.Auth.SignInExternalAsync(user, provider)`: sign-in for users an external provider vouched
+  for. Applies the account rules (disabled, locked, other tenant) and asks users with two-factor
+  authentication for their code, like a password sign-in. Recorded as `ext:{provider}`.
+- Per-area sign-in pages: `WithLoginPath(path)` and `WithAccessDeniedPath(path)` on routes and
+  groups (inherited; local paths only). Signed-in users without access are sent to the denied page
+  instead of a 403 (pages only).
+- Step-up: `RequireRecentSignIn(maxAge, methods...)` on routes and groups, and on policies
+  (`RecentSignInRequirement`). Failing it asks the user to sign in again (`reauth=1` redirect, or
+  `401` with `error="reauthentication_required"` for APIs) instead of forbidding.
+  `request.Auth.ReauthenticateAsync(password, code)` proves the user again; sessions and
+  `WebIdentity` record `AuthenticatedAt`.
+- "Remember me": a `persistent` flag on every sign-in method, carried through the second factor
+  and a required password change. `Session.PersistentIdleTimeoutDays` (30) and
+  `Session.PersistentAbsoluteTimeoutDays` (90).
+- Sessions as devices: records keep the user agent, authentication time and "remember me"; the
+  optional store capability `IWebSessionListStore` enables `request.Auth.ListSessionsAsync()`,
+  `RevokeSessionAsync(idHash)`, `Session.MaxPerUser` and new-device e-mails
+  (`Auth.Notifications.NotifyNewDevice`, notification kind `NewDeviceSignIn`). The in-memory store
+  and both samples implement it; the starter's account page lists signed-in devices.
+- CSP: `MediaSources`, `WorkerSources`, `ManifestSources`, `FormActions` and `CspReportTo`
+  (`Reporting-Endpoints` + `report-to`). Per-route additions with `WithCsp(c => c.AddFrameSource(...))`
+  (validated: hosts, schemes and `'self'` only), built once per route.
+- The explorer shows a route's login path, step-up requirement and CSP additions.
 - `CodeLogic.WebLogic.Testing` ships a package readme (usage example and helper overview); the
   `CodeLogic.WebLogic` readme gains a quick start and links to the docs.
+
+### Changed (breaking)
+
+- `request.Auth.PasswordSignInAsync`, `SignInAsync` and `SignInWithMagicLinkAsync` take
+  `persistent` before the cancellation token: callers passing the token positionally must name it
+  (`cancellationToken: ct`). The matching `WebAuthService` methods changed the same way.
+- Sessions signed in without "remember me" now use a browser-session cookie (no `Expires`); before,
+  every session cookie lasted until the absolute timeout.
+- Magic-link sign-in refuses users of another tenant, like password sign-in.
+- `WebAuthService` takes a `WebSessionDevices` (resolved from DI).
 
 ### Fixed
 

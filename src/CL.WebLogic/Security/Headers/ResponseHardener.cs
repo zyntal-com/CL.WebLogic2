@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using CL.WebLogic.Hosting.Services;
+using CL.WebLogic.Routing.Models;
 using CL.WebLogic.Security.Models;
 using CL.WebLogic.Security.Pipeline;
 using Microsoft.AspNetCore.Http;
@@ -15,8 +17,12 @@ public sealed class ResponseHardener
     private static readonly string[] ManagedHeaders =
     [
         "Content-Security-Policy", "Content-Security-Policy-Report-Only", "Strict-Transport-Security", "X-Content-Type-Options",
-        "X-Frame-Options", "Referrer-Policy", "Permissions-Policy", "Cross-Origin-Opener-Policy", "Cross-Origin-Resource-Policy"
+        "X-Frame-Options", "Referrer-Policy", "Permissions-Policy", "Cross-Origin-Opener-Policy", "Cross-Origin-Resource-Policy",
+        "Reporting-Endpoints"
     ];
+
+    // Routes with their own CSP additions: the policy is built once per route and settings revision.
+    private readonly ConditionalWeakTable<WebRouteMetadata, RoutePolicy> _routePolicies = [];
 
     private readonly ICspNonceProvider _nonce;
     private readonly IWebLogicContext _context;
@@ -53,11 +59,16 @@ public sealed class ResponseHardener
 
         headers.Remove("Content-Security-Policy");
         headers.Remove("Content-Security-Policy-Report-Only");
-        if (settings.ContentSecurityPolicy is { } csp)
+        if (PolicyFor(security) is { } csp)
         {
             var value = csp.Replace(CspBuilder.NoncePlaceholder, _nonce.GetNonce(httpContext), StringComparison.Ordinal);
             headers[config.CspReportOnly ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy"] = value;
         }
+
+        if (CspBuilder.ReportingEndpoints(config) is { } endpoints)
+            headers["Reporting-Endpoints"] = endpoints;
+        else
+            headers.Remove("Reporting-Endpoints");
 
         if (Sessions.WebSessionCookies.IsSecure(httpContext) && settings.StrictTransportSecurity is { } hsts)
             headers["Strict-Transport-Security"] = hsts;
@@ -95,4 +106,18 @@ public sealed class ResponseHardener
         if (string.IsNullOrWhiteSpace(value)) headers.Remove(name);
         else headers[name] = value;
     }
+
+    private string? PolicyFor(WebSecurityContext security)
+    {
+        var settings = security.Settings;
+        if (security.Route is not { CspAdditions.Count: > 0 } route || settings.ContentSecurityPolicy is null)
+            return settings.ContentSecurityPolicy;
+        if (_routePolicies.TryGetValue(route, out var cached) && ReferenceEquals(cached.Settings, settings))
+            return cached.Policy;
+        var policy = CspBuilder.Build(settings.Config.Headers, route.CspAdditions);
+        _routePolicies.AddOrUpdate(route, new RoutePolicy(settings, policy));
+        return policy;
+    }
+
+    private sealed record RoutePolicy(WebSecuritySettings Settings, string? Policy);
 }

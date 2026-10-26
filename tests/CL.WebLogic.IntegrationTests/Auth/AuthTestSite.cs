@@ -34,7 +34,7 @@ internal static class AuthTestSite
             web?.Invoke(builder);
         }, options);
 
-    private sealed record Body(string? Login, string? Password, string? Code, string? Token, string? NewPassword, string? Current);
+    private sealed record Body(string? Login, string? Password, string? Code, string? Token, string? NewPassword, string? Current, bool Remember = false);
 
     private static JsonResult Status(object status, string? token = null) =>
         WebResult.Json(new Dictionary<string, string?> { ["status"] = status.ToString(), ["token"] = token });
@@ -44,12 +44,12 @@ internal static class AuthTestSite
         b.MapApi("/auth/login", async (r, ct) =>
         {
             var body = (await r.ReadJsonAsync<Body>(ct))!;
-            var result = await r.Auth.PasswordSignInAsync(body.Login ?? "", body.Password ?? "", ct);
+            var result = await r.Auth.PasswordSignInAsync(body.Login ?? "", body.Password ?? "", body.Remember, ct);
             return Status(result.Status, result.PasswordChangeToken);
         }, "POST").AllowAnonymous();
         b.MapApi("/auth/2fa", async (r, ct) => Status((await r.Auth.CompleteTwoFactorAsync((await r.ReadJsonAsync<Body>(ct))!.Code ?? "", ct)).Status), "POST").AllowAnonymous();
         b.MapApi("/auth/recovery", async (r, ct) => Status((await r.Auth.RedeemRecoveryCodeAsync((await r.ReadJsonAsync<Body>(ct))!.Code ?? "", ct)).Status), "POST").AllowAnonymous();
-        b.MapApi("/auth/magic", async (r, ct) => Status((await r.Auth.SignInWithMagicLinkAsync((await r.ReadJsonAsync<Body>(ct))!.Token ?? "", ct)).Status), "POST").AllowAnonymous();
+        b.MapApi("/auth/magic", async (r, ct) => Status((await r.Auth.SignInWithMagicLinkAsync((await r.ReadJsonAsync<Body>(ct))!.Token ?? "", cancellationToken: ct)).Status), "POST").AllowAnonymous();
         b.MapApi("/auth/complete-change", async (r, ct) =>
         {
             var body = (await r.ReadJsonAsync<Body>(ct))!;
@@ -67,11 +67,27 @@ internal static class AuthTestSite
             return Status(result.IsSuccess ? "Changed" : result.Error!.Code);
         }, "POST");
         b.MapApi("/auth/refresh", async (r, ct) => Status(await r.Auth.RefreshAsync(ct)), "POST");
+        // Test stand-in for an external provider callback: the "provider" vouched for body.Login.
+        b.MapApi("/auth/external", async (r, ct) =>
+        {
+            var body = (await r.ReadJsonAsync<Body>(ct))!;
+            var user = await r.GetRequiredService<IWebUserStore>().FindByLoginAsync(body.Login ?? "", ct);
+            return user is null ? Status("NoUser") : Status((await r.Auth.SignInExternalAsync(user, "steam", body.Remember, ct)).Status);
+        }, "POST").AllowAnonymous();
+        b.MapApi("/auth/reauth", async (r, ct) =>
+        {
+            var body = (await r.ReadJsonAsync<Body>(ct))!;
+            return Status((await r.Auth.ReauthenticateAsync(body.Password ?? "", body.Code, ct)).Status);
+        }, "POST");
+        b.MapApi("/auth/sessions", async (r, ct) => WebResult.Json(await r.Auth.ListSessionsAsync(ct)));
+        b.MapApi("/auth/sessions/revoke", async (r, ct) =>
+            Status(await r.Auth.RevokeSessionAsync((await r.ReadJsonAsync<Body>(ct))!.Token ?? "", ct)), "POST");
         b.MapApi("/me", (r, _) => ValueTask.FromResult<WebResult>(WebResult.Json(new Dictionary<string, object?>
         {
             ["user"] = r.Identity.UserId,
             ["scheme"] = r.Identity.Scheme,
             ["methods"] = string.Join(',', r.Identity.AuthenticationMethods),
+            ["authenticatedAt"] = r.Identity.AuthenticatedAt?.ToUnixTimeSeconds(),
             ["groups"] = string.Join(',', r.Identity.Groups),
             ["scopes"] = string.Join(',', r.Identity.Scopes)
         })));
@@ -99,6 +115,19 @@ internal static class AuthTestSite
         }
         return user;
     }
+
+    /// <summary>Turns on two-factor authentication for <paramref name="user"/>; returns the secret (sign in with <see cref="NextCode"/>).</summary>
+    public static async Task<string> EnableTwoFactorAsync(WebLogicTestHost host, WebUser user)
+    {
+        var twoFactor = host.Services.GetRequiredService<CL.WebLogic.Auth.TwoFactor.WebTwoFactorService>();
+        var enrollment = twoFactor.BeginEnrollment(user);
+        var confirmed = await twoFactor.ConfirmEnrollmentAsync(user, enrollment.EnrollmentToken, TotpCodes.At(enrollment.Secret, TotpCodes.CurrentStep), default);
+        Assert.True(confirmed.IsSuccess, confirmed.Error?.Message);
+        return enrollment.Secret;
+    }
+
+    /// <summary>A code for the next time step (enrollment used the current one; each step works once).</summary>
+    public static string NextCode(string secret, int ahead = 1) => TotpCodes.At(secret, TotpCodes.CurrentStep + ahead);
 
     /// <summary>POSTs JSON with a fresh CSRF token; returns the "status" field.</summary>
     public static async Task<string> PostAsync(HttpClient client, string path, object body)

@@ -100,11 +100,62 @@ public static class WebRouteSettingsExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Sends unauthenticated visitors of these pages to <paramref name="path"/> instead of
+    /// <c>Security.LoginPath</c> (e.g. an admin area with its own sign-in page). Local paths only.
+    /// </summary>
+    public static T WithLoginPath<T>(this T builder, string path) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.LoginPath = LocalPath(path, nameof(path));
+        return builder;
+    }
+
+    /// <summary>Sends signed-in visitors who are not allowed to <paramref name="path"/> (with <c>returnUrl</c>) instead of answering 403. Pages only.</summary>
+    public static T WithAccessDeniedPath<T>(this T builder, string path) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.AccessDeniedPath = LocalPath(path, nameof(path));
+        return builder;
+    }
+
+    /// <summary>
+    /// Step-up: the user must have proven their credentials within <paramref name="maxAge"/>, with
+    /// every one of <paramref name="methods"/> (e.g. <c>pwd</c>, <c>otp</c>). Otherwise pages
+    /// redirect to the login path with <c>reauth=1</c> and APIs answer 401. Users prove it again with
+    /// <c>request.Auth.ReauthenticateAsync</c> (or any new sign-in).
+    /// </summary>
+    public static T RequireRecentSignIn<T>(this T builder, TimeSpan maxAge, params string[] methods) where T : IWebRouteSettingsBuilder
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxAge, TimeSpan.Zero);
+        builder.Settings.AllowAnonymous = false;
+        builder.Settings.RecentSignInMaxAge = maxAge;
+        builder.Settings.RecentSignInMethods.Clear();
+        builder.Settings.RecentSignInMethods.AddRange(methods);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds Content-Security-Policy sources for these routes only, e.g.
+    /// <c>.WithCsp(c =&gt; c.AddFrameSource("https://www.youtube-nocookie.com"))</c>.
+    /// </summary>
+    public static T WithCsp<T>(this T builder, Action<Security.Models.WebCspAdditions> configure) where T : IWebRouteSettingsBuilder
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        configure(builder.Settings.Csp);
+        return builder;
+    }
+
     /// <summary>Adds route-scoped middleware.</summary>
     public static T WithMiddleware<T>(this T builder, IWebMiddleware middleware) where T : IWebRouteSettingsBuilder
     {
         ArgumentNullException.ThrowIfNull(middleware);
         builder.Settings.Middleware.Add(middleware);
         return builder;
+    }
+
+    private static string LocalPath(string path, string parameter)
+    {
+        if (!Runtime.Services.WebUrl.IsLocal(path) || path.Contains('#', StringComparison.Ordinal))
+            throw new ArgumentException($"'{path}' must be a local path such as /admin/login.", parameter);
+        return path;
     }
 }

@@ -3,7 +3,7 @@ using CL.WebLogic.Security.Sessions;
 namespace StarterWebsite.Infrastructure;
 
 /// <summary>Sessions in <c>sessions.json</c>, keyed by the hash of the session id (the toolkit never hands over raw ids).</summary>
-public sealed class JsonSessionStore : IWebSessionStore, IDisposable
+public sealed class JsonSessionStore : IWebSessionStore, IWebSessionListStore, IDisposable
 {
     private readonly JsonFileStore<WebSessionRecord> _sessions;
 
@@ -31,6 +31,10 @@ public sealed class JsonSessionStore : IWebSessionStore, IDisposable
     /// <inheritdoc/>
     public Task<int> DeleteForUserAsync(string userId, CancellationToken cancellationToken) =>
         _sessions.RemoveWhereAsync((_, record) => record.UserId == userId, cancellationToken);
+
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<WebSessionRecord>> ListForUserAsync(string userId, CancellationToken cancellationToken) =>
+        await _sessions.WhereAsync(record => record.UserId == userId, cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken) =>

@@ -49,6 +49,21 @@ public sealed class WebRouteSettings
     /// <summary>Route-scoped middleware, run in order after the security pipeline.</summary>
     public List<IWebMiddleware> Middleware { get; } = [];
 
+    /// <summary>Sign-in page for this route or area (null = <c>Security.LoginPath</c>).</summary>
+    public string? LoginPath { get; set; }
+
+    /// <summary>Page signed-in users are sent to when access is denied (null = a 403 response).</summary>
+    public string? AccessDeniedPath { get; set; }
+
+    /// <summary>Step-up: how recently the user must have proven their credentials (null = no requirement).</summary>
+    public TimeSpan? RecentSignInMaxAge { get; set; }
+
+    /// <summary>Methods the recent sign-in must have used (with <see cref="RecentSignInMaxAge"/>).</summary>
+    public List<string> RecentSignInMethods { get; } = [];
+
+    /// <summary>Extra Content-Security-Policy sources for these routes.</summary>
+    public Security.Models.WebCspAdditions Csp { get; } = new();
+
     /// <summary>Copies every value from <paramref name="source"/> into this instance (used for group inheritance).</summary>
     public void InheritFrom(WebRouteSettings source)
     {
@@ -64,5 +79,13 @@ public sealed class WebRouteSettings
         RequiredPermissions.InsertRange(0, source.RequiredPermissions.Except(RequiredPermissions, StringComparer.OrdinalIgnoreCase));
         Policies.InsertRange(0, source.Policies.Except(Policies, StringComparer.Ordinal));
         Middleware.InsertRange(0, source.Middleware);
+        LoginPath ??= source.LoginPath;
+        AccessDeniedPath ??= source.AccessDeniedPath;
+        if (RecentSignInMaxAge is null && source.RecentSignInMaxAge is not null)
+        {
+            RecentSignInMaxAge = source.RecentSignInMaxAge;
+            RecentSignInMethods.InsertRange(0, source.RecentSignInMethods.Except(RecentSignInMethods, StringComparer.OrdinalIgnoreCase));
+        }
+        Csp.MergeFrom(source.Csp);
     }
 }

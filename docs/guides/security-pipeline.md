@@ -44,9 +44,21 @@ b.MapApi("/api/invoices", ListInvoicesAsync).RequirePolicy("billing");
 ```
 
 Requirements: `RequireAnyGroup`, `RequireAllGroups`, `RequirePermissions` (wildcards), `RequireScheme`,
-`RequireScopes`, `RequireSameTenant`, `RequireAssertion(ctx => ...)` and `Require(IWebAuthorizationRequirement)`
+`RequireScopes`, `RequireSameTenant`, `RequireRecentSignIn(maxAge, methods)` (step-up, see
+[Authentication](authentication.md#step-up-recent-sign-in)), `RequireAssertion(ctx => ...)` and `Require(IWebAuthorizationRequirement)`
 for async or resource-based checks. Permissions can come from the identity or from an
 `IWebPermissionResolver` (resolved lazily, only when a rule needs them).
+
+### Areas with their own sign-in page
+
+```csharp
+var admin = b.MapGroup("/admin").RequireGroups("admin")
+    .WithLoginPath("/admin/login")          // instead of Security.LoginPath
+    .WithAccessDeniedPath("/admin/denied"); // signed-in users without access, instead of a 403
+```
+
+Both are inherited by nested groups and routes, take local paths only, and add a safe `returnUrl`.
+APIs keep answering `401`/`403`.
 
 ## CSRF
 
@@ -64,7 +76,20 @@ so cached pages never embed a token.
 ## Response headers
 
 The CSP is built from `security.headers` with a per-request nonce and `strict-dynamic`; templates add
-the nonce to their own `<script>` and `<style>` tags. A handler that sets a security header has it
+the nonce to their own `<script>` and `<style>` tags. Configurable sources: script, style, image,
+connect, font, frame, media, worker and manifest sources, extra `form-action` targets and frame
+ancestors; `object-src 'none'` and `base-uri 'self'` are fixed. Violation reports go to
+`cspReportUri` (`report-uri`) and/or `cspReportTo` (`Reporting-Endpoints` + `report-to`).
+
+A page that embeds third-party content widens the policy for itself only:
+
+```csharp
+b.MapPage("/videos/{id}", VideoAsync).AllowAnonymous()
+ .WithCsp(c => c.AddFrameSource("https://www.youtube-nocookie.com"));
+```
+
+`WithCsp` works on groups too. Only hosts, schemes (`https:`, `data:`, `blob:`) and `'self'` are
+accepted; keywords such as `'unsafe-inline'` are refused at registration. A handler that sets a security header has it
 replaced (logged at debug); to change one deliberately use `request.Security.OverrideHeader(name, value)`.
 `Server` and `X-Powered-By` are not sent.
 

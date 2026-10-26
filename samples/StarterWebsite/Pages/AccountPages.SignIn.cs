@@ -35,7 +35,7 @@ public sealed partial class AccountPages
             return submission.Invalid(fallbackTemplate: LoginTemplate, fallbackModel: LoginModel(request));
 
         var next = WebRequestAuth.GetSafeReturnUrl(submission.Model.ReturnUrl);
-        var result = await request.Auth.PasswordSignInAsync(submission.Model.Login!, submission.Model.Password!, cancellationToken).ConfigureAwait(false);
+        var result = await request.Auth.PasswordSignInAsync(submission.Model.Login!, submission.Model.Password!, submission.Model.RememberMe, cancellationToken).ConfigureAwait(false);
         var problem = result.Status switch
         {
             WebSignInStatus.Succeeded => null,
@@ -120,7 +120,7 @@ public sealed partial class AccountPages
         if (created.IsFailure)
             return submission.AddError(string.Empty, created.Error!.Message).Invalid(created.Error.Message, RegisterTemplate);
 
-        await request.Auth.SignInAsync(created.Value!, ["pwd"], cancellationToken).ConfigureAwait(false);
+        await request.Auth.SignInAsync(created.Value!, ["pwd"], cancellationToken: cancellationToken).ConfigureAwait(false);
         return FormResult.Success("Welcome aboard!", "/account?welcome=1");
     }
 }

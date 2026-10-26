@@ -83,6 +83,53 @@ public sealed class SecurityPrimitivesTests
     }
 
     [Fact]
+    public void Csp_HasMediaWorkerManifestFormActionAndReportTo()
+    {
+        var headers = new ResponseHeadersConfig
+        {
+            MediaSources = ["https://media.test"],
+            FormActions = ["https://pay.test"],
+            CspReportTo = "https://reports.test/csp"
+        };
+        var csp = CspBuilder.Build(headers)!;
+
+        Assert.Contains("media-src 'self' https://media.test", csp);
+        Assert.DoesNotContain("worker-src", csp);   // nothing added: default-src 'self' applies
+        Assert.Contains("form-action 'self' https://pay.test", csp);
+        Assert.Contains("report-to csp-endpoint", csp);
+        Assert.Equal("csp-endpoint=\"https://reports.test/csp\"", CspBuilder.ReportingEndpoints(headers));
+        Assert.Null(CspBuilder.ReportingEndpoints(new ResponseHeadersConfig()));
+    }
+
+    [Fact]
+    public void Csp_RouteAdditionsExtendOnlyThatPolicy()
+    {
+        var additions = new WebCspAdditions().AddFrameSource("https://www.youtube-nocookie.com").AddWorkerSource("blob:");
+        var csp = CspBuilder.Build(new ResponseHeadersConfig(), additions.Sources)!;
+
+        Assert.Contains("frame-src https://www.youtube-nocookie.com", csp);
+        Assert.DoesNotContain("frame-src 'none'", csp);
+        Assert.Contains("worker-src 'self' blob:", csp);
+        Assert.Contains("frame-src 'none'", CspBuilder.Build(new ResponseHeadersConfig())!);
+    }
+
+    [Theory]
+    [InlineData("https://ok.test", true)]
+    [InlineData("https:", true)]
+    [InlineData("'self'", true)]
+    [InlineData("'unsafe-inline'", false)]
+    [InlineData("'unsafe-eval'", false)]
+    [InlineData("https://a.test; script-src *", false)]
+    [InlineData("https://a.test https://b.test", false)]
+    [InlineData("", false)]
+    public void CspAdditions_OnlyAcceptPlainSources(string source, bool valid)
+    {
+        Assert.Equal(valid, WebCspAdditions.IsValidSource(source));
+        if (!valid)
+            Assert.Throws<ArgumentException>(() => new WebCspAdditions().AddFrameSource(source));
+    }
+
+    [Fact]
     public void StageOrderValidator_FindsDuplicatesWrongOrderAndWrongPhase()
     {
         Assert.Empty(StageOrderValidator.Validate([Stage("authentication", WebSecurityPhase.PreRouting, 500), Stage("authorization", WebSecurityPhase.Endpoint, 700)]));

@@ -72,7 +72,11 @@ public sealed class ExplorerModelBuilder
                 cors = m.CorsPolicy,
                 outputCache = m.OutputCachePolicy,
                 maxBodyBytes = m.MaxBodyBytes,
-                crossSitePost = m.AllowCrossSitePost
+                crossSitePost = m.AllowCrossSitePost,
+                loginPath = m.LoginPath,
+                accessDeniedPath = m.AccessDeniedPath,
+                recentSignIn = m.RecentSignIn?.Description,
+                csp = m.CspAdditions
             }),
             anonymousRoutes = routes.Where(m => m.AllowAnonymous).Select(m => string.Join(',', m.Methods) + " " + m.Pattern),
             stages = _stages.OrderBy(s => s.Phase).ThenBy(s => s.Order).Select(s => new

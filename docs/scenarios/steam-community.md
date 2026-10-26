@@ -36,13 +36,20 @@ async ValueTask<WebResult> CallbackAsync(WebRequestContext r, CancellationToken 
         user = created.Value!;
         await external.LinkAsync(user, info, ct);
     }
-    await r.Auth.SignInAsync(user, ["ext:steam"], ct);
-    return WebResult.Redirect(returnUrl);
+    // Applies the account rules and asks two-factor users for their code.
+    var result = await r.Auth.SignInExternalAsync(user, "steam", persistent: true, ct);
+    return result.Status == WebSignInStatus.RequiresTwoFactor
+        ? WebResult.Redirect("/account/two-factor?returnUrl=" + Uri.EscapeDataString(returnUrl))
+        : result.Status == WebSignInStatus.Succeeded ? WebResult.Redirect(returnUrl) : WebResult.Page("templates/account/external-failed");
 }
 ```
 
 `WebExternalLoginFlow` keeps state and expiry in a protected `__Host-` cookie and only returns to local
-URLs. Your user store implements `IWebUserExternalLoginStore` to find users by Steam id. Steam gives no
+URLs. `SignInExternalAsync` (not `SignInAsync`) makes players who turned on two-factor authentication
+enter their code, records `ext:steam` as the sign-in method, and `persistent: true` keeps them
+signed in across browser restarts.
+
+Your user store implements `IWebUserExternalLoginStore` to find users by Steam id. Steam gives no
 e-mail address, so password reset does not apply to these accounts; they sign in through Steam only.
 
 ## Live features

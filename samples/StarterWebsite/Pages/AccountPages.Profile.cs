@@ -27,6 +27,10 @@ public sealed partial class AccountPages
                 k.Id, k.Name, k.Prefix, Scopes = string.Join(", ", k.Scopes), k.CreatedAt, k.ExpiresAt, k.LastUsedAt
             }).ToList(),
             Methods = string.Join(", ", request.Identity.AuthenticationMethods),
+            Sessions = (await request.Auth.ListSessionsAsync(cancellationToken).ConfigureAwait(false)).Select(s => new
+            {
+                s.IdHash, Device = s.UserAgent ?? "Unknown browser", s.CreatedAt, s.LastSeenAt, s.Persistent, s.IsCurrent
+            }).ToList(),
             Welcome = request.GetQuery("welcome") == "1",
             Sent = request.GetQuery("sent") == "1",
             Changed = request.GetQuery("changed") == "1",
@@ -50,6 +54,13 @@ public sealed partial class AccountPages
             submission.AddError(changed.Error!.Code.Contains("current", StringComparison.OrdinalIgnoreCase) ? nameof(ChangePasswordForm.CurrentPassword) : nameof(ChangePasswordForm.NewPassword), changed.Error.Message);
         }
         return submission.Invalid(fallbackTemplate: ProfileTemplate, fallbackModel: await ProfileModelAsync(request, cancellationToken).ConfigureAwait(false));
+    }
+
+    private static async ValueTask<WebResult> RevokeSessionAsync(WebRequestContext request, CancellationToken cancellationToken)
+    {
+        if (request.GetRouteValue("id") is { } id)
+            await request.Auth.RevokeSessionAsync(id, cancellationToken).ConfigureAwait(false);
+        return Redirect("/account");
     }
 
     private static async ValueTask<WebResult> SignOutEverywhereAsync(WebRequestContext request, CancellationToken cancellationToken)

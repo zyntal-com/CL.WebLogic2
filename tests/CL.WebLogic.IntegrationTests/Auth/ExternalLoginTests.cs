@@ -34,7 +34,7 @@ public sealed class ExternalLoginTests
                     await r.GetRequiredService<IWebUserStore>().CreateAsync(user, ct);
                     await flow.LinkAsync(user, outcome.Value.Info, ct);
                 }
-                await r.Auth.SignInAsync(user, ["external"], ct);
+                await r.Auth.SignInAsync(user, ["external"], cancellationToken: ct);
                 return WebResult.Text("ok:" + user.Id + ":" + outcome.Value.ReturnUrl);
             }).AllowAnonymous();
         }), new WebContributorDescriptor { Id = "tests.external", Name = "External" });

@@ -68,6 +68,7 @@ public sealed partial class AccountPages : IWebContributor
         account.MapPage("/resend-verification", ResendVerificationAsync, "POST").WithRateLimit("forms");
         account.MapPage("/password", ChangePasswordAsync, "POST");
         account.MapPage("/sign-out-everywhere", SignOutEverywhereAsync, "POST");
+        account.MapPage("/sessions/{id}/revoke", RevokeSessionAsync, "POST");
         account.MapPage("/two-factor/setup", ShowTwoFactorSetupAsync);
         account.MapPage("/two-factor/setup", TwoFactorSetupAsync, "POST");
         account.MapPage("/two-factor/disable", DisableTwoFactorAsync, "POST");

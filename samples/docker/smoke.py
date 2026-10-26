@@ -195,11 +195,15 @@ def starter(args):
     check("signed out", c.get("/account").status == 302)
     r = c.submit("/account/login", "login", {"Login": user, "Password": "wrong-password-xx"})
     check("wrong password is refused", r.status == 422 and "Wrong user name or password" in r.text, r.status)
-    r = c.submit("/account/login", "login", {"Login": user, "Password": password})
+    r = c.submit("/account/login", "login", {"Login": user, "Password": password, "RememberMe": "true"})
     check("password step asks for the second factor", r.status == 303 and r.location.startswith("/account/two-factor"), f"{r.status} {r.location}")
     check("not signed in before the second factor", c.get("/account").status == 302)
     r = c.submit("/account/recovery-code", "recovery-code", {"Code": codes[0]})
     check("recovery code completes sign-in", r.status == 303 and c.get("/account").status == 200, f"{r.status} {r.location}")
+    session_cookie = next((k for k in c.jar if k.name.endswith("wl_sid")), None)
+    check("remember me survives the second factor (persistent cookie)", session_cookie is not None and session_cookie.expires is not None)
+    account = c.get("/account").text
+    check("account page lists this device", "this browser" in account and "remembered" in account)
 
     print("[starter] API keys")
     r = c.submit("/account", "api-key", {"Name": "smoke", "Scopes": ["profile:read", "wall:write"], "ExpiresInDays": "1"}, action="/account/api-keys")

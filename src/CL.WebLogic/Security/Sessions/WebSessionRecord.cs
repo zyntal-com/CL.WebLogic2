@@ -45,6 +45,15 @@ public sealed record WebSessionRecord
     /// <summary>User security stamp at sign-in (lets the app end sessions after a password change).</summary>
     public string? SecurityStamp { get; init; }
 
+    /// <summary>When the user last proved their credentials (sign-in or re-authentication).</summary>
+    public DateTimeOffset? AuthenticatedAt { get; init; }
+
+    /// <summary>"Remember me": longer timeouts and a cookie that survives a browser restart.</summary>
+    public bool Persistent { get; init; }
+
+    /// <summary>The browser's user agent when the session was created (at most 256 characters), for device lists.</summary>
+    public string? UserAgent { get; init; }
+
     /// <summary>Per-session CSRF secret (base64url).</summary>
     public required string CsrfSecret { get; init; }
 

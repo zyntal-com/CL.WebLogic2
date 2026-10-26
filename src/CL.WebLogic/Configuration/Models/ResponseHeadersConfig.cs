@@ -44,6 +44,26 @@ public sealed class ResponseHeadersConfig
     [ConfigField(Label = "Frame Sources", Group = "Headers", Order = 108, Collapsed = true)]
     public List<string> FrameSources { get; set; } = [];
 
+    /// <summary>Extra <c>media-src</c> sources (audio and video files).</summary>
+    [ConfigField(Label = "Media Sources", Group = "Headers", Order = 116, Collapsed = true)]
+    public List<string> MediaSources { get; set; } = [];
+
+    /// <summary>Extra <c>worker-src</c> sources.</summary>
+    [ConfigField(Label = "Worker Sources", Group = "Headers", Order = 117, Collapsed = true)]
+    public List<string> WorkerSources { get; set; } = [];
+
+    /// <summary>Extra <c>manifest-src</c> sources.</summary>
+    [ConfigField(Label = "Manifest Sources", Group = "Headers", Order = 118, Collapsed = true)]
+    public List<string> ManifestSources { get; set; } = [];
+
+    /// <summary>Extra <c>form-action</c> targets besides the site itself (e.g. a payment provider).</summary>
+    [ConfigField(Label = "Form Actions", Group = "Headers", Order = 119, Collapsed = true)]
+    public List<string> FormActions { get; set; } = [];
+
+    /// <summary>Reporting API endpoint for CSP violations (<c>Reporting-Endpoints</c> + <c>report-to</c>).</summary>
+    [ConfigField(Label = "CSP Report To", Description = "URL of a Reporting API endpoint; sent as Reporting-Endpoints and used by report-to.", Group = "Headers", Order = 120, Collapsed = true)]
+    public string CspReportTo { get; set; } = "";
+
     /// <summary>Allow inline <c>style="…"</c> attributes (<c>style-src-attr 'unsafe-inline'</c>).</summary>
     [ConfigField(Label = "Allow Inline Style Attributes", Group = "Headers", Order = 109, Collapsed = true)]
     public bool AllowInlineStyleAttributes { get; set; }

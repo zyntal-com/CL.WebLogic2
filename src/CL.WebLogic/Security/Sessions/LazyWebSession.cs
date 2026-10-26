@@ -30,6 +30,9 @@ public sealed class LazyWebSession : IWebSession
     internal IReadOnlyList<string> AuthenticationMethods { get; set; } = [];
     internal string? TenantId { get; set; }
     internal string? SecurityStamp { get; set; }
+    internal DateTimeOffset? AuthenticatedAt { get; set; }
+    internal bool Persistent { get; set; }
+    internal string? UserAgent { get; set; }
     internal IReadOnlyDictionary<string, string> Values => _values;
 
     /// <inheritdoc/>
@@ -101,6 +104,9 @@ public sealed class LazyWebSession : IWebSession
         AuthenticationMethods = record.AuthenticationMethods;
         TenantId = record.TenantId;
         SecurityStamp = record.SecurityStamp;
+        AuthenticatedAt = record.AuthenticatedAt;
+        Persistent = record.Persistent;
+        UserAgent = record.UserAgent;
         CsrfSecret = record.CsrfSecret;
         _values = new Dictionary<string, string>(record.Values, StringComparer.Ordinal);
     }

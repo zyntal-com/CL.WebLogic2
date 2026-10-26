@@ -4,7 +4,7 @@ using CL.WebLogic.Security.Services;
 namespace CL.WebLogic.Security.Sessions;
 
 /// <summary>Development session store: process memory, lost on restart, not shared between nodes.</summary>
-public sealed class InMemoryWebSessionStore : IWebSessionStore, IWebDevelopmentStore
+public sealed class InMemoryWebSessionStore : IWebSessionStore, IWebSessionListStore, IWebDevelopmentStore
 {
     private readonly ConcurrentDictionary<string, WebSessionRecord> _sessions = new(StringComparer.Ordinal);
 
@@ -33,6 +33,10 @@ public sealed class InMemoryWebSessionStore : IWebSessionStore, IWebDevelopmentS
     /// <inheritdoc/>
     public Task<int> DeleteForUserAsync(string userId, CancellationToken cancellationToken) =>
         Task.FromResult(RemoveWhere(r => r.UserId == userId));
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyList<WebSessionRecord>> ListForUserAsync(string userId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<WebSessionRecord>>([.. _sessions.Values.Where(r => r.UserId == userId)]);
 
     /// <inheritdoc/>
     public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken) =>

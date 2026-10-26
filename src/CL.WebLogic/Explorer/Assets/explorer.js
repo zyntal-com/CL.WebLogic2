@@ -41,7 +41,7 @@
       [el('code', {}, r.pattern), r.description ? el('div', { class: 'muted' }, r.description) : null],
       r.kind,
       access(r),
-      [...tags(r.rateLimit ? ['rate: ' + r.rateLimit] : []), ...tags(r.cors ? ['cors: ' + r.cors] : []), ...tags(r.outputCache ? ['cache: ' + r.outputCache] : []), ...tags(r.maxBodyBytes ? ['body ≤ ' + r.maxBodyBytes] : [])],
+      [...tags(r.rateLimit ? ['rate: ' + r.rateLimit] : []), ...tags(r.cors ? ['cors: ' + r.cors] : []), ...tags(r.outputCache ? ['cache: ' + r.outputCache] : []), ...tags(r.maxBodyBytes ? ['body ≤ ' + r.maxBodyBytes] : []), ...tags(r.recentSignIn ? ['step-up: ' + r.recentSignIn.replace('recent-sign-in:', '')] : []), ...tags(r.loginPath ? ['login: ' + r.loginPath] : []), ...tags(r.csp && Object.keys(r.csp).length ? ['csp: ' + Object.keys(r.csp).join(' ')] : [])],
       el('code', {}, r.contributor)
     ]));
     search.addEventListener('input', () => {

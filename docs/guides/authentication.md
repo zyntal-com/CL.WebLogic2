@@ -26,7 +26,7 @@ samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructu
 ## Signing in
 
 ```csharp
-var result = await request.Auth.PasswordSignInAsync(model.Login, model.Password, ct);
+var result = await request.Auth.PasswordSignInAsync(model.Login, model.Password, persistent: model.RememberMe, ct);
 switch (result.Status)
 {
     case WebSignInStatus.Succeeded: return FormResult.Success(redirect: WebRequestAuth.GetSafeReturnUrl(model.ReturnUrl));
@@ -45,9 +45,51 @@ switch (result.Status)
 - `GetSafeReturnUrl` accepts local paths only (no `//`, `/\`, schemes or control characters).
 
 Other `request.Auth` members: `CompleteTwoFactorAsync(code)`, `RedeemRecoveryCodeAsync(code)`,
-`SignInWithMagicLinkAsync(token)`, `CompletePasswordChangeAsync(token, password)`,
-`SignInAsync(user)` (after your own checks), `SignOutAsync(everywhere)`, `RefreshAsync()`,
-`ChangePasswordAsync(current, new)` and `GetCurrentUserAsync()`.
+`SignInWithMagicLinkAsync(token)`, `SignInExternalAsync(user, provider)`,
+`CompletePasswordChangeAsync(token, password)`, `ReauthenticateAsync(password, code)`,
+`SignInAsync(user)` (after your own checks; skips the second factor), `SignOutAsync(everywhere)`,
+`RefreshAsync()`, `ChangePasswordAsync(current, new)`, `ListSessionsAsync()`,
+`RevokeSessionAsync(idHash)` and `GetCurrentUserAsync()`.
+
+## Remember me
+
+Every sign-in method takes `persistent` ("remember me"). It carries through the second factor and a
+required password change. Remembered sessions use `Session.PersistentIdleTimeoutDays` (30) and
+`Session.PersistentAbsoluteTimeoutDays` (90) and a cookie that survives a browser restart; other
+sessions end with the browser session (or the normal idle/absolute timeouts). Security-stamp checks,
+rotation and "sign out everywhere" apply to both.
+
+## Step-up (recent sign-in)
+
+Sensitive pages can demand that the user proved their credentials recently, optionally with specific
+methods:
+
+```csharp
+account.MapPage("/delete", DeleteAccountAsync).RequireRecentSignIn(TimeSpan.FromMinutes(10));
+b.MapGroup("/billing").RequireRecentSignIn(TimeSpan.FromMinutes(15), "pwd", "otp");
+web.AddAuthorizationPolicy("payouts", p => p.RequireAnyGroup("finance").RequireRecentSignIn(TimeSpan.FromMinutes(5), "otp"));
+```
+
+When it fails, pages redirect to the login path with `reauth=1&returnUrl=…` and APIs answer `401`
+with `WWW-Authenticate: WebLogic error="reauthentication_required"`. Users prove themselves with
+`request.Auth.ReauthenticateAsync(password, code)` (the code is required when they use two-factor
+authentication) or by simply signing in again; refreshing the session does not count. Users without a
+password sign in again through their magic link or provider.
+
+## Sessions as devices
+
+```csharp
+var sessions = await request.Auth.ListSessionsAsync(ct);     // browser, created, last seen, remembered, IsCurrent
+await request.Auth.RevokeSessionAsync(sessions[1].IdHash, ct); // "sign out that device"
+```
+
+Session records keep the browser's user agent, the authentication time and "remember me". Listing
+needs a session store that implements the optional `IWebSessionListStore`
+(`ListForUserAsync(userId)`); both samples do. The same capability enables:
+
+- `Session.MaxPerUser`: the oldest sessions end when a new sign-in exceeds the cap.
+- `Auth.Notifications.NotifyNewDevice`: an e-mail when someone signs in from a browser none of the
+  user's other sessions use.
 
 ## Passwords
 
@@ -109,7 +151,10 @@ disabled or deleted. API-key requests are not "ambient", so they need no CSRF to
 
 Implement `IWebExternalLoginProvider` (`GetChallengeUrlAsync`, `HandleCallbackAsync`) and register it
 with `web.AddExternalLoginProvider<T>()`. `WebExternalLoginFlow` handles state and nonce (in a
-protected `__Host-` cookie), the safe return URL and linking. The starter sample has a complete Steam
+protected `__Host-` cookie), the safe return URL and linking. Finish with
+`request.Auth.SignInExternalAsync(user, provider)`: it refuses disabled, locked and other-tenant
+accounts and asks users with two-factor authentication for their code, exactly like a password
+sign-in. (`SignInAsync` would skip the second factor.) The starter sample has a complete Steam
 OpenID 2.0 provider.
 
 ## Tenants

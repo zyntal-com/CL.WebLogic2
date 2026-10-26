@@ -12,7 +12,8 @@ resolved only when a rule needs them).
 ```csharp
 web.AddAuthorizationPolicy("support", p => p.RequireAnyGroup("support", "admin"));
 
-var admin = b.MapGroup("/admin").RequireGroups("staff");
+var admin = b.MapGroup("/admin").RequireGroups("staff")
+    .WithLoginPath("/admin/login").WithAccessDeniedPath("/admin/denied");
 admin.MapPage("/customers", ListCustomersAsync).RequirePolicy("support");
 admin.MapPage("/customers/{id}/refund", RefundAsync, "POST").RequirePermissions("billing.refund");
 ```
@@ -22,15 +23,19 @@ support agent of region A editing a customer of region B).
 
 ## Sign-in hardening
 
-- Require two-factor for staff: after `PasswordSignInAsync` succeeds, send users without 2FA to the
-  enrollment page and refuse admin routes until they have it (an `IWebAuthorizationRequirement` that
-  checks `Identity.AuthenticationMethods` for `otp` or `recovery`, or your user record).
+- Require two-factor for staff and recent proof for dangerous actions:
+  `admin.RequireRecentSignIn(TimeSpan.FromHours(8), "otp")` on the whole area, and
+  `.RequireRecentSignIn(TimeSpan.FromMinutes(10), "pwd", "otp")` on refunds or user management. Staff
+  without 2FA are sent to the admin login page; a "confirm it's you" form calls
+  `request.Auth.ReauthenticateAsync(password, code)`.
+- External sign-in (company SSO) goes through `SignInExternalAsync`, so the same two-factor rules apply.
 - `auth.lockout`, the per-login throttle and the per-IP cap are on by default.
 - Shorter sessions: `security.session.idleTimeoutMinutes: 30`, `absoluteTimeoutHours: 12`.
 - Optionally limit by network: `security.ipRules.allow` with the office/VPN ranges (applies to the
   whole site), or a custom requirement for just `/admin`.
-- `request.Auth.SignOutAsync(everywhere: true)` for "sign out all devices"; disabling a user ends their
-  sessions at the next stamp check.
+- `request.Auth.SignOutAsync(everywhere: true)` for "sign out all devices", `ListSessionsAsync` /
+  `RevokeSessionAsync` for a device list, `Session.MaxPerUser` to cap concurrent sessions and
+  `NotifyNewDevice` for sign-in alerts; disabling a user ends their sessions at the next stamp check.
 
 ## Forms
 

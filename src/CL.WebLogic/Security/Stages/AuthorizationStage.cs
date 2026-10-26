@@ -11,7 +11,8 @@ namespace CL.WebLogic.Security.Stages;
 /// <summary>
 /// Authorizes WebLogic routes: every route requires an authenticated user unless it opted into
 /// <c>AllowAnonymous()</c>, plus its groups, permissions and named policies. Unauthenticated page
-/// requests are redirected to the login path with a safe return URL; API requests get 401.
+/// requests are redirected to the login path (per route or area) with a safe return URL; API
+/// requests get 401. Step-up failures (<c>RequireRecentSignIn</c>) ask the user to sign in again.
 /// </summary>
 public sealed class AuthorizationStage : IWebSecurityStage
 {
@@ -37,11 +38,15 @@ public sealed class AuthorizationStage : IWebSecurityStage
         if (route is null || route.AllowAnonymous)
             return WebSecurityDecision.Continue;
 
+        // Groups and permissions come before step-up: nobody is asked to sign in again for a page
+        // they could not open anyway.
         var requirements = new List<IWebAuthorizationRequirement> { WebAuthorizationRequirements.Authenticated };
         if (route.RequiredGroups.Count > 0)
             requirements.Add(WebAuthorizationRequirements.AnyGroup([.. route.RequiredGroups]));
         if (route.RequiredPermissions.Count > 0)
             requirements.Add(WebAuthorizationRequirements.Permissions([.. route.RequiredPermissions]));
+        if (route.RecentSignIn is { } recent)
+            requirements.Add(recent);
 
         var result = await _authorization.AuthorizeAsync(context, requirements, null, cancellationToken).ConfigureAwait(false);
         foreach (var policy in route.Policies)
@@ -53,27 +58,43 @@ public sealed class AuthorizationStage : IWebSecurityStage
 
         if (result.Succeeded)
             return WebSecurityDecision.Continue;
-        if (!result.Challenge)
-            return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "forbidden:" + result.FailedRequirement);
-        return Challenge(context, route);
+        if (result.Reauthenticate)
+            return Challenge(context, route, reauthenticate: true);
+        if (result.Challenge)
+            return Challenge(context, route, reauthenticate: false);
+        if (route.AccessDeniedPath is { } denied && IsPageGet(context, route))
+            return WebSecurityDecision.ShortCircuit(WebResult.Redirect(WithReturnUrl(denied, context)), "forbidden:" + result.FailedRequirement);
+        return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "forbidden:" + result.FailedRequirement);
     }
 
-    private static WebSecurityDecision Challenge(WebSecurityContext context, WebRouteMetadata route)
+    private static WebSecurityDecision Challenge(WebSecurityContext context, WebRouteMetadata route, bool reauthenticate)
     {
-        var httpContext = context.HttpContext;
-        var request = httpContext.Request;
-        var isPage = route.Kind is WebRouteKind.Page or WebRouteKind.Fallback;
-        if (isPage && HttpMethods.IsGet(request.Method) && !DefaultErrorPageRenderer.WantsProblemJson(httpContext))
+        var reason = reauthenticate ? "reauthentication-required" : "login-required";
+        if (IsPageGet(context, route))
         {
-            var returnUrl = WebUrl.SafeReturnUrl(request.Path + request.QueryString);
-            var login = context.Settings.Config.LoginPath + "?returnUrl=" + Uri.EscapeDataString(returnUrl);
-            return WebSecurityDecision.ShortCircuit(WebResult.Redirect(login), "login-required");
+            var login = WithReturnUrl(route.LoginPath ?? context.Settings.Config.LoginPath, context, reauthenticate);
+            return WebSecurityDecision.ShortCircuit(WebResult.Redirect(login), reason);
         }
 
-        WebResult challenge = DefaultErrorPageRenderer.WantsProblemJson(httpContext)
-            ? WebResult.Problem(StatusCodes.Status401Unauthorized, detail: "Authentication is required.")
+        var detail = reauthenticate ? "Sign in again to continue." : "Authentication is required.";
+        WebResult challenge = DefaultErrorPageRenderer.WantsProblemJson(context.HttpContext)
+            ? WebResult.Problem(StatusCodes.Status401Unauthorized, detail: detail)
             : WebResult.Status(StatusCodes.Status401Unauthorized);
-        challenge.WithHeader("WWW-Authenticate", "WebLogic");
-        return WebSecurityDecision.ShortCircuit(challenge, "authentication-required");
+        challenge.WithHeader("WWW-Authenticate", reauthenticate ? "WebLogic error=\"reauthentication_required\"" : "WebLogic");
+        return WebSecurityDecision.ShortCircuit(challenge, reauthenticate ? reason : "authentication-required");
+    }
+
+    private static bool IsPageGet(WebSecurityContext context, WebRouteMetadata route) =>
+        route.Kind is WebRouteKind.Page or WebRouteKind.Fallback
+        && HttpMethods.IsGet(context.HttpContext.Request.Method)
+        && !DefaultErrorPageRenderer.WantsProblemJson(context.HttpContext);
+
+    /// <summary><paramref name="path"/> with the current page as a safe <c>returnUrl</c> (and <c>reauth=1</c>).</summary>
+    private static string WithReturnUrl(string path, WebSecurityContext context, bool reauthenticate = false)
+    {
+        var request = context.HttpContext.Request;
+        var returnUrl = WebUrl.SafeReturnUrl(request.Path + request.QueryString);
+        return path + (path.Contains('?', StringComparison.Ordinal) ? "&" : "?")
+            + (reauthenticate ? "reauth=1&" : "") + "returnUrl=" + Uri.EscapeDataString(returnUrl);
     }
 }

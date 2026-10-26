@@ -10,12 +10,16 @@ public sealed class WebAuthorizationContext
 {
     private readonly WebPermissionService _permissions;
 
-    internal WebAuthorizationContext(WebSecurityContext security, object? resource, WebPermissionService permissions)
+    internal WebAuthorizationContext(WebSecurityContext security, object? resource, WebPermissionService permissions, DateTimeOffset now)
     {
         Security = security;
         Resource = resource;
         _permissions = permissions;
+        Now = now;
     }
+
+    /// <summary>The time of the check (from the registered <see cref="TimeProvider"/>).</summary>
+    public DateTimeOffset Now { get; }
 
     /// <summary>The request's security state.</summary>
     public WebSecurityContext Security { get; }

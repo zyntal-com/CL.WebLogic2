@@ -23,6 +23,9 @@ public sealed class WebAuthorizationPolicyBuilder
     /// <summary>Requires the identity to belong to the request's tenant.</summary>
     public WebAuthorizationPolicyBuilder RequireSameTenant() => Add(WebAuthorizationRequirements.SameTenant);
 
+    /// <summary>Requires credentials proven within <paramref name="maxAge"/> with all of <paramref name="methods"/> (step-up).</summary>
+    public WebAuthorizationPolicyBuilder RequireRecentSignIn(TimeSpan maxAge, params string[] methods) => Add(WebAuthorizationRequirements.RecentSignIn(maxAge, methods));
+
     /// <summary>Adds a custom requirement.</summary>
     public WebAuthorizationPolicyBuilder Require(IWebAuthorizationRequirement requirement) => Add(requirement ?? throw new ArgumentNullException(nameof(requirement)));
 

@@ -54,6 +54,18 @@ public sealed class WebRouteMetadata
     /// <summary>Unsafe methods may come from cross-site origins.</summary>
     public bool AllowCrossSitePost { get; init; }
 
+    /// <summary>Sign-in page for this route (null = <c>Security.LoginPath</c>).</summary>
+    public string? LoginPath { get; init; }
+
+    /// <summary>Where signed-in users go when access is denied (null = 403).</summary>
+    public string? AccessDeniedPath { get; init; }
+
+    /// <summary>Step-up requirement, or null.</summary>
+    public Security.Authorization.RecentSignInRequirement? RecentSignIn { get; init; }
+
+    /// <summary>Extra Content-Security-Policy sources per directive (empty = the site policy).</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> CspAdditions { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
+
     /// <summary>Freezes builder settings into metadata.</summary>
     public static WebRouteMetadata From(
         WebRouteKind kind,
@@ -77,6 +89,10 @@ public sealed class WebRouteMetadata
         RateLimitPolicy = settings.RateLimitPolicy,
         MaxBodyBytes = settings.MaxBodyBytes,
         OutputCachePolicy = settings.OutputCachePolicy,
-        AllowCrossSitePost = settings.AllowCrossSitePost
+        AllowCrossSitePost = settings.AllowCrossSitePost,
+        LoginPath = settings.LoginPath,
+        AccessDeniedPath = settings.AccessDeniedPath,
+        RecentSignIn = settings.RecentSignInMaxAge is { } maxAge ? new Security.Authorization.RecentSignInRequirement(maxAge, [.. settings.RecentSignInMethods]) : null,
+        CspAdditions = settings.Csp.Sources
     };
 }

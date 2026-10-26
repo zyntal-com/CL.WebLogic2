@@ -50,6 +50,7 @@ internal static class WebLogicAuthRegistration
         services.TryAddSingleton<IWebCredentialValidator, WebCredentialValidator>();
         services.TryAddSingleton<WebTwoFactorService>();
         services.TryAddSingleton<WebAccountService>();
+        services.TryAddSingleton<Auth.Sessions.WebSessionDevices>();
         services.TryAddSingleton<WebAuthService>();
         services.TryAddSingleton<WebApiKeyService>();
         services.TryAddSingleton<WebExternalLoginFlow>();

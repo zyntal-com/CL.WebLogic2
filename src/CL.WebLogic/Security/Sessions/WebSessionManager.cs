@@ -81,6 +81,7 @@ public sealed class WebSessionManager
         var session = await GetAsync(security, cancellationToken).ConfigureAwait(false);
         // Re-signing the same user (refresh, password change) keeps the absolute timeout running.
         var sameUser = session.AuthStage == WebSessionAuthStage.Authenticated && session.UserId == signIn.UserId && session.Created is not null;
+        var now = _time.GetUtcNow();
         Rotate(session);
         session.AuthStage = signIn.Stage;
         session.UserId = signIn.UserId;
@@ -91,7 +92,10 @@ public sealed class WebSessionManager
         session.TenantId = signIn.TenantId;
         session.SecurityStamp = signIn.SecurityStamp;
         if (!sameUser)
-            session.Created = _time.GetUtcNow();
+            session.Created = now;
+        session.AuthenticatedAt = signIn.AuthenticatedAt ?? (sameUser ? session.AuthenticatedAt ?? now : now);
+        session.Persistent = signIn.Persistent ?? (sameUser && session.Persistent);
+        session.UserAgent = UserAgent(security.HttpContext);
         session.Touch();
 
         security.Identity = signIn.Stage == WebSessionAuthStage.Authenticated ? ToIdentity(session) : WebIdentity.Anonymous;
@@ -123,6 +127,8 @@ public sealed class WebSessionManager
         session.AuthenticationMethods = [];
         session.TenantId = null;
         session.SecurityStamp = null;
+        session.AuthenticatedAt = null;
+        session.Persistent = false;
         session.ClearValues();
         session.Abandoned = true;
         session.Dirty = false;
@@ -151,8 +157,19 @@ public sealed class WebSessionManager
         Groups = session.Groups,
         Permissions = session.Permissions,
         AuthenticationMethods = session.AuthenticationMethods,
-        TenantId = session.TenantId
+        TenantId = session.TenantId,
+        AuthenticatedAt = session.AuthenticatedAt
     };
+
+    /// <summary>The request's user agent, cut to what a device list needs.</summary>
+    internal static string? UserAgent(HttpContext httpContext)
+    {
+        var value = httpContext.Request.Headers.UserAgent.ToString();
+        if (value.Length == 0)
+            return null;
+        value = new string(value.Where(c => !char.IsControl(c)).Take(256).ToArray());
+        return value;
+    }
 
     /// <summary>CSRF tokens issued before a sign-in / sign-out must not survive it.</summary>
     private void ExpirePreSessionCookie(HttpContext httpContext)
@@ -202,8 +219,9 @@ public sealed class WebSessionManager
             }
 
             var created = session.Created ?? now;
-            var absolute = session.Loaded?.AbsoluteExpiresAt ?? created.AddHours(config.AbsoluteTimeoutHours);
-            var idle = now.AddMinutes(config.IdleTimeoutMinutes);
+            var absolute = session.Loaded?.AbsoluteExpiresAt
+                ?? (session.Persistent ? created.AddDays(config.PersistentAbsoluteTimeoutDays) : created.AddHours(config.AbsoluteTimeoutHours));
+            var idle = session.Persistent ? now.AddDays(config.PersistentIdleTimeoutDays) : now.AddMinutes(config.IdleTimeoutMinutes);
             var record = new WebSessionRecord
             {
                 IdHash = WebSessionTokens.Hash(session.Token!),
@@ -219,14 +237,18 @@ public sealed class WebSessionManager
                 AuthenticationMethods = session.AuthenticationMethods,
                 TenantId = session.TenantId,
                 SecurityStamp = session.SecurityStamp,
+                AuthenticatedAt = session.AuthenticatedAt,
+                Persistent = session.Persistent,
+                UserAgent = session.UserAgent ??= UserAgent(httpContext),
                 CsrfSecret = session.CsrfSecret ?? WebSessionTokens.NewSecret(),
                 ClientIpHash = config.BindToClientIp ? _ipHasher.Hash(security.ClientIp) : null,
                 Values = new Dictionary<string, string>(session.Values, StringComparer.Ordinal)
             };
             await _store.SaveAsync(record, cancellationToken).ConfigureAwait(false);
 
+            // "Remember me" sessions survive a browser restart; others end with the browser session.
             if (session.IssueCookie)
-                httpContext.Response.Cookies.Append(cookieName, session.Token!, WebSessionCookies.Options(httpContext, absolute));
+                httpContext.Response.Cookies.Append(cookieName, session.Token!, WebSessionCookies.Options(httpContext, session.Persistent ? absolute : null));
         }
         catch (Exception ex)
         {

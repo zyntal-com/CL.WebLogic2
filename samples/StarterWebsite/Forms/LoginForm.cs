@@ -18,6 +18,10 @@ public sealed class LoginForm
     [WebField(WebFieldType.Password, Label = "Password", Autocomplete = "current-password")]
     public string? Password { get; set; }
 
+    /// <summary>Keep me signed in (longer session, survives a browser restart).</summary>
+    [WebField(WebFieldType.Checkbox, Label = "Keep me signed in")]
+    public bool RememberMe { get; set; }
+
     /// <summary>Where to go afterwards (checked with GetSafeReturnUrl).</summary>
     [WebField(WebFieldType.Hidden)]
     public string? ReturnUrl { get; set; }

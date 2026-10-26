@@ -38,6 +38,10 @@ public static class WebAuthorizationRequirements
     public static IWebAuthorizationRequirement SameTenant { get; } =
         new Assertion("same-tenant", (c, _) => ValueTask.FromResult(c.Security.TenantId is null || string.Equals(c.Identity.TenantId, c.Security.TenantId, StringComparison.Ordinal)));
 
+    /// <summary>Step-up: credentials proven within <paramref name="maxAge"/> with all of <paramref name="methods"/>.</summary>
+    public static IWebAuthorizationRequirement RecentSignIn(TimeSpan maxAge, params string[] methods) =>
+        new RecentSignInRequirement(maxAge, methods);
+
     /// <summary>A custom check.</summary>
     public static IWebAuthorizationRequirement Assert(string description, Func<WebAuthorizationContext, CancellationToken, ValueTask<bool>> check) =>
         new Assertion(description, check);

@@ -46,6 +46,12 @@ public sealed class WebIdentity
     /// <summary>Authentication methods used (<c>pwd</c>, <c>otp</c>, <c>apikey</c>…), RFC 8176 style.</summary>
     public IReadOnlyList<string> AuthenticationMethods { get; init; } = [];
 
+    /// <summary>
+    /// When the user last proved their credentials (sign-in or re-authentication), for step-up
+    /// checks (<c>RequireRecentSignIn</c>). Null for identities that do not track it (API keys, tokens).
+    /// </summary>
+    public DateTimeOffset? AuthenticatedAt { get; init; }
+
     /// <summary>Additional claims.</summary>
     public IReadOnlyDictionary<string, string> Claims { get; init; } = new Dictionary<string, string>();
 

@@ -236,6 +236,11 @@ stages.
 - Links in e-mails come from `PublicBaseUrl`, never from the request's Host header.
 - Second factors are single-use per time step (`IWebOneTimeUseStore`); account tokens are
   purpose-bound, time-limited and spent on use.
+- Every flow that signs a user in on someone else's word (links, external providers) goes through
+  the shared account rules (`Evaluate`) and the second factor. `SignInAsync` is only for users the
+  app verified itself and is documented as skipping 2FA.
+- Only real credential checks refresh `AuthenticatedAt`; re-signing the same user (refresh,
+  password change) keeps it, so step-up cannot be satisfied by a refresh.
 
 ## Client Rule
 

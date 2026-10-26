@@ -2,6 +2,7 @@ using System.Globalization;
 using CL.WebLogic.Auth.Accounts;
 using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.Notifications;
+using CL.WebLogic.Auth.Sessions;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
 using CL.WebLogic.Auth.TwoFactor;
@@ -15,12 +16,14 @@ using CL.WebLogic.Security.Sessions;
 namespace CL.WebLogic.Auth.SignIn;
 
 /// <summary>
-/// The sign-in flows: password, second factor (TOTP or recovery code), magic link, required
-/// password change, sign-out and refresh. Request handlers use it through <c>request.Auth</c>.
+/// The sign-in flows: password, second factor (TOTP or recovery code), magic link, external
+/// providers, required password change, re-authentication, sign-out, refresh and the user's
+/// sessions. Request handlers use it through <c>request.Auth</c>.
 /// </summary>
 public sealed partial class WebAuthService
 {
     internal const string PendingUntilKey = "__wl_2fa_until";
+    internal const string PendingPersistentKey = "__wl_2fa_persist";
 
     private readonly WebSessionManager _sessions;
     private readonly IWebSessionStore _sessionStore;
@@ -36,14 +39,16 @@ public sealed partial class WebAuthService
     private readonly WebLogicConfigHolder _config;
     private readonly IWebLogicContext _context;
     private readonly WebAttemptGate _gate;
+    private readonly WebSessionDevices _devices;
     private readonly TimeProvider _time;
 
     /// <summary>Creates the service.</summary>
     public WebAuthService(WebSessionManager sessions, IWebSessionStore sessionStore, IWebCredentialValidator validator, IWebUserStore users,
         WebTwoFactorService twoFactor, IWebSecurityTokenService tokens, IWebLoginThrottle throttle, WebLockoutService lockout,
         WebAccountService accounts, WebNotificationDispatcher notifications, IWebAuditLog audit, WebLogicConfigHolder config,
-        IWebLogicContext context, TimeProvider? time = null, WebAttemptGate? gate = null)
+        IWebLogicContext context, WebSessionDevices devices, TimeProvider? time = null, WebAttemptGate? gate = null)
     {
+        _devices = devices ?? throw new ArgumentNullException(nameof(devices));
         _gate = gate ?? new WebAttemptGate();
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _sessionStore = sessionStore ?? throw new ArgumentNullException(nameof(sessionStore));
@@ -61,19 +66,38 @@ public sealed partial class WebAuthService
         _time = time ?? TimeProvider.System;
     }
 
-    /// <summary>Checks the password and signs in, or moves on to the second factor / password change.</summary>
-    public async Task<WebSignInResult> PasswordSignInAsync(WebSecurityContext security, string login, string password, CancellationToken cancellationToken)
+    /// <summary>
+    /// Checks the password and signs in, or moves on to the second factor / password change.
+    /// <paramref name="persistent"/> is "remember me" and carries over to those next steps.
+    /// </summary>
+    public async Task<WebSignInResult> PasswordSignInAsync(WebSecurityContext security, string login, string password, bool persistent, CancellationToken cancellationToken)
     {
         var result = await _validator.ValidateAsync(login, password, security, cancellationToken).ConfigureAwait(false);
-        return await ContinueAsync(security, result, ["pwd"], cancellationToken).ConfigureAwait(false);
+        return await ContinueAsync(security, result, ["pwd"], persistent, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Signs <paramref name="user"/> in directly (after registration, external login…). Rotates the session.</summary>
-    public async Task SignInAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string>? methods, CancellationToken cancellationToken)
+    /// <summary>
+    /// Signs <paramref name="user"/> in directly, after the app verified them itself (registration,
+    /// a custom flow). Rotates the session. This does <b>not</b> ask for the user's second factor:
+    /// for external providers use <see cref="SignInExternalAsync"/>, which does.
+    /// </summary>
+    public Task SignInAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string>? methods, bool persistent, CancellationToken cancellationToken) =>
+        SignInCoreAsync(security, user, methods ?? ["custom"], fresh: true, persistent, cancellationToken);
+
+    /// <summary>
+    /// Records the sign-in. <paramref name="fresh"/>: credentials were just verified (sets the
+    /// authentication time, applies the per-user session cap and the new-device notice); otherwise
+    /// the same user is re-signed (refresh, password change) and keeps time and "remember me".
+    /// </summary>
+    private async Task SignInCoreAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string> methods, bool fresh, bool? persistent, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(security);
         ArgumentNullException.ThrowIfNull(user);
-        methods ??= ["custom"];
+        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
+        var sameUser = session.AuthStage == WebSessionAuthStage.Authenticated && session.UserId == user.Id;
+        if (fresh && !sameUser)
+            await _devices.OnSigningInAsync(user, session.Loaded?.IdHash, WebSessionManager.UserAgent(security.HttpContext), cancellationToken).ConfigureAwait(false);
+
         await _sessions.SignInAsync(security, new WebSignIn
         {
             UserId = user.Id,
@@ -82,9 +106,12 @@ public sealed partial class WebAuthService
             Permissions = user.Permissions,
             AuthenticationMethods = methods,
             TenantId = user.TenantId ?? security.TenantId,
-            SecurityStamp = user.SecurityStamp
+            SecurityStamp = user.SecurityStamp,
+            AuthenticatedAt = fresh ? _time.GetUtcNow() : null,
+            Persistent = persistent
         }, cancellationToken).ConfigureAwait(false);
-        (await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false)).Remove(PendingUntilKey);
+        session.Remove(PendingUntilKey);
+        session.Remove(PendingPersistentKey);
 
         _context.Events.Publish(new UserSignedInEvent(user.Id, security.Identity.Scheme, methods));
         _audit.Record(security, "auth.signin", "success", data: new Dictionary<string, string> { ["methods"] = string.Join(',', methods) });
@@ -120,7 +147,7 @@ public sealed partial class WebAuthService
         // change, every other session of the user ends and only this one continues.
         if (!string.Equals(user.SecurityStamp, session.SecurityStamp, StringComparison.Ordinal))
             await _sessionStore.DeleteForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
-        await SignInAsync(security, user, session.AuthenticationMethods, cancellationToken).ConfigureAwait(false);
+        await SignInCoreAsync(security, user, session.AuthenticationMethods, fresh: false, persistent: null, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -144,29 +171,29 @@ public sealed partial class WebAuthService
 
         var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
         await _sessionStore.DeleteForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
-        await SignInAsync(security, changed.Value!, session.AuthenticationMethods, cancellationToken).ConfigureAwait(false);
+        await SignInCoreAsync(security, changed.Value!, session.AuthenticationMethods, fresh: false, persistent: null, cancellationToken).ConfigureAwait(false);
         return CodeLogic.Core.Results.Result.Success();
     }
 
-    private async Task<WebSignInResult> ContinueAsync(WebSecurityContext security, WebSignInResult result, IReadOnlyList<string> methods, CancellationToken cancellationToken)
+    private async Task<WebSignInResult> ContinueAsync(WebSecurityContext security, WebSignInResult result, IReadOnlyList<string> methods, bool persistent, CancellationToken cancellationToken)
     {
         switch (result.Status)
         {
             case WebSignInStatus.Succeeded:
-                await SignInAsync(security, result.User!, methods, cancellationToken).ConfigureAwait(false);
+                await SignInCoreAsync(security, result.User!, methods, fresh: true, persistent, cancellationToken).ConfigureAwait(false);
                 return result;
             case WebSignInStatus.RequiresTwoFactor:
-                await BeginSecondFactorAsync(security, result.User!, methods, cancellationToken).ConfigureAwait(false);
+                await BeginSecondFactorAsync(security, result.User!, methods, persistent, cancellationToken).ConfigureAwait(false);
                 return result;
             case WebSignInStatus.RequiresPasswordChange:
-                return PasswordChangeRequired(result.User!, methods);
+                return PasswordChangeRequired(result.User!, methods, persistent);
             default:
                 Failed(security, result);
                 return result.Status == WebSignInStatus.NotAllowed ? result : WebSignInResult.Of(result.Status, retryAfter: result.RetryAfter);
         }
     }
 
-    private async Task BeginSecondFactorAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string> methods, CancellationToken cancellationToken)
+    private async Task BeginSecondFactorAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string> methods, bool persistent, CancellationToken cancellationToken)
     {
         await _sessions.SignInAsync(security, new WebSignIn
         {
@@ -178,14 +205,20 @@ public sealed partial class WebAuthService
             SecurityStamp = user.SecurityStamp
         }, cancellationToken).ConfigureAwait(false);
         var until = _time.GetUtcNow().AddMinutes(_config.Current.Auth.TwoFactor.PendingMinutes).ToUnixTimeSeconds();
-        (await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false)).SetString(PendingUntilKey, until.ToString(CultureInfo.InvariantCulture));
+        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
+        session.SetString(PendingUntilKey, until.ToString(CultureInfo.InvariantCulture));
+        if (persistent)
+            session.SetString(PendingPersistentKey, "1");
+        else
+            session.Remove(PendingPersistentKey);
     }
 
-    private WebSignInResult PasswordChangeRequired(WebUser user, IReadOnlyList<string> methods) => new()
+    /// <summary>The token carries the methods used so far and "remember me": <c>pwd,otp|p</c>.</summary>
+    private WebSignInResult PasswordChangeRequired(WebUser user, IReadOnlyList<string> methods, bool persistent) => new()
     {
         Status = WebSignInStatus.RequiresPasswordChange,
         User = user,
-        PasswordChangeToken = _tokens.Create(WebTokenPurposes.PasswordChange, user, TimeSpan.FromMinutes(15), string.Join(',', methods))
+        PasswordChangeToken = _tokens.Create(WebTokenPurposes.PasswordChange, user, TimeSpan.FromMinutes(15), string.Join(',', methods) + (persistent ? "|p" : ""))
     };
 
     private void Failed(WebSecurityContext security, WebSignInResult result)

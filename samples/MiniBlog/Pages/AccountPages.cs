@@ -50,7 +50,7 @@ public sealed class AccountPages : IWebContributor
         var model = new { Reset = false };
         if (!submission.IsValid)
             return submission.Invalid(fallbackTemplate: LoginTemplate, fallbackModel: model);
-        var result = await request.Auth.PasswordSignInAsync(submission.Model.Login!, submission.Model.Password!, cancellationToken).ConfigureAwait(false);
+        var result = await request.Auth.PasswordSignInAsync(submission.Model.Login!, submission.Model.Password!, cancellationToken: cancellationToken).ConfigureAwait(false);
         if (result.Status != WebSignInStatus.Succeeded)
         {
             var message = result.Status switch

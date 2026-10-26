@@ -9,10 +9,12 @@ public sealed class WebAuthorizationService : IWebAuthorizationService
     private readonly Dictionary<string, WebAuthorizationPolicy> _policies;
     private readonly WebPermissionService _permissions;
     private readonly IWebLogicContext _context;
+    private readonly TimeProvider _time;
 
     /// <summary>Creates the service from the registered policies (later registrations win).</summary>
-    public WebAuthorizationService(IEnumerable<WebAuthorizationPolicy> policies, WebPermissionService permissions, IWebLogicContext context)
+    public WebAuthorizationService(IEnumerable<WebAuthorizationPolicy> policies, WebPermissionService permissions, IWebLogicContext context, TimeProvider? time = null)
     {
+        _time = time ?? TimeProvider.System;
         _policies = new Dictionary<string, WebAuthorizationPolicy>(StringComparer.OrdinalIgnoreCase);
         foreach (var policy in policies ?? [])
             _policies[policy.Name] = policy;
@@ -38,14 +40,16 @@ public sealed class WebAuthorizationService : IWebAuthorizationService
     public async ValueTask<WebAuthorizationResult> AuthorizeAsync(WebSecurityContext security, IEnumerable<IWebAuthorizationRequirement> requirements, object? resource, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(security);
-        var context = new WebAuthorizationContext(security, resource, _permissions);
+        var context = new WebAuthorizationContext(security, resource, _permissions, _time.GetUtcNow());
         foreach (var requirement in requirements)
         {
             if (await requirement.IsSatisfiedAsync(context, cancellationToken).ConfigureAwait(false))
                 continue;
-            return security.Identity.IsAuthenticated
-                ? WebAuthorizationResult.Forbidden(requirement.Description)
-                : WebAuthorizationResult.NeedsAuthentication;
+            if (!security.Identity.IsAuthenticated)
+                return WebAuthorizationResult.NeedsAuthentication;
+            return requirement is RecentSignInRequirement
+                ? WebAuthorizationResult.NeedsReauthentication(requirement.Description)
+                : WebAuthorizationResult.Forbidden(requirement.Description);
         }
         return WebAuthorizationResult.Success;
     }

@@ -22,6 +22,9 @@ public static class SecurityNotificationText
             WebSecurityNotificationKind.RecoveryCodeUsed => ("A recovery code was used", "A recovery code was used to sign in to your account."),
             WebSecurityNotificationKind.AccountLockedOut => ("Your account was locked", "Your account was locked for a while after several failed sign-in attempts."),
             WebSecurityNotificationKind.ApiKeyCreated => ("A new API key was created", "A new API key was created for your account."),
+            WebSecurityNotificationKind.NewDeviceSignIn => ("New sign-in to your account",
+                "Your account was signed in to from a new browser or device" + (notification.Values.TryGetValue("device", out var device) ? ": " + device : "")
+                + ". If this was not you, change your password and sign out everywhere."),
             _ => ("Account notice", "There was a change to your account.")
         };
 

@@ -20,4 +20,8 @@ public sealed class NotificationsConfig
     /// <summary>CL.Mail template id prefix (<c>{prefix}.{kind}</c>); built-in texts are used when a template is missing.</summary>
     [ConfigField(Label = "Mail Template Prefix", Group = "Notifications", Order = 73, Collapsed = true)]
     public string MailTemplatePrefix { get; set; } = "weblogic";
+
+    /// <summary>E-mail the user when they sign in from a browser none of their other sessions use. Needs <c>IWebSessionListStore</c>.</summary>
+    [ConfigField(Label = "Notify New Device", Description = "E-mail on sign-ins from a browser none of the user's other sessions use.", Group = "Notifications", Order = 74)]
+    public bool NotifyNewDevice { get; set; }
 }

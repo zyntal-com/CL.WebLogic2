@@ -38,9 +38,9 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `security.reputation` | DNS blocklists (CL.NetUtils), blocking or background mode |
 | `security.rateLimits` | Global per-client limit, named policies, tracked-key bound, IPv6 prefix length |
 | `security.limits` | Default body size and form field count |
-| `security.session` | Cookie name, idle and absolute timeouts, touch interval, IP binding |
+| `security.session` | Cookie name, idle and absolute timeouts, "remember me" timeouts, sessions per user, touch interval, IP binding |
 | `security.csrf` | Header and field names, pre-session cookie, trusted origins |
-| `security.headers` | CSP sources, report-only, frame ancestors, referrer, permissions, COOP/CORP, `no-store` when signed in |
+| `security.headers` | CSP sources (incl. media, worker, manifest, form actions), report-only, report-uri / report-to, frame ancestors, referrer, permissions, COOP/CORP, `no-store` when signed in |
 | `security.audit` | Audit on/off, all requests or rejections only, IP hash key, queue size |
 | `auth` | Confirmed e-mail requirement, stamp check interval, and the sub-sections below |
 | `auth.passwords` | PBKDF2 iterations, pepper, length limits |
@@ -49,7 +49,7 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `auth.tokens` | Lifetimes and paths of reset, verification, magic-link and e-mail-change links |
 | `auth.apiKeys` | On/off, header name, last-used touch interval |
 | `auth.trustedHeader` | Sign-in from a fronting proxy (oauth2-proxy and similar), headers and shared secret |
-| `auth.notifications` | From address/name, outbox folder (development), mail template prefix |
+| `auth.notifications` | From address/name, outbox folder (development), mail template prefix, new-device e-mails |
 | `forms` | Renderer, honeypot, submit timing, upload limits and extensions, lookup host allowlist |
 | `client` | Client on/off, UI adapter (`plain`, `bootstrap5`), module or classic script, partial navigation |
 | `realtime` | On/off, anonymous access, WebSockets, replay, connection limits, allowed origins, tickets |

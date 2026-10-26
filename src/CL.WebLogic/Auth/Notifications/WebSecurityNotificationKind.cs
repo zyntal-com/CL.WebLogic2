@@ -34,5 +34,8 @@ public enum WebSecurityNotificationKind
     AccountLockedOut,
 
     /// <summary>An API key was created.</summary>
-    ApiKeyCreated
+    ApiKeyCreated,
+
+    /// <summary>A sign-in from a browser none of the user's other sessions use (<c>Auth.Notifications.NotifyNewDevice</c>).</summary>
+    NewDeviceSignIn
 }

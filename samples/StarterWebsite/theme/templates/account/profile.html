@@ -43,8 +43,21 @@
     </section>
     <section class="card">
       <div class="card-body">
-        <h2 class="h5">Sessions</h2>
-        <p class="small">Signs out every browser and device (also this one).</p>
+        <h2 class="h5">Signed-in devices</h2>
+        {if:model:sessions}
+        <ul class="list-group mb-3">
+          {foreach:model:sessions as s}
+          <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
+            <div class="small">
+              <span class="text-break">{s:device|truncate:90}</span>{if:s:isCurrent} <span class="badge text-bg-success">this browser</span>{/if}{if:s:persistent} <span class="badge text-bg-secondary">remembered</span>{/if}<br>
+              <span class="text-body-secondary">signed in {s:createdAt|timeago} &middot; last seen {s:lastSeenAt|timeago}</span>
+            </div>
+            <form method="post" action="/account/sessions/{s:idHash|urlencode}/revoke">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">{if:s:isCurrent}Sign out{else}End{/if}</button></form>
+          </li>
+          {/foreach}
+        </ul>
+        {/if}
+        <p class="small">"Sign out everywhere" ends every session, including this one.</p>
         <form method="post" action="/account/sign-out-everywhere">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Sign out everywhere</button></form>
       </div>
     </section>
