@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.5-preview (2026-10-26)
+
+### Changed
+
+- CodeLogic.WebLogic.MySql uses only CL.MySQL2's typed API (now CodeLogic.MySQL2 4.9.101): the add-on
+  contains no SQL text. Rate limits refill and charge a bucket with one atomic update-and-read, a
+  sign-in failure is one upsert, a fresh one-time key is one round trip, and recovery code sets are
+  replaced in one transaction.
+
 ## 4.9.4-preview (2026-10-26)
 
 ### Added

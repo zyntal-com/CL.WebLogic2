@@ -2,6 +2,8 @@ using System.Net;
 using CL.WebLogic.Configuration.Models;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
+using CL.WebLogic.MySql.Entities;
+using CL.WebLogic.MySql.Services;
 using CL.WebLogic.MySql.Stores;
 using CL.WebLogic.Security.Audit;
 using CL.WebLogic.Security.KeyRing;
@@ -43,6 +45,24 @@ public sealed class SupportStoreTests(MySqlFixture fixture)
     }
 
     [MySqlFact]
+    public async Task Concurrent_throttle_failures_are_all_counted_and_an_expired_counter_restarts()
+    {
+        var clock = new ManualTimeProvider(DateTimeOffset.UtcNow);
+        var throttle = new MySqlWebLoginThrottle(fixture.Db, new WebLogicConfigHolder(new WebLogicConfig()), clock);
+        var login = "dave" + Id();
+        var key = "login:" + login.ToUpperInvariant();
+        async Task<int> FailuresAsync() =>
+            WebMySqlDatabase.Value(await fixture.Db.Repository<LoginThrottleRow>().GetByIdAsync(key, default))!.Failures;
+
+        await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => throttle.RecordFailureAsync(login, null, default).AsTask()));
+        Assert.Equal(10, await FailuresAsync());
+
+        clock.Advance(TimeSpan.FromHours(2)); // past the window
+        await throttle.RecordFailureAsync(login, null, default);
+        Assert.Equal(1, await FailuresAsync());
+    }
+
+    [MySqlFact]
     public async Task Audit_rows_are_written_and_expire()
     {
         var sink = new MySqlWebAuditSink(fixture.Db);
@@ -53,7 +73,7 @@ public sealed class SupportStoreTests(MySqlFixture fixture)
         ], default);
 
         Assert.True(await sink.DeleteOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-90), default) >= 1);
-        var left = await fixture.Db.ScalarAsync<long>("SELECT COUNT(*) FROM wl_audit WHERE category = @c", new Dictionary<string, object?> { ["@c"] = category }, default);
+        var left = WebMySqlDatabase.Value(await fixture.Db.Query<AuditRow>().Where(a => a.Category == category).CountAsync(default));
         Assert.Equal(1, left);
     }
 
@@ -80,10 +100,10 @@ public sealed class SupportStoreTests(MySqlFixture fixture)
             return services.BuildServiceProvider().GetRequiredService<IDataProtectionProvider>();
         }
 
-        fixture.Db.ExecuteAsync("DELETE FROM wl_dataprotection_keys", new Dictionary<string, object?>(), default).GetAwaiter().GetResult();
+        fixture.ClearAsync<DataProtectionKeyRow>().GetAwaiter().GetResult();
         var token = Node().CreateProtector("t").Protect("hello cluster");
         Assert.Equal("hello cluster", Node().CreateProtector("t").Unprotect(token));
-        var xml = fixture.Db.ScalarAsync<string>("SELECT xml FROM wl_dataprotection_keys LIMIT 1", new Dictionary<string, object?>(), default).GetAwaiter().GetResult();
+        var xml = WebMySqlDatabase.Value(fixture.Db.Query<DataProtectionKeyRow>().FirstOrDefaultAsync(default).GetAwaiter().GetResult())!.Xml;
         Assert.Contains("webLogicEncryptedKey", xml);
     }
 }

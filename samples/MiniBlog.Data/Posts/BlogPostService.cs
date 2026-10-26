@@ -33,8 +33,8 @@ public sealed class BlogPostService
     /// <summary>A published post by slug.</summary>
     public async Task<BlogPost?> FindPublishedAsync(string slug, CancellationToken cancellationToken)
     {
-        var rows = Unwrap(await _db.MySql.Query<PostEntity>(_db.ConnectionId).Where(p => p.Slug == slug && p.Status == "published").Take(1).ToListAsync(cancellationToken).ConfigureAwait(false));
-        return rows.Count == 0 ? null : ToPost(rows[0]);
+        var row = Unwrap(await _db.MySql.Query<PostEntity>(_db.ConnectionId).Where(p => p.Slug == slug && p.Status == "published").FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false));
+        return row is null ? null : ToPost(row);
     }
 
     /// <summary>Any post by id.</summary>
@@ -92,8 +92,7 @@ public sealed class BlogPostService
         for (var n = 1; ; n++)
         {
             var candidate = n == 1 ? slug : $"{slug}-{n}";
-            var taken = Unwrap(await _db.MySql.Query<PostEntity>(_db.ConnectionId).Where(p => p.Slug == candidate).CountAsync(cancellationToken).ConfigureAwait(false));
-            if (taken == 0)
+            if (!Unwrap(await _db.MySql.Query<PostEntity>(_db.ConnectionId).AnyAsync(p => p.Slug == candidate, cancellationToken).ConfigureAwait(false)))
                 return candidate;
         }
     }

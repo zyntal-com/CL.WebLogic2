@@ -64,11 +64,29 @@ public sealed class MySqlFixture : IAsyncLifetime
         await CodeLogic.CodeLogic.StartAsync();
 
         Db = new WebMySqlDatabase(new CodeLogicLibraryResolver(), new WebMySqlOptions());
-        foreach (var table in new[] { "wl_users", "wl_user_logins", "wl_sessions", "wl_api_keys", "wl_recovery_codes", "wl_one_time_use",
-                     "wl_login_throttle", "wl_rate_limits", "wl_audit", "wl_widget_settings", "wl_dashboards", "wl_dataprotection_keys", "wl_passkeys" })
-            await Db.ExecuteAsync("DROP TABLE IF EXISTS " + table, new Dictionary<string, object?>(), default);
+        // Every run starts from freshly created tables.
+        await DropAsync<UserRow>();
+        await DropAsync<UserLoginRow>();
+        await DropAsync<SessionRow>();
+        await DropAsync<ApiKeyRow>();
+        await DropAsync<RecoveryCodeRow>();
+        await DropAsync<OneTimeUseRow>();
+        await DropAsync<LoginThrottleRow>();
+        await DropAsync<RateLimitRow>();
+        await DropAsync<AuditRow>();
+        await DropAsync<WidgetSettingsRow>();
+        await DropAsync<DashboardRow>();
+        await DropAsync<DataProtectionKeyRow>();
+        await DropAsync<PasskeyRow>();
         WebMySqlDatabase.Value(await Db.MySql.SyncSchemaAsync(AllTables, false, "Default", default));
     }
+
+    /// <summary>Deletes every row of <typeparamref name="T"/>'s table.</summary>
+    public async Task ClearAsync<T>() where T : class, new() =>
+        WebMySqlDatabase.Value(await Db.MySql.TruncateTableAsync<T>("Default"));
+
+    private async Task DropAsync<T>() where T : class =>
+        WebMySqlDatabase.Value(await Db.MySql.DropTableAsync<T>(true, "Default"));
 
     public async Task DisposeAsync()
     {

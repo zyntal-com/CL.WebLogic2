@@ -36,13 +36,15 @@ public sealed class WebMySqlDatabase
     /// <summary>A query for <typeparamref name="T"/> on the connection.</summary>
     public QueryBuilder<T> Query<T>() where T : class, new() => MySql.Query<T>(ConnectionId);
 
-    /// <summary>Runs a parameterized statement and returns the affected rows.</summary>
-    public async Task<int> ExecuteAsync(string sql, IReadOnlyDictionary<string, object?> parameters, CancellationToken cancellationToken) =>
-        Value(await MySql.ExecuteSqlAsync(sql, parameters, ConnectionId, cancellationToken).ConfigureAwait(false));
+    /// <summary>Begins a transaction on the connection (rolled back unless committed).</summary>
+    public Task<TransactionScope> BeginTransactionAsync(CancellationToken cancellationToken) =>
+        MySql.BeginTransactionAsync(ConnectionId, cancellationToken);
 
-    /// <summary>Runs a parameterized query returning one value.</summary>
-    public async Task<T?> ScalarAsync<T>(string sql, IReadOnlyDictionary<string, object?> parameters, CancellationToken cancellationToken) =>
-        Value(await MySql.SqlScalarAsync<T>(sql, parameters, ConnectionId, cancellationToken).ConfigureAwait(false));
+    /// <summary>A repository for <typeparamref name="T"/> inside <paramref name="transaction"/>.</summary>
+    public Repository<T> Repository<T>(TransactionScope transaction) where T : class, new() => MySql.GetRepository<T>(transaction);
+
+    /// <summary>A query for <typeparamref name="T"/> inside <paramref name="transaction"/>.</summary>
+    public QueryBuilder<T> Query<T>(TransactionScope transaction) where T : class, new() => MySql.Query<T>(transaction);
 
     /// <summary>The value of <paramref name="result"/>, or an exception with its error.</summary>
     public static T Value<T>(Result<T> result) =>

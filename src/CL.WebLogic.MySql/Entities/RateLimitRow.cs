@@ -14,7 +14,7 @@ public sealed class RateLimitRow
     [Column(Name = "tokens", DataType = DataType.Double, NotNull = true)]
     public double Tokens { get; set; }
 
-    /// <summary>Whether the last request was allowed (scratch column for the atomic update).</summary>
+    /// <summary>Whether the last request was allowed (1) or refused (0).</summary>
     [Column(Name = "allowed", DataType = DataType.TinyInt, NotNull = true)]
     public int Allowed { get; set; }
 

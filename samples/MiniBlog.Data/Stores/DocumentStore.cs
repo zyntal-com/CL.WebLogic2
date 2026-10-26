@@ -48,9 +48,11 @@ public sealed class DocumentStore
             return inserted.Value == InsertOutcome.Inserted ? 1 : null;
         }
 
+        var next = expectedVersion + 1;
+        var now = DateTime.UtcNow;
         var updated = await _db.MySql.Query<DocumentEntity>(_db.ConnectionId)
             .Where(d => d.Id == id && d.Version == expectedVersion)
-            .UpdateAsync(new Dictionary<string, object?> { ["json"] = json, ["version"] = expectedVersion + 1, ["updated_utc"] = DateTime.UtcNow }, cancellationToken)
+            .UpdateAsync(d => new DocumentEntity { Json = json, Version = next, UpdatedUtc = now }, cancellationToken)
             .ConfigureAwait(false);
         if (updated.IsFailure)
             throw new InvalidOperationException(updated.Error!.Message);

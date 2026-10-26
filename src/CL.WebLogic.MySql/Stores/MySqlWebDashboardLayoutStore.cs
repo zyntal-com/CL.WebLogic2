@@ -48,10 +48,10 @@ public sealed class MySqlWebDashboardLayoutStore : IWebDashboardLayoutStore
         }
         else
         {
-            won = await _db.ExecuteAsync(
-                "UPDATE wl_dashboards SET version = @next, record_json = @json WHERE layout_key = @key AND version = @expected",
-                new Dictionary<string, object?> { ["@key"] = key, ["@expected"] = expectedVersion, ["@next"] = expectedVersion + 1, ["@json"] = json },
-                cancellationToken).ConfigureAwait(false) == 1;
+            var next = expectedVersion + 1;
+            won = WebMySqlDatabase.Value(await _db.Query<DashboardRow>()
+                .Where(d => d.LayoutKey == key && d.Version == expectedVersion)
+                .UpdateAsync(d => new DashboardRow { Version = next, RecordJson = json }, cancellationToken).ConfigureAwait(false)) == 1;
         }
         return won ? Result<WebDashboardLayout>.Success(saved) : Result<WebDashboardLayout>.Failure(WebDashboardErrors.Conflict());
     }

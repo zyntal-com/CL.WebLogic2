@@ -6,32 +6,33 @@ namespace CL.WebLogic.MySql.Stores;
 
 public sealed partial class MySqlWebUserStore
 {
-    // Assignments run left to right and see earlier ones: count first, then lock when it reaches the
-    // maximum, then reset the count of a locked account (same rules as the in-memory store).
-    private const string RecordFailureSql = """
-        UPDATE wl_users SET
-          failed_access_count = failed_access_count + 1,
-          lockout_end_utc = IF(@max > 0 AND failed_access_count >= @max, @until, lockout_end_utc),
-          failed_access_count = IF(@max > 0 AND failed_access_count >= @max, 0, failed_access_count)
-        WHERE id = @id
-        """;
-
     /// <inheritdoc/>
     public async Task<WebUser?> RecordFailedAccessAsync(string userId, int maxFailures, DateTimeOffset lockUntil, CancellationToken cancellationToken)
     {
-        await _db.ExecuteAsync(RecordFailureSql, new Dictionary<string, object?>
+        // One atomic UPDATE, so parallel failures on several nodes cannot skip the limit. The lockout
+        // is assigned before the count, so both read the old count; reaching the maximum locks the
+        // account and resets the count (same rules as the in-memory store).
+        var users = _db.Query<UserRow>().Where(u => u.Id == userId);
+        if (maxFailures > 0)
         {
-            ["@id"] = userId,
-            ["@max"] = maxFailures,
-            ["@until"] = lockUntil.UtcDateTime
-        }, cancellationToken).ConfigureAwait(false);
+            DateTime? until = lockUntil.UtcDateTime;
+            WebMySqlDatabase.Value(await users.UpdateAsync(u => new UserRow
+            {
+                LockoutEndUtc = u.FailedAccessCount + 1 >= maxFailures ? until : u.LockoutEndUtc,
+                FailedAccessCount = u.FailedAccessCount + 1 >= maxFailures ? 0 : u.FailedAccessCount + 1
+            }, cancellationToken).ConfigureAwait(false));
+        }
+        else
+        {
+            WebMySqlDatabase.Value(await users.UpdateAsync(u => new UserRow { FailedAccessCount = u.FailedAccessCount + 1 }, cancellationToken).ConfigureAwait(false));
+        }
         return await FindByIdAsync(userId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public Task ResetFailedAccessAsync(string userId, CancellationToken cancellationToken) =>
-        _db.ExecuteAsync("UPDATE wl_users SET failed_access_count = 0, lockout_end_utc = NULL WHERE id = @id",
-            new Dictionary<string, object?> { ["@id"] = userId }, cancellationToken);
+    public async Task ResetFailedAccessAsync(string userId, CancellationToken cancellationToken) =>
+        WebMySqlDatabase.Value(await _db.Query<UserRow>().Where(u => u.Id == userId)
+            .UpdateAsync(u => new UserRow { FailedAccessCount = 0, LockoutEndUtc = null }, cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
     public async Task<WebUser?> FindByExternalLoginAsync(string provider, string providerKey, CancellationToken cancellationToken)

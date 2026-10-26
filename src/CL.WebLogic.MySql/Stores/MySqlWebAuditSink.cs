@@ -26,9 +26,11 @@ public sealed class MySqlWebAuditSink : IWebAuditSink
     }
 
     /// <summary>Deletes records older than <paramref name="cutoff"/> (called by the sweep).</summary>
-    public Task<int> DeleteOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken) =>
-        _db.ExecuteAsync("DELETE FROM wl_audit WHERE at_utc < @cutoff",
-            new Dictionary<string, object?> { ["@cutoff"] = cutoff.UtcDateTime }, cancellationToken);
+    public async Task<int> DeleteOlderThanAsync(DateTimeOffset cutoff, CancellationToken cancellationToken)
+    {
+        var before = cutoff.UtcDateTime;
+        return WebMySqlDatabase.Value(await _db.Query<AuditRow>().Where(a => a.AtUtc < before).DeleteAsync(cancellationToken).ConfigureAwait(false));
+    }
 
     private static AuditRow ToRow(WebAuditEntry entry) => new()
     {

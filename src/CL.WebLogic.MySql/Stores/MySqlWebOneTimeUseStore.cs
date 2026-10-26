@@ -33,16 +33,22 @@ public sealed class MySqlWebOneTimeUseStore : IWebOneTimeUseStore
             return false;
 
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
-        // Free the key if its earlier use has expired; the insert below then decides the winner.
-        await _db.ExecuteAsync("DELETE FROM wl_one_time_use WHERE use_key = @key AND expires_utc <= @now",
-            new Dictionary<string, object?> { ["@key"] = hash, ["@now"] = now.UtcDateTime }, cancellationToken).ConfigureAwait(false);
-        var outcome = WebMySqlDatabase.Value(await _db.Repository<OneTimeUseRow>().InsertIgnoreAsync(
-            new OneTimeUseRow { UseKey = hash, ExpiresUtc = expiresAt.UtcDateTime }, cancellationToken).ConfigureAwait(false));
-        return outcome == InsertOutcome.Inserted;
+        var row = new OneTimeUseRow { UseKey = hash, ExpiresUtc = expiresAt.UtcDateTime };
+        var repository = _db.Repository<OneTimeUseRow>();
+        // The insert decides the winner: one round trip for a fresh key.
+        if (WebMySqlDatabase.Value(await repository.InsertIgnoreAsync(row, cancellationToken).ConfigureAwait(false)) == InsertOutcome.Inserted)
+            return true;
+
+        // Taken: free the key only if that earlier use has expired, then compete again.
+        var nowUtc = now.UtcDateTime;
+        var freed = WebMySqlDatabase.Value(await _db.Query<OneTimeUseRow>().Where(u => u.UseKey == hash && u.ExpiresUtc <= nowUtc).DeleteAsync(cancellationToken).ConfigureAwait(false));
+        return freed > 0 && WebMySqlDatabase.Value(await repository.InsertIgnoreAsync(row, cancellationToken).ConfigureAwait(false)) == InsertOutcome.Inserted;
     }
 
     /// <summary>Deletes expired keys (called by the sweep).</summary>
-    public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
-        _db.ExecuteAsync("DELETE FROM wl_one_time_use WHERE expires_utc <= @now",
-            new Dictionary<string, object?> { ["@now"] = now.UtcDateTime }, cancellationToken);
+    public async Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var nowUtc = now.UtcDateTime;
+        return WebMySqlDatabase.Value(await _db.Query<OneTimeUseRow>().Where(u => u.ExpiresUtc <= nowUtc).DeleteAsync(cancellationToken).ConfigureAwait(false));
+    }
 }

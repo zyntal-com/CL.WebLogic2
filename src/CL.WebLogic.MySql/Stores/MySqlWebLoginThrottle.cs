@@ -10,18 +10,11 @@ namespace CL.WebLogic.MySql.Stores;
 /// <summary>
 /// The sign-in back-off of the in-memory throttle, shared by every node: failure counters per
 /// login and per client address in <c>wl_login_throttle</c>, each kept for an hour after the last
-/// failure and incremented with one atomic upsert.
+/// failure. Each failure is one atomic upsert: the counter is created, incremented, or restarted at 1
+/// when it had expired.
 /// </summary>
 public sealed class MySqlWebLoginThrottle : IWebLoginThrottle
 {
-    private const string FailureSql = """
-        INSERT INTO wl_login_throttle (throttle_key, failures, last_utc, expires_utc) VALUES (@key, 1, @now, @expires)
-        ON DUPLICATE KEY UPDATE
-          failures = IF(expires_utc <= @now, 1, failures + 1),
-          last_utc = @now,
-          expires_utc = @expires
-        """;
-
     private static readonly TimeSpan Window = TimeSpan.FromHours(1);
     private readonly WebMySqlDatabase _db;
     private readonly WebLogicConfigHolder _config;
@@ -59,14 +52,18 @@ public sealed class MySqlWebLoginThrottle : IWebLoginThrottle
     }
 
     /// <inheritdoc/>
-    public async ValueTask RecordSuccessAsync(string login, IPAddress? ip, CancellationToken cancellationToken) =>
-        await _db.ExecuteAsync("DELETE FROM wl_login_throttle WHERE throttle_key = @key",
-            new Dictionary<string, object?> { ["@key"] = LoginKey(login) }, cancellationToken).ConfigureAwait(false);
+    public async ValueTask RecordSuccessAsync(string login, IPAddress? ip, CancellationToken cancellationToken)
+    {
+        var key = LoginKey(login);
+        WebMySqlDatabase.Value(await _db.Query<LoginThrottleRow>().Where(t => t.ThrottleKey == key).DeleteAsync(cancellationToken).ConfigureAwait(false));
+    }
 
     /// <summary>Deletes expired counters (called by the sweep).</summary>
-    public Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken) =>
-        _db.ExecuteAsync("DELETE FROM wl_login_throttle WHERE expires_utc <= @now",
-            new Dictionary<string, object?> { ["@now"] = now.UtcDateTime }, cancellationToken);
+    public async Task<int> DeleteExpiredAsync(DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var nowUtc = now.UtcDateTime;
+        return WebMySqlDatabase.Value(await _db.Query<LoginThrottleRow>().Where(t => t.ExpiresUtc <= nowUtc).DeleteAsync(cancellationToken).ConfigureAwait(false));
+    }
 
     private async Task<LoginThrottleRow?> LiveAsync(string key, DateTimeOffset now, CancellationToken cancellationToken)
     {
@@ -74,15 +71,19 @@ public sealed class MySqlWebLoginThrottle : IWebLoginThrottle
         return row is not null && WebMySqlDatabase.FromUtc(row.ExpiresUtc) > now ? row : null;
     }
 
-    private Task<int> IncrementAsync(string key, CancellationToken cancellationToken)
+    private async Task IncrementAsync(string key, CancellationToken cancellationToken)
     {
         var now = _time.GetUtcNow();
-        return _db.ExecuteAsync(FailureSql, new Dictionary<string, object?>
-        {
-            ["@key"] = key,
-            ["@now"] = now.UtcDateTime,
-            ["@expires"] = (now + Window).UtcDateTime
-        }, cancellationToken);
+        var nowUtc = now.UtcDateTime;
+        // Failures is assigned first, so it still reads the old expiry.
+        WebMySqlDatabase.Value(await _db.Repository<LoginThrottleRow>().UpsertAsync(
+            new LoginThrottleRow { ThrottleKey = key, Failures = 1, LastUtc = nowUtc, ExpiresUtc = (now + Window).UtcDateTime },
+            (current, incoming) => new LoginThrottleRow
+            {
+                Failures = current.ExpiresUtc <= nowUtc ? 1 : current.Failures + 1,
+                LastUtc = incoming.LastUtc,
+                ExpiresUtc = incoming.ExpiresUtc
+            }, cancellationToken).ConfigureAwait(false));
     }
 
     private string IpKey(IPAddress ip) => "ip:" + ClientAddressKey.For(ip, _config.Current.Security.RateLimits.Ipv6PrefixLength);

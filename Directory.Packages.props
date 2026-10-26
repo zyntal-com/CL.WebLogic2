@@ -20,7 +20,7 @@
     <PackageVersion Include="CodeLogic.Storage" Version="4.9.99" />
     <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="4.9.98" />
     <PackageVersion Include="CodeLogic.Mail" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.MySQL2" Version="4.9.98" />
+    <PackageVersion Include="CodeLogic.MySQL2" Version="4.9.101" />
   </ItemGroup>
 
   <ItemGroup Label="Samples only">

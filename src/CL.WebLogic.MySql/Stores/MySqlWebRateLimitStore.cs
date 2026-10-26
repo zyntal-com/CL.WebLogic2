@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using CL.MySQL2.Models;
+using CL.WebLogic.MySql.Entities;
 using CL.WebLogic.MySql.Services;
 using CL.WebLogic.Security.RateLimiting;
 
@@ -5,25 +9,13 @@ namespace CL.WebLogic.MySql.Stores;
 
 /// <summary>
 /// Token buckets in <c>wl_rate_limits</c>, shared by every node (N nodes still allow the configured
-/// rate, not N times it). Each limited request is one round trip: the bucket is created if missing,
-/// refilled and charged in one <c>UPDATE</c>, and the outcome comes back through
-/// <c>LAST_INSERT_ID(expr)</c>, which is per connection, so concurrent requests cannot see each
-/// other's result.
+/// rate, not N times it). Each request refills and charges its bucket in one atomic update that
+/// returns the result (<c>UpdateAndGetAsync</c>: the row is locked, so concurrent requests on any
+/// node queue behind each other instead of racing). A missing bucket is created full, minus the
+/// request that created it.
 /// </summary>
 public sealed class MySqlWebRateLimitStore : IWebRateLimitStore
 {
-    // allowed is assigned first (from the old tokens), then tokens uses it, then updated_ms carries
-    // the encoded result: allowed * 1e9 + whole tokens left.
-    private const string AcquireSql = """
-        INSERT IGNORE INTO wl_rate_limits (bucket_key, tokens, allowed, updated_ms) VALUES (@key, @cap, 0, @now);
-        UPDATE wl_rate_limits SET
-          allowed = IF(LEAST(@cap, tokens + GREATEST(0, @now - updated_ms) / 1000 * @refill) >= 1, 1, 0),
-          tokens = LEAST(@cap, tokens + GREATEST(0, @now - updated_ms) / 1000 * @refill) - allowed,
-          updated_ms = @now + 0 * LAST_INSERT_ID(allowed * 1000000000 + LEAST(999999999, FLOOR(GREATEST(0, tokens))))
-        WHERE bucket_key = @key;
-        SELECT LAST_INSERT_ID();
-        """;
-
     private readonly WebMySqlDatabase _db;
     private readonly TimeProvider _time;
 
@@ -41,26 +33,56 @@ public sealed class MySqlWebRateLimitStore : IWebRateLimitStore
         ArgumentNullException.ThrowIfNull(rule);
         var bucketKey = rule.Name + "|" + key;
         if (bucketKey.Length > 300)
-            bucketKey = rule.Name + "|#" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key)));
+            bucketKey = rule.Name + "|#" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
 
-        var encoded = await _db.ScalarAsync<long>(AcquireSql, new Dictionary<string, object?>
+        // Twice at most: a bucket created by another request between our update and insert.
+        for (var attempt = 0; attempt < 2; attempt++)
         {
-            ["@key"] = bucketKey,
-            ["@cap"] = (double)rule.Capacity,
-            ["@refill"] = rule.RefillPerSecond,
-            ["@now"] = _time.GetUtcNow().ToUnixTimeMilliseconds()
-        }, cancellationToken).ConfigureAwait(false);
+            if (await ChargeAsync(bucketKey, rule, cancellationToken).ConfigureAwait(false) is { } bucket)
+                return Decision(rule, bucket.Allowed == 1, bucket.Tokens);
 
-        var allowed = encoded >= 1_000_000_000;
-        var remaining = (int)Math.Min(rule.Capacity, encoded % 1_000_000_000);
-        var tokens = (double)remaining;
-        var retry = allowed ? TimeSpan.Zero : TimeSpan.FromSeconds(Math.Max(0, 1 - tokens) / rule.RefillPerSecond);
-        var reset = TimeSpan.FromSeconds((rule.Capacity - tokens) / rule.RefillPerSecond);
-        return new RateLimitDecision(allowed, rule.Capacity, remaining, retry, reset);
+            var created = WebMySqlDatabase.Value(await _db.Repository<RateLimitRow>().InsertIgnoreAsync(new RateLimitRow
+            {
+                BucketKey = bucketKey,
+                Tokens = rule.Capacity - 1,
+                Allowed = 1,
+                UpdatedMs = _time.GetUtcNow().ToUnixTimeMilliseconds()
+            }, cancellationToken).ConfigureAwait(false));
+            if (created == InsertOutcome.Inserted)
+                return Decision(rule, allowed: true, rule.Capacity - 1);
+        }
+        throw new InvalidOperationException("MySQL store: the rate-limit bucket could not be read or created.");
     }
 
     /// <summary>Deletes buckets idle for longer than <paramref name="idle"/> (called by the sweep; they would be full again).</summary>
-    public Task<int> DeleteIdleAsync(DateTimeOffset now, TimeSpan idle, CancellationToken cancellationToken) =>
-        _db.ExecuteAsync("DELETE FROM wl_rate_limits WHERE updated_ms < @cutoff",
-            new Dictionary<string, object?> { ["@cutoff"] = (now - idle).ToUnixTimeMilliseconds() }, cancellationToken);
+    public async Task<int> DeleteIdleAsync(DateTimeOffset now, TimeSpan idle, CancellationToken cancellationToken)
+    {
+        var cutoff = (now - idle).ToUnixTimeMilliseconds();
+        return WebMySqlDatabase.Value(await _db.Query<RateLimitRow>().Where(b => b.UpdatedMs < cutoff).DeleteAsync(cancellationToken).ConfigureAwait(false));
+    }
+
+    // Refill by the elapsed time (capped at the capacity), then take one token if there is one.
+    // MySQL assigns left to right: Allowed reads the old tokens, Tokens reads the new Allowed, and
+    // UpdatedMs is assigned last so both still see the old timestamp.
+    private async Task<RateLimitRow?> ChargeAsync(string bucketKey, RateLimitRule rule, CancellationToken cancellationToken)
+    {
+        var now = _time.GetUtcNow().ToUnixTimeMilliseconds();
+        double capacity = rule.Capacity;
+        var perMs = rule.RefillPerSecond / 1000;
+        var rows = WebMySqlDatabase.Value(await _db.Query<RateLimitRow>().Where(b => b.BucketKey == bucketKey).UpdateAndGetAsync(b => new RateLimitRow
+        {
+            Allowed = Math.Min(capacity, b.Tokens + Math.Max(0, now - b.UpdatedMs) * perMs) >= 1 ? 1 : 0,
+            Tokens = Math.Min(capacity, b.Tokens + Math.Max(0, now - b.UpdatedMs) * perMs) - b.Allowed,
+            UpdatedMs = Math.Max(now, b.UpdatedMs)
+        }, cancellationToken).ConfigureAwait(false));
+        return rows.Count == 0 ? null : rows[0];
+    }
+
+    private static RateLimitDecision Decision(RateLimitRule rule, bool allowed, double tokens)
+    {
+        var remaining = (int)Math.Clamp(Math.Floor(tokens), 0, rule.Capacity);
+        var retry = allowed ? TimeSpan.Zero : TimeSpan.FromSeconds(Math.Max(0, 1 - tokens) / rule.RefillPerSecond);
+        var reset = TimeSpan.FromSeconds((rule.Capacity - Math.Max(0, tokens)) / rule.RefillPerSecond);
+        return new RateLimitDecision(allowed, rule.Capacity, remaining, retry, reset);
+    }
 }

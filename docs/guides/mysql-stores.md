@@ -39,6 +39,10 @@ guard and the cluster readiness checks pass. Stores left out keep whatever the a
 | `Passkeys` | `IWebPasskeyStore` | `wl_passkeys` |
 | (DataProtection) | `IXmlRepository` | `wl_dataprotection_keys` |
 
+Every store goes through CL.MySQL2's typed API (repositories, `Query<T>()` with typed updates and
+deletes, upserts, `UpdateAndGetAsync`, transactions); the add-on contains no SQL text, so every value
+is sent as a parameter.
+
 All tables use `utf8mb4_bin`; case-insensitive lookups go through normalized columns. With
 `SyncSchemaOnStart` (default) the tables are created or updated before any other hosted service
 starts. Turn it off when migrations are run separately; `SyncSchemaAsync` is still available on CL.MySQL2.
@@ -49,8 +53,11 @@ starts. Turn it off when migrations are run separately; `SyncSchemaAsync` is sti
   steps and single-use links use `INSERT IGNORE`.
 - **Lockout:** failed sign-ins are counted and the lockout set in one `UPDATE`, so parallel attempts on
   several nodes cannot skip the limit.
-- **Rate limits:** each token bucket is refilled and charged in a single round trip; the capacity holds
-  exactly under concurrency.
+- **Rate limits:** each request refills and charges its bucket in one atomic update that returns the
+  result (the row is locked meanwhile), so the capacity holds exactly under concurrency on any number
+  of nodes.
+- **Sign-in throttle:** each failure is one upsert that creates, increments or restarts the counter.
+- **Recovery code sets** are replaced in one transaction: never empty, never old and new codes mixed.
 - **Dashboards:** saves carry the expected version; a stale save fails instead of overwriting.
 - **Passkeys:** a credential id has one owner (`INSERT IGNORE`), and each sign-in updates the counter only
   if it still holds the value that was read, so two nodes can never both accept the same assertion.

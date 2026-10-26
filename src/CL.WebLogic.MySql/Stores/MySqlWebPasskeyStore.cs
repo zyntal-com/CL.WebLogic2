@@ -53,27 +53,31 @@ public sealed class MySqlWebPasskeyStore : IWebPasskeyStore
     }
 
     /// <inheritdoc/>
-    public async Task<bool> TryRecordUseAsync(string credentialId, long expectedSignCount, long signCount, bool backedUp, DateTimeOffset usedAt, CancellationToken cancellationToken) =>
-        await _db.ExecuteAsync(
-            "UPDATE wl_passkeys SET sign_count = @count, backed_up = @backed, last_used_utc = @used WHERE id_hash = @id AND sign_count = @expected",
-            new Dictionary<string, object?>
-            {
-                ["@count"] = signCount,
-                ["@backed"] = backedUp ? 1 : 0,
-                ["@used"] = usedAt.UtcDateTime,
-                ["@id"] = Hash(credentialId),
-                ["@expected"] = expectedSignCount
-            }, cancellationToken).ConfigureAwait(false) == 1;
+    public async Task<bool> TryRecordUseAsync(string credentialId, long expectedSignCount, long signCount, bool backedUp, DateTimeOffset usedAt, CancellationToken cancellationToken)
+    {
+        // Compare-and-swap: only the caller that read the current counter wins (found-rows
+        // semantics, so an unchanged counter of 0 still counts as a match).
+        var id = Hash(credentialId);
+        var backed = backedUp ? 1 : 0;
+        DateTime? used = usedAt.UtcDateTime;
+        return WebMySqlDatabase.Value(await _db.Query<PasskeyRow>().Where(p => p.IdHash == id && p.SignCount == expectedSignCount)
+            .UpdateAsync(p => new PasskeyRow { SignCount = signCount, BackedUp = backed, LastUsedUtc = used }, cancellationToken).ConfigureAwait(false)) == 1;
+    }
 
     /// <inheritdoc/>
-    public async Task<bool> RenameAsync(string userId, string credentialId, string name, CancellationToken cancellationToken) =>
-        await _db.ExecuteAsync("UPDATE wl_passkeys SET name = @name WHERE id_hash = @id AND user_id = @user",
-            new Dictionary<string, object?> { ["@name"] = name, ["@id"] = Hash(credentialId), ["@user"] = userId }, cancellationToken).ConfigureAwait(false) == 1;
+    public async Task<bool> RenameAsync(string userId, string credentialId, string name, CancellationToken cancellationToken)
+    {
+        var id = Hash(credentialId);
+        return WebMySqlDatabase.Value(await _db.Query<PasskeyRow>().Where(p => p.IdHash == id && p.UserId == userId)
+            .UpdateAsync(p => new PasskeyRow { Name = name }, cancellationToken).ConfigureAwait(false)) == 1;
+    }
 
     /// <inheritdoc/>
-    public async Task<bool> DeleteAsync(string userId, string credentialId, CancellationToken cancellationToken) =>
-        await _db.ExecuteAsync("DELETE FROM wl_passkeys WHERE id_hash = @id AND user_id = @user",
-            new Dictionary<string, object?> { ["@id"] = Hash(credentialId), ["@user"] = userId }, cancellationToken).ConfigureAwait(false) == 1;
+    public async Task<bool> DeleteAsync(string userId, string credentialId, CancellationToken cancellationToken)
+    {
+        var id = Hash(credentialId);
+        return WebMySqlDatabase.Value(await _db.Query<PasskeyRow>().Where(p => p.IdHash == id && p.UserId == userId).DeleteAsync(cancellationToken).ConfigureAwait(false)) == 1;
+    }
 
     private static WebPasskey FromRow(PasskeyRow row) => WebMySqlJson.Read<WebPasskey>(row.RecordJson) with
     {
