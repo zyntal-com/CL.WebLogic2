@@ -8,6 +8,8 @@
   href: security-pipeline.md
 - name: Authentication and accounts
   href: authentication.md
+- name: Passkeys
+  href: passkeys.md
 - name: External logins (add-on)
   href: external-logins.md
 - name: Forms

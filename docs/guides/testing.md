@@ -42,7 +42,8 @@ public sealed class ContactPageTests
 
 Other helpers: `TemplateTestRenderer` + `InMemoryTemplateLoader` render templates without a host,
 `ManualTimeProvider` controls time (lockouts, token expiry, sessions), `DelegateContributor` maps routes
-inline.
+inline, and `WebTestAuthenticator` is a software passkey authenticator that answers your passkey
+endpoints' options with real signatures ([Passkeys](passkeys.md#testing)).
 
 ## What to test in your app
 

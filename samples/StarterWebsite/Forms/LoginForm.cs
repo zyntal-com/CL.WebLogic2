@@ -10,7 +10,7 @@ public sealed class LoginForm
 {
     /// <summary>User name or e-mail.</summary>
     [Required, StringLength(254)]
-    [WebField(Label = "User name or e-mail", Autocomplete = "username")]
+    [WebField(Label = "User name or e-mail", Autocomplete = "username webauthn")]
     public string? Login { get; set; }
 
     /// <summary>Password.</summary>

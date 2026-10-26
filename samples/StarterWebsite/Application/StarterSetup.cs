@@ -57,6 +57,7 @@ public static class StarterSetup
            .UseSessionStore<JsonSessionStore>()
            .UseApiKeyStore<JsonApiKeyStore>()
            .UseRecoveryCodeStore<JsonRecoveryCodeStore>()
+           .UsePasskeyStore<JsonPasskeyStore>()
            .UseDashboardStore<JsonDashboardLayoutStore>()
            .UseWidgetSettingsStore<JsonWidgetSettingsStore>()
            .UseDashboardDefaults<StarterDashboardDefaults>();

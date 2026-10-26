@@ -37,6 +37,9 @@ public enum WebMySqlStores
     /// <summary><c>IWebDashboardLayoutStore</c>.</summary>
     Dashboards = 512,
 
+    /// <summary><c>IWebPasskeyStore</c>.</summary>
+    Passkeys = 1024,
+
     /// <summary>Every store.</summary>
-    All = Users | Sessions | ApiKeys | RecoveryCodes | OneTimeUse | LoginThrottle | RateLimits | Audit | WidgetSettings | Dashboards
+    All = Users | Sessions | ApiKeys | RecoveryCodes | OneTimeUse | LoginThrottle | RateLimits | Audit | WidgetSettings | Dashboards | Passkeys
 }

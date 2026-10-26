@@ -37,5 +37,11 @@ public enum WebSecurityNotificationKind
     ApiKeyCreated,
 
     /// <summary>A sign-in from a browser none of the user's other sessions use (<c>Auth.Notifications.NotifyNewDevice</c>).</summary>
-    NewDeviceSignIn
+    NewDeviceSignIn,
+
+    /// <summary>A passkey was added (value <c>name</c>).</summary>
+    PasskeyAdded,
+
+    /// <summary>A passkey was removed (value <c>name</c>).</summary>
+    PasskeyRemoved
 }

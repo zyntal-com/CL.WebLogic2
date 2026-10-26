@@ -27,6 +27,10 @@ public sealed partial class AccountPages
                 k.Id, k.Name, k.Prefix, Scopes = string.Join(", ", k.Scopes), k.CreatedAt, k.ExpiresAt, k.LastUsedAt
             }).ToList(),
             Methods = string.Join(", ", request.Identity.AuthenticationMethods),
+            Passkeys = (await request.Auth.ListPasskeysAsync(cancellationToken).ConfigureAwait(false)).Select(p => new
+            {
+                p.CredentialId, p.Name, p.CreatedAt, p.LastUsedAt, Synced = p.BackupEligible
+            }).ToList(),
             Sessions = (await request.Auth.ListSessionsAsync(cancellationToken).ConfigureAwait(false)).Select(s => new
             {
                 s.IdHash, Device = s.UserAgent ?? "Unknown browser", s.CreatedAt, s.LastSeenAt, s.Persistent, s.IsCurrent

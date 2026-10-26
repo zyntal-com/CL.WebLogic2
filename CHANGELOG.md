@@ -1,5 +1,38 @@
 # Changelog
 
+## 4.9.4-preview (2026-10-26)
+
+### Added
+
+- Passkeys (WebAuthn), verified in-house: CBOR, COSE keys (ES256/384/512, RS256, PS256), authenticator
+  data, signatures, and the `none`, `packed` and `fido-u2f` attestation formats.
+  - **Three uses:** passwordless sign-in (`request.Auth.PasskeySignInAsync`, multi-factor, so no TOTP
+    step), the second factor after a password (`CompleteTwoFactorWithPasskeyAsync`), and step-up
+    (`ReauthenticateWithPasskeyAsync`).
+  - **Registration and management:** `BeginPasskeyRegistrationAsync` and `CompletePasskeyRegistrationAsync`,
+    plus list, rename and delete. Users are e-mailed when a passkey is added or removed.
+  - **Safety:** ceremony state is sealed and each challenge is single-use (works across nodes).
+    Origin, RP id, user presence and verification, backup flags and the user handle are checked.
+    A signature counter that goes backwards refuses the sign-in (`PasskeyCloneSuspectedEvent`).
+  - **Lockout:** the password lockout neither blocks passkeys nor counts passkey failures, because
+    credential ids are not secret. Failures are throttled instead.
+  - **Wiring:** `IWebPasskeyStore` (`web.UsePasskeyStore<T>()`, an in-memory store with
+    `UseInMemoryAccounts`) and `Auth.Passkeys` configuration (RP id, origins, timeout, attestation,
+    second factor without PIN, maximum per user).
+- Client: `WebLogic.passkeys` (`signIn`, `register`, `verify`, passkey autofill) and declarative
+  `data-wl-passkey` buttons.
+- Testing: `WebTestAuthenticator`, a software authenticator for testing passkey endpoints. The suite
+  also runs the client against a headless-Chrome virtual authenticator.
+- CodeLogic.WebLogic.MySql: `wl_passkeys` (`WebMySqlStores.Passkeys`, included in `All`), with an
+  atomic counter update.
+- Starter sample: passkey sign-in with autofill, passkey as the second factor, and a Passkeys card on
+  the account page.
+
+### Fixed
+
+- A suspended user's reason and end date were lost on the way back from password, magic-link and
+  external sign-in (`WebSignInResult.Suspension` was null), so the suspension page could not show them.
+
 ## 4.9.3-preview (2026-10-26)
 
 ### Added

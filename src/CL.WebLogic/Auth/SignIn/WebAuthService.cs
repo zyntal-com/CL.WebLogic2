@@ -2,6 +2,7 @@ using System.Globalization;
 using CL.WebLogic.Auth.Accounts;
 using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.Notifications;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.Sessions;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
@@ -16,9 +17,9 @@ using CL.WebLogic.Security.Sessions;
 namespace CL.WebLogic.Auth.SignIn;
 
 /// <summary>
-/// The sign-in flows: password, second factor (TOTP or recovery code), magic link, external
-/// providers, required password change, re-authentication, sign-out, refresh and the user's
-/// sessions. Request handlers use it through <c>request.Auth</c>.
+/// The sign-in flows: password, passkey, second factor (TOTP, passkey or recovery code), magic link,
+/// external providers, required password change, re-authentication, sign-out, refresh and the
+/// user's sessions and passkeys. Request handlers use it through <c>request.Auth</c>.
 /// </summary>
 public sealed partial class WebAuthService
 {
@@ -40,14 +41,16 @@ public sealed partial class WebAuthService
     private readonly IWebLogicContext _context;
     private readonly WebAttemptGate _gate;
     private readonly WebSessionDevices _devices;
+    private readonly WebPasskeyService? _passkeys;
     private readonly TimeProvider _time;
 
     /// <summary>Creates the service.</summary>
     public WebAuthService(WebSessionManager sessions, IWebSessionStore sessionStore, IWebCredentialValidator validator, IWebUserStore users,
         WebTwoFactorService twoFactor, IWebSecurityTokenService tokens, IWebLoginThrottle throttle, WebLockoutService lockout,
         WebAccountService accounts, WebNotificationDispatcher notifications, IWebAuditLog audit, WebLogicConfigHolder config,
-        IWebLogicContext context, WebSessionDevices devices, TimeProvider? time = null, WebAttemptGate? gate = null)
+        IWebLogicContext context, WebSessionDevices devices, TimeProvider? time = null, WebAttemptGate? gate = null, WebPasskeyService? passkeys = null)
     {
+        _passkeys = passkeys;
         _devices = devices ?? throw new ArgumentNullException(nameof(devices));
         _gate = gate ?? new WebAttemptGate();
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
@@ -189,7 +192,9 @@ public sealed partial class WebAuthService
                 return PasswordChangeRequired(result.User!, methods, persistent);
             default:
                 Failed(security, result);
-                return result.Status == WebSignInStatus.NotAllowed ? result : WebSignInResult.Of(result.Status, retryAfter: result.RetryAfter);
+                // Keep the suspension (reason, end) for the suspended page; drop the user otherwise.
+                return result.Status == WebSignInStatus.NotAllowed ? result
+                    : new WebSignInResult { Status = result.Status, RetryAfter = result.RetryAfter, Suspension = result.Suspension };
         }
     }
 

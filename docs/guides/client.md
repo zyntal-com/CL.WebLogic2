@@ -24,6 +24,7 @@ document.addEventListener('wl:ready', ({ detail: wl }) => {
 | `widgets` | Widget refresh (`data-wl-refresh`), actions (`data-wl-action="/url"` with `data-wl-payload`, `data-wl-confirm`, `data-wl-target`, `data-wl-swap`) |
 | `dashboard` | Layout editing: drag and drop, keyboard moves, add, remove, optimistic-concurrency save |
 | `realtime` | SSE/WebSocket connect, reconnect with back-off, `Last-Event-ID`, `subscribe(type, handler)` |
+| `passkeys` | WebAuthn ceremonies from the server's JSON options: `data-wl-passkey="signin\|register\|verify\|autofill"` buttons, `signIn`, `register`, `verify`, `startAutofill` ([Passkeys](passkeys.md)) |
 | `commands` | Allowlisted server commands: toast, overlay, redirect/navigate (local URLs only), reload, replace, remove, addClass, removeClass |
 | `ui` | Toasts, overlays, field errors, progress bar, screen-reader announcements, through a UI adapter |
 | `dom` | Safe builders (`el`, `append`, `swap`, `readJson`); untrusted strings are never assigned to `innerHTML` |

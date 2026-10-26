@@ -19,7 +19,8 @@ public sealed partial class AccountPages
     {
         Registration = _config.AllowRegistration,
         Providers = _external.Providers.Select(p => new { p.Name, p.DisplayName }).ToList(),
-        Reset = request.GetQuery("reset") == "1"
+        Reset = request.GetQuery("reset") == "1",
+        ReturnUrl = WebRequestAuth.GetSafeReturnUrl(request.GetQuery("returnUrl"))
     };
 
     private ValueTask<WebResult> ShowLoginAsync(WebRequestContext request, CancellationToken cancellationToken)
@@ -73,8 +74,9 @@ public sealed partial class AccountPages
     {
         if (!await request.Auth.IsSecondFactorPendingAsync(cancellationToken).ConfigureAwait(false))
             return Redirect("/account/login");
-        request.Forms.Prefill(new TwoFactorForm { ReturnUrl = WebRequestAuth.GetSafeReturnUrl(request.GetQuery("returnUrl")) });
-        return WebResult.Page(TwoFactorTemplate, null, PageModels.Meta("Two-factor sign-in"));
+        var returnUrl = WebRequestAuth.GetSafeReturnUrl(request.GetQuery("returnUrl"));
+        request.Forms.Prefill(new TwoFactorForm { ReturnUrl = returnUrl });
+        return WebResult.Page(TwoFactorTemplate, new { ReturnUrl = returnUrl }, PageModels.Meta("Two-factor sign-in"));
     }
 
     private async ValueTask<WebResult> TwoFactorAsync(WebRequestContext request, CancellationToken cancellationToken)

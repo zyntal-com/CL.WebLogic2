@@ -1,7 +1,7 @@
 # Authentication and accounts
 
-WebLogic implements the flows: password sign-in with lockout and throttling, TOTP two-factor with
-replay protection, recovery codes, password reset, e-mail verification and change, magic links,
+WebLogic implements the flows: password sign-in with lockout and throttling, passkeys
+([guide](passkeys.md)), TOTP two-factor with replay protection, recovery codes, password reset, e-mail verification and change, magic links,
 API keys, bearer tokens, external providers and tenants. **Storage is yours**: you implement the
 store contracts and WebLogic calls them.
 
@@ -13,6 +13,7 @@ store contracts and WebLogic calls them.
 | `IWebUserLockoutStore`, `IWebUserEmailStore`, `IWebUserExternalLoginStore` | Optional capabilities on the same class: atomic failure counting, lookup by e-mail, linked external logins | (implement on the user store) |
 | `IWebSessionStore` | Session records keyed by the SHA-256 of the session token | `web.UseSessionStore<T>()` |
 | `IWebApiKeyStore` | API keys (hash of the secret, scopes, expiry, networks) | `web.UseApiKeyStore<T>()` |
+| `IWebPasskeyStore` | Passkeys (public key, user handle, counter); see [Passkeys](passkeys.md) | `web.UsePasskeyStore<T>()` |
 | `IWebRecoveryCodeStore` | Hashed recovery codes; `TryConsumeAsync` must be atomic | `web.UseRecoveryCodeStore<T>()` |
 | `IWebOneTimeUseStore` | Spent TOTP steps and single-use links (in memory by default) | `web.UseOneTimeUseStore<T>()` |
 | `IWebLoginThrottle` | Back-off per login, cap per client (in memory by default) | `web.UseLoginThrottle<T>()` |

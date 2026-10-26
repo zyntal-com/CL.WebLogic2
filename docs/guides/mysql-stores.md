@@ -36,6 +36,7 @@ guard and the cluster readiness checks pass. Stores left out keep whatever the a
 | `Audit` | `IWebAuditSink` | `wl_audit` |
 | `WidgetSettings` | `IWebWidgetSettingsStore` | `wl_widget_settings` |
 | `Dashboards` | `IWebDashboardLayoutStore` | `wl_dashboards` |
+| `Passkeys` | `IWebPasskeyStore` | `wl_passkeys` |
 | (DataProtection) | `IXmlRepository` | `wl_dataprotection_keys` |
 
 All tables use `utf8mb4_bin`; case-insensitive lookups go through normalized columns. With
@@ -51,6 +52,8 @@ starts. Turn it off when migrations are run separately; `SyncSchemaAsync` is sti
 - **Rate limits:** each token bucket is refilled and charged in a single round trip; the capacity holds
   exactly under concurrency.
 - **Dashboards:** saves carry the expected version; a stale save fails instead of overwriting.
+- **Passkeys:** a credential id has one owner (`INSERT IGNORE`), and each sign-in updates the counter only
+  if it still holds the value that was read, so two nodes can never both accept the same assertion.
 - **Key ring:** keys are inserted, never updated; every node sees every key.
 
 ## Housekeeping

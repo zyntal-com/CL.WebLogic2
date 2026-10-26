@@ -163,7 +163,8 @@ public sealed partial class ClientRuntimeTests
         }
     }
 
-    private static string? FindBrowser()
+    /// <summary>Chrome or Edge on this machine (CHROME_PATH first), or null.</summary>
+    internal static string? FindBrowser()
     {
         string[] candidates =
         [

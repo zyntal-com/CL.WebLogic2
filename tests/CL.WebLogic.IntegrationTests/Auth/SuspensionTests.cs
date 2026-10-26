@@ -28,6 +28,35 @@ public sealed class SuspensionTests
     }
 
     [Fact]
+    public async Task The_suspension_reason_reaches_the_caller_for_every_sign_in_method()
+    {
+        // Regression: the sign-in pipeline used to rebuild failed results and drop the suspension.
+        await using var host = await AuthTestSite.StartAsync(web: web =>
+        {
+            Pages(web);
+            web.AddContributor(new DelegateContributor(b =>
+            {
+                b.MapApi("/why/password", async (r, ct) => Reason(await r.Auth.PasswordSignInAsync("alice", AuthTestSite.Password, cancellationToken: ct)), "POST").AllowAnonymous();
+                b.MapApi("/why/external", async (r, ct) =>
+                {
+                    var user = (await r.GetRequiredService<IWebUserStore>().FindByLoginAsync("alice", ct))!;
+                    return Reason(await r.Auth.SignInExternalAsync(user, "steam", cancellationToken: ct));
+                }, "POST").AllowAnonymous();
+            }), new WebContributorDescriptor { Id = "tests.why", Name = "Why" });
+        });
+        await AuthTestSite.CreateUserAsync(host, change: u => u with { SuspendedUntil = DateTimeOffset.UtcNow.AddDays(3), SuspensionReason = "Cheating" });
+
+        foreach (var path in (string[])["/why/password", "/why/external"])
+        {
+            var response = await AuthTestSite.PostRawAsync(host.Client, path, new { });
+            Assert.Equal("Suspended:Cheating", await response.Content.ReadAsStringAsync());
+        }
+    }
+
+    private static TextResult Reason(CL.WebLogic.Auth.SignIn.WebSignInResult result) =>
+        WebResult.Text(result.Status + ":" + result.Suspension?.Reason);
+
+    [Fact]
     public async Task An_ended_suspension_no_longer_applies()
     {
         await using var host = await AuthTestSite.StartAsync();

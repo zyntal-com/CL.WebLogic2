@@ -10,6 +10,7 @@ import { createForms } from './forms.js';
 import { createHttp } from './http.js';
 import { createModules } from './modules.js';
 import { createNavigation } from './navigation.js';
+import { createPasskeys } from './passkeys.js';
 import { createRealtime } from './realtime.js';
 import { createUi } from './ui.js';
 import { isLocalUrl, isSameOrigin } from './url.js';
@@ -26,6 +27,7 @@ function create() {
   const enhance = (root) => {
     forms.bind(root);
     widgets.bind(root);
+    passkeys.bind(root);
     dashboard.bind(root);
     modules.mount(root);
   };
@@ -33,7 +35,10 @@ function create() {
     bus,
     ui,
     config,
-    beforeSwap: (shell) => modules.unmount(shell),
+    beforeSwap: (shell) => {
+      passkeys.stopAutofill();
+      modules.unmount(shell);
+    },
     afterSwap: (shell) => enhance(shell),
     onConfig: (next) => Object.assign(config, next)
   });
@@ -43,6 +48,7 @@ function create() {
   const widgets = createWidgets({ http, commands, ui, bus, swap, enhance, unmount: modules.unmount });
   const dashboard = createDashboard({ http, ui, bus, swap, enhance, unmount: modules.unmount });
   const realtime = createRealtime({ bus, config });
+  const passkeys = createPasskeys({ http, ui, bus, commands, navigate });
   let started = false;
 
   function start() {
@@ -71,6 +77,7 @@ function create() {
     widgets: { action: widgets.action, refresh: widgets.refresh },
     dashboard: { setEditing: dashboard.setEditing, save: dashboard.save, reload: dashboard.reload, add: dashboard.add, remove: dashboard.remove, move: dashboard.move, readLayout: dashboard.readLayout },
     realtime,
+    passkeys,
     navigate,
     enhance,
     url: { isLocalUrl, isSameOrigin },

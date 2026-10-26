@@ -1,4 +1,5 @@
 using CL.WebLogic.Auth.ApiKeys;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
 using CL.WebLogic.Auth.TwoFactor;
@@ -60,6 +61,7 @@ public static class WebLogicMySqlBuilderExtensions
         Use<IWebAuditSink, MySqlWebAuditSink>(WebMySqlStores.Audit, typeof(AuditRow));
         Use<IWebWidgetSettingsStore, MySqlWebWidgetSettingsStore>(WebMySqlStores.WidgetSettings, typeof(WidgetSettingsRow));
         Use<IWebDashboardLayoutStore, MySqlWebDashboardLayoutStore>(WebMySqlStores.Dashboards, typeof(DashboardRow));
+        Use<IWebPasskeyStore, MySqlWebPasskeyStore>(WebMySqlStores.Passkeys, typeof(PasskeyRow));
 
         if (options.SyncSchemaOnStart && tables.Count > 0)
             AddTables(services, new WebMySqlTables(connectionId, tables));

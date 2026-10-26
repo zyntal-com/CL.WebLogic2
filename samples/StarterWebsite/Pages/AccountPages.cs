@@ -11,8 +11,9 @@ using StarterWebsite.Configuration;
 namespace StarterWebsite.Pages;
 
 /// <summary>
-/// The account area: sign-in (password, two-factor, recovery codes, Steam), registration, password
-/// reset and e-mail verification, and the profile (password, authenticator, API keys). Everything
+/// The account area: sign-in (password, passkey, two-factor, recovery codes, external providers),
+/// registration, password reset and e-mail verification, and the profile (password, passkeys,
+/// authenticator, API keys). Everything
 /// security-relevant is done by the toolkit (<c>request.Auth</c>, <see cref="WebAccountService"/>,
 /// <see cref="WebTwoFactorService"/>, <see cref="WebApiKeyService"/>); these handlers are UI.
 /// </summary>
@@ -75,6 +76,7 @@ public sealed partial class AccountPages : IWebContributor
         account.MapPage("/recovery-codes", RegenerateRecoveryCodesAsync, "POST");
         account.MapPage("/api-keys", CreateApiKeyAsync, "POST");
         account.MapPage("/api-keys/{id}/revoke", RevokeApiKeyAsync, "POST");
+        MapPasskeys(account);
         return Task.CompletedTask;
     }
 

@@ -8,6 +8,7 @@ using CL.WebLogic.Auth.Sessions;
 using CL.WebLogic.Auth.SignIn;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.TwoFactor;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Security.Identity;
@@ -30,6 +31,7 @@ internal static class WebLogicAuthRegistration
         services.TryAddSingleton<IWebUserStore, NullWebUserStore>();
         services.TryAddSingleton<IWebApiKeyStore, NullWebApiKeyStore>();
         services.TryAddSingleton<IWebRecoveryCodeStore, NullRecoveryCodeStore>();
+        services.TryAddSingleton<IWebPasskeyStore, NullWebPasskeyStore>();
         services.TryAddSingleton<IWebSecurityNotifier, NullSecurityNotifier>();
 
         // Per-node defaults (replace for clusters)
@@ -49,6 +51,7 @@ internal static class WebLogicAuthRegistration
         services.TryAddSingleton<WebAttemptGate>();
         services.TryAddSingleton<IWebCredentialValidator, WebCredentialValidator>();
         services.TryAddSingleton<WebTwoFactorService>();
+        services.TryAddSingleton<WebPasskeyService>();
         services.TryAddSingleton<WebAccountService>();
         services.TryAddSingleton<Auth.Sessions.WebSessionDevices>();
         services.TryAddSingleton<WebAuthService>();

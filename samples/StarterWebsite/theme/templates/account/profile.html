@@ -20,6 +20,30 @@
         </dl>
       </div>
     </section>
+    <section class="card mb-4" id="passkeys-panel">
+      <div class="card-body">
+        <h2 class="h5">Passkeys</h2>
+        <p class="small">Sign in with your fingerprint, face or device PIN instead of a password. A passkey also works as your second factor.</p>
+        {if:model:passkeys}
+        <ul class="list-group mb-3">
+          {foreach:model:passkeys as p}
+          <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
+            <div class="small">
+              <strong>{p:name}</strong>{if:p:synced} <span class="badge text-bg-secondary">synced</span>{/if}<br>
+              <span class="text-body-secondary">added {p:createdAt|timeago}{if:p:lastUsedAt} &middot; last used {p:lastUsedAt|timeago}{/if}</span>
+            </div>
+            <form method="post" action="/account/passkeys/{p:credentialId|urlencode}/delete">{csrf}<button class="btn btn-outline-danger btn-sm" type="submit">Remove</button></form>
+          </li>
+          {/foreach}
+        </ul>
+        {/if}
+        <div class="input-group input-group-sm">
+          <input id="passkey-name" class="form-control" maxlength="64" placeholder="Name, e.g. Work laptop" aria-label="Passkey name">
+          <button type="button" class="btn btn-primary" data-wl-passkey="register" data-wl-passkey-name="#passkey-name"
+            data-wl-passkey-begin="/account/passkeys/register/begin" data-wl-passkey-finish="/account/passkeys/register/finish">Add a passkey</button>
+        </div>
+      </div>
+    </section>
     <section class="card mb-4" id="two-factor-panel">
       <div class="card-body">
         <h2 class="h5">Two-factor authentication</h2>

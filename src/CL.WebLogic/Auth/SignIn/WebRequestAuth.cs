@@ -10,7 +10,7 @@ namespace CL.WebLogic.Auth.SignIn;
 /// <c>request.Auth</c>: the sign-in flows bound to the current request. Every method uses the
 /// request's cancellation token unless one is passed.
 /// </summary>
-public sealed class WebRequestAuth
+public sealed partial class WebRequestAuth
 {
     private readonly Runtime.Models.WebRequestContext _request;
     private readonly WebAuthService _service;

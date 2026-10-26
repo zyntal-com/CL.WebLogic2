@@ -4,6 +4,11 @@
     <h1 class="h3 mb-3">Sign in</h1>
     {if:model:reset}<div class="alert alert-success">Your password was changed. Sign in with the new one.</div>{/if}
     {form:login}
+    <button type="button" class="btn btn-outline-primary w-100 mt-2" data-wl-passkey="signin"
+      data-wl-passkey-begin="/account/passkeys/sign-in/begin" data-wl-passkey-finish="/account/passkeys/sign-in/finish?returnUrl={model:returnUrl|urlencode}"
+      data-wl-passkey-remember="input[name='RememberMe']">Sign in with a passkey</button>
+    <span hidden data-wl-passkey="autofill" data-wl-passkey-begin="/account/passkeys/sign-in/begin"
+      data-wl-passkey-finish="/account/passkeys/sign-in/finish?returnUrl={model:returnUrl|urlencode}"></span>
     <p class="mt-3 small"><a href="/account/forgot-password">Forgot your password?</a>{if:model:registration} &middot; <a href="/account/register">Create an account</a>{/if}</p>
     {foreach:model:providers as p}
     <a class="btn btn-dark w-100 mt-2" href="/account/external/{p:name|urlencode}" data-wl-nav="off">Sign in through {p:displayName}</a>

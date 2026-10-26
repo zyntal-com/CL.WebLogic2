@@ -130,6 +130,16 @@ public sealed class WebLogicConfig : ConfigModelBase
         if (Auth.Passwords.MinimumLength > Auth.Passwords.MaximumLength)
             errors.Add("Auth.Passwords.MinimumLength cannot exceed MaximumLength");
 
+        foreach (var origin in Auth.Passkeys.Origins)
+        {
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri) || originUri.AbsolutePath != "/" || !string.IsNullOrEmpty(originUri.Query)
+                || !(originUri.Scheme == Uri.UriSchemeHttps || (originUri.Scheme == Uri.UriSchemeHttp && originUri.IsLoopback)))
+                errors.Add($"Auth.Passkeys.Origins: '{origin}' must be an https origin (http only for localhost)");
+        }
+        if (Auth.Passkeys.RelyingPartyId.Length > 0
+            && (Uri.CheckHostName(Auth.Passkeys.RelyingPartyId) != UriHostNameType.Dns || Auth.Passkeys.RelyingPartyId.Contains(':', StringComparison.Ordinal)))
+            errors.Add("Auth.Passkeys.RelyingPartyId must be a domain name (no scheme, port or IP address)");
+
         if (Security.Hosts.RedirectToCanonical && string.IsNullOrWhiteSpace(PublicBaseUrl))
             errors.Add("Security.Hosts.RedirectToCanonical requires PublicBaseUrl");
 

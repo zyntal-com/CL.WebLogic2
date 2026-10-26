@@ -2,6 +2,7 @@ using CL.WebLogic.Auth.ApiKeys;
 using CL.WebLogic.Auth.Notifications;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.TwoFactor;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Caching.Services;
@@ -34,6 +35,7 @@ public sealed class ClusterReadinessCheck
         (typeof(IWebUserStore), "accounts would differ per node"),
         (typeof(IWebApiKeyStore), "API keys would differ per node"),
         (typeof(IWebRecoveryCodeStore), "a used recovery code would still work on other nodes"),
+        (typeof(IWebPasskeyStore), "passkeys registered on one node would be unknown on the others"),
         (typeof(IWebOneTimeUseStore), "TOTP codes and single-use links could be replayed on another node"),
         (typeof(IWebLoginThrottle), "each node would allow the full number of login attempts"),
         (typeof(IWebRateLimitStore), "each node would apply its own limits (N nodes = N× the limit)"),

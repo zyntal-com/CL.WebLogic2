@@ -6,6 +6,7 @@ using CL.WebLogic.Auth.Passwords;
 using CL.WebLogic.Auth.SignIn;
 using CL.WebLogic.Auth.Throttling;
 using CL.WebLogic.Auth.Tokens;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.TwoFactor;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Security.Identity;
@@ -29,6 +30,10 @@ public static class WebLogicAuthBuilderExtensions
     /// <summary>Stores recovery codes in the app's store.</summary>
     public static WebLogicBuilder UseRecoveryCodeStore<TStore>(this WebLogicBuilder builder) where TStore : class, IWebRecoveryCodeStore =>
         Replace<IWebRecoveryCodeStore, TStore>(builder);
+
+    /// <summary>Uses <typeparamref name="TStore"/> for passkeys.</summary>
+    public static WebLogicBuilder UsePasskeyStore<TStore>(this WebLogicBuilder builder) where TStore : class, IWebPasskeyStore =>
+        Replace<IWebPasskeyStore, TStore>(builder);
 
     /// <summary>Uses a shared one-time-use store (needed for replay protection across a cluster).</summary>
     public static WebLogicBuilder UseOneTimeUseStore<TStore>(this WebLogicBuilder builder) where TStore : class, IWebOneTimeUseStore =>
@@ -80,7 +85,7 @@ public static class WebLogicAuthBuilderExtensions
     }
 
     /// <summary>
-    /// In-memory users, API keys, recovery codes and the e-mail outbox, for development and tests.
+    /// In-memory users, API keys, recovery codes, passkeys and the e-mail outbox, for development and tests.
     /// Refused outside Development unless <c>Security.AllowDevelopmentStores</c> is set.
     /// </summary>
     public static WebLogicBuilder UseInMemoryAccounts(this WebLogicBuilder builder)
@@ -93,6 +98,8 @@ public static class WebLogicAuthBuilderExtensions
         services.Replace(ServiceDescriptor.Singleton<IWebApiKeyStore>(sp => sp.GetRequiredService<InMemoryWebApiKeyStore>()));
         services.TryAddSingleton<InMemoryRecoveryCodeStore>();
         services.Replace(ServiceDescriptor.Singleton<IWebRecoveryCodeStore>(sp => sp.GetRequiredService<InMemoryRecoveryCodeStore>()));
+        services.TryAddSingleton<InMemoryWebPasskeyStore>();
+        services.Replace(ServiceDescriptor.Singleton<IWebPasskeyStore>(sp => sp.GetRequiredService<InMemoryWebPasskeyStore>()));
         return builder.UseOutboxNotifications();
     }
 

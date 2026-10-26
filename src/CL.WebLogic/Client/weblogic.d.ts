@@ -160,6 +160,24 @@ export interface Realtime {
 
 export type ModuleFactory = (element: Element, webLogic: WebLogicApi) => void | (() => void) | { unmount(): void };
 
+/** Passkeys (WebAuthn). Begin endpoints return { options, state }; finish endpoints receive { credential, state, ...extra }. */
+export interface Passkeys {
+  isSupported(): boolean;
+  isAutofillSupported(): Promise<boolean>;
+  /** navigator.credentials.create from creation options JSON; resolves with the credential's JSON form. */
+  create(options: Record<string, unknown>, init?: { signal?: AbortSignal }): Promise<Record<string, unknown>>;
+  /** navigator.credentials.get from request options JSON; resolves with the credential's JSON form. */
+  get(options: Record<string, unknown>, init?: { signal?: AbortSignal; conditional?: boolean }): Promise<Record<string, unknown>>;
+  register<T = unknown>(beginUrl: string, finishUrl: string, extra?: { name?: string }): Promise<T>;
+  signIn<T = unknown>(beginUrl: string, finishUrl: string, extra?: { remember?: boolean }): Promise<T>;
+  /** Second factor or step-up. */
+  verify<T = unknown>(beginUrl: string, finishUrl: string, extra?: Record<string, unknown>): Promise<T>;
+  /** Offers passkeys in the username field's autofill (autocomplete="username webauthn"); null when unsupported. */
+  startAutofill<T = unknown>(beginUrl: string, finishUrl: string, extra?: Record<string, unknown>): Promise<T | null>;
+  stopAutofill(): void;
+  bind(root: Element): void;
+}
+
 export interface Bus {
   on(type: string, handler: (detail: any, event: CustomEvent) => void): () => void;
   once(type: string, handler: (detail: any) => void): () => void;
@@ -211,6 +229,7 @@ export interface WebLogicApi {
     readLayout(dashboard: Element): DashboardItem[];
   };
   readonly realtime: Realtime;
+  readonly passkeys: Passkeys;
   navigate(url: string): Promise<boolean>;
   enhance(root: Element): void;
   readonly url: { isLocalUrl(url: unknown): boolean; isSameOrigin(url: string, origin: string): boolean };

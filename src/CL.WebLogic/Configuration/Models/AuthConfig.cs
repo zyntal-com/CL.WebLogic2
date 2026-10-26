@@ -23,6 +23,9 @@ public sealed class AuthConfig
     /// <summary>Two-factor authentication.</summary>
     public TwoFactorConfig TwoFactor { get; set; } = new();
 
+    /// <summary>Passkeys (WebAuthn).</summary>
+    public PasskeyConfig Passkeys { get; set; } = new();
+
     /// <summary>Account e-mail tokens (reset, verify, magic link, e-mail change).</summary>
     public AccountTokensConfig Tokens { get; set; } = new();
 

@@ -22,7 +22,7 @@ public sealed class MySqlFixture : IAsyncLifetime
     public static readonly Type[] AllTables =
     [
         typeof(UserRow), typeof(UserLoginRow), typeof(SessionRow), typeof(ApiKeyRow), typeof(RecoveryCodeRow), typeof(OneTimeUseRow),
-        typeof(LoginThrottleRow), typeof(RateLimitRow), typeof(AuditRow), typeof(WidgetSettingsRow), typeof(DashboardRow), typeof(DataProtectionKeyRow)
+        typeof(LoginThrottleRow), typeof(RateLimitRow), typeof(AuditRow), typeof(WidgetSettingsRow), typeof(DashboardRow), typeof(DataProtectionKeyRow), typeof(PasskeyRow)
     ];
 
     public WebMySqlDatabase Db { get; private set; } = null!;
@@ -65,7 +65,7 @@ public sealed class MySqlFixture : IAsyncLifetime
 
         Db = new WebMySqlDatabase(new CodeLogicLibraryResolver(), new WebMySqlOptions());
         foreach (var table in new[] { "wl_users", "wl_user_logins", "wl_sessions", "wl_api_keys", "wl_recovery_codes", "wl_one_time_use",
-                     "wl_login_throttle", "wl_rate_limits", "wl_audit", "wl_widget_settings", "wl_dashboards", "wl_dataprotection_keys" })
+                     "wl_login_throttle", "wl_rate_limits", "wl_audit", "wl_widget_settings", "wl_dashboards", "wl_dataprotection_keys", "wl_passkeys" })
             await Db.ExecuteAsync("DROP TABLE IF EXISTS " + table, new Dictionary<string, object?>(), default);
         WebMySqlDatabase.Value(await Db.MySql.SyncSchemaAsync(AllTables, false, "Default", default));
     }

@@ -25,6 +25,8 @@ public static class SecurityNotificationText
             WebSecurityNotificationKind.NewDeviceSignIn => ("New sign-in to your account",
                 "Your account was signed in to from a new browser or device" + (notification.Values.TryGetValue("device", out var device) ? ": " + device : "")
                 + ". If this was not you, change your password and sign out everywhere."),
+            WebSecurityNotificationKind.PasskeyAdded => ("A passkey was added", "A passkey was added to your account. If this was not you, remove it and reset your password right away."),
+            WebSecurityNotificationKind.PasskeyRemoved => ("A passkey was removed", "A passkey was removed from your account."),
             _ => ("Account notice", "There was a change to your account.")
         };
 
