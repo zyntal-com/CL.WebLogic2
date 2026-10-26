@@ -36,8 +36,8 @@ internal static class AuthTestSite
 
     private sealed record Body(string? Login, string? Password, string? Code, string? Token, string? NewPassword, string? Current, bool Remember = false);
 
-    private static JsonResult Status(object status, string? token = null) =>
-        WebResult.Json(new Dictionary<string, string?> { ["status"] = status.ToString(), ["token"] = token });
+    private static JsonResult Status(object status, string? token = null, string? error = null) =>
+        WebResult.Json(new Dictionary<string, string?> { ["status"] = status.ToString(), ["token"] = token, ["error"] = error });
 
     private static void Routes(WebContributionBuilder b)
     {
@@ -53,7 +53,8 @@ internal static class AuthTestSite
         b.MapApi("/auth/complete-change", async (r, ct) =>
         {
             var body = (await r.ReadJsonAsync<Body>(ct))!;
-            return Status((await r.Auth.CompletePasswordChangeAsync(body.Token ?? "", body.NewPassword ?? "", ct)).Status);
+            var result = await r.Auth.CompletePasswordChangeAsync(body.Token ?? "", body.NewPassword ?? "", ct);
+            return Status(result.Status, error: result.Error?.Message);
         }, "POST").AllowAnonymous();
         b.MapApi("/auth/logout", async (r, ct) =>
         {
