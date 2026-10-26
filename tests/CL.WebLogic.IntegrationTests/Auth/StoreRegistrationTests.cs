@@ -16,7 +16,8 @@ public sealed class StoreRegistrationTests
 
         var byType = host.Services.GetRequiredService<AppUserStore>();
         Assert.Same(byType, host.Services.GetRequiredService<IWebUserStore>());
-        Assert.Same(byType, host.Services.GetRequiredService<AppUserStore>());
+        byType.SetDisplayName("Alice");
+        Assert.Equal("Alice", ((AppUserStore)host.Services.GetRequiredService<IWebUserStore>()).LastDisplayName);
     }
 
     /// <summary>A store with an app-specific method next to the contract.</summary>
@@ -30,6 +31,8 @@ public sealed class StoreRegistrationTests
 
         public Task UpdateAsync(WebUser user, CancellationToken cancellationToken) => Task.CompletedTask;
 
-        public Task SetDisplayNameAsync(string userId, string displayName) => Task.CompletedTask;
+        public string? LastDisplayName { get; private set; }
+
+        public void SetDisplayName(string displayName) => LastDisplayName = displayName;
     }
 }
