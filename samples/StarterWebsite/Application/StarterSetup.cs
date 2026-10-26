@@ -8,7 +8,7 @@ using StarterWebsite.Configuration;
 using StarterWebsite.Forms;
 using StarterWebsite.Infrastructure;
 using StarterWebsite.Pages;
-using StarterWebsite.Steam;
+using CL.WebLogic.ExternalLogins.Hosting;
 using StarterWebsite.Widgets;
 
 namespace StarterWebsite.Application;
@@ -65,10 +65,21 @@ public static class StarterSetup
         else
             web.UseOutboxNotifications();
 
+        // External sign-in (CodeLogic.WebLogic.ExternalLogins): Steam needs no keys; the OAuth
+        // providers turn on when STARTER_{GOOGLE|MICROSOFT|GITHUB|DISCORD}_CLIENT_ID and _SECRET are set.
         if (config.SteamSignIn)
+            web.AddSteamLogin();
+        foreach (var (provider, add) in new (string, Func<string, string, WebLogicBuilder>)[]
         {
-            web.Services.AddHttpClient(SteamOpenIdProvider.HttpClientName, client => client.Timeout = TimeSpan.FromSeconds(10));
-            web.AddExternalLoginProvider<SteamOpenIdProvider>();
+            ("GOOGLE", (id, secret) => web.AddGoogleLogin(id, secret)),
+            ("MICROSOFT", (id, secret) => web.AddMicrosoftLogin(id, secret)),
+            ("GITHUB", (id, secret) => web.AddGitHubLogin(id, secret)),
+            ("DISCORD", (id, secret) => web.AddDiscordLogin(id, secret))
+        })
+        {
+            if (Environment.GetEnvironmentVariable($"STARTER_{provider}_CLIENT_ID") is { Length: > 0 } clientId
+                && Environment.GetEnvironmentVariable($"STARTER_{provider}_CLIENT_SECRET") is { Length: > 0 } clientSecret)
+                add(clientId, clientSecret);
         }
 
         web.AddAuthorizationPolicy(ApiPolicy, p => p.RequireScheme(CL.WebLogic.Security.Identity.WebAuthenticationSchemes.ApiKey).RequireScopes("profile:read"));

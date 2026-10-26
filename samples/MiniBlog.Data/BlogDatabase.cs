@@ -22,7 +22,7 @@ public sealed class BlogDatabase
     public async Task SyncSchemaAsync(CancellationToken cancellationToken)
     {
         var result = await MySql.SyncSchemaAsync(
-            [typeof(Entities.PostEntity), typeof(Entities.UserEntity), typeof(Entities.SessionEntity), typeof(Entities.DocumentEntity)],
+            [typeof(Entities.PostEntity), typeof(Entities.DocumentEntity)],
             false, ConnectionId, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
             throw new InvalidOperationException("MiniBlog schema sync failed: " + result.Error!.Message);

@@ -22,6 +22,7 @@
   <ItemGroup>
     <!-- Templates a "plugin" ships inside its assembly (TemplateContributionTests). -->
     <EmbeddedResource Include="Theming\EmbeddedTheme\**\*.html" LogicalName="plugin-theme/%(RecursiveDir)%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Theming\EmbeddedAssets\**\*" LogicalName="plugin-assets/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

@@ -39,7 +39,8 @@ public sealed class SecurityStampSessionValidator : IWebSessionValidator
             return true;
 
         var user = await _users.FindByIdAsync(session.UserId, cancellationToken).ConfigureAwait(false);
-        if (user is null || user.IsDisabled || !string.Equals(user.SecurityStamp, session.SecurityStamp, StringComparison.Ordinal))
+        if (user is null || user.IsDisabled || WebSuspension.Of(user, _time.GetUtcNow()) is not null
+            || !string.Equals(user.SecurityStamp, session.SecurityStamp, StringComparison.Ordinal))
             return false;
 
         session.SetString(CheckedKey, now.ToString(CultureInfo.InvariantCulture));

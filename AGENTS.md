@@ -179,8 +179,13 @@ widgets/realtime, samples, hardening.
   C# tool.
 - Security code (hashing, tokens, CSRF, rate limiting, sanitizing, sessions, API keys) is
   written in-house on `System.Security.Cryptography` / DataProtection.
-- `CodeLogic.MySQL2` is never referenced from `src/`. The release pre-flight fails if a
-  package depends on it, or on anything that is not a `CodeLogic*` package.
+- `CodeLogic.MySQL2` is never referenced from the core (`src/CL.WebLogic`). The one exception is
+  the optional provider layer `src/CL.WebLogic.MySql` (package `CodeLogic.WebLogic.MySql`), which
+  the Database Rule allows because it stays outside the core. The release pre-flight fails if any
+  other package depends on it, or if a package depends on anything that is not a `CodeLogic*` package.
+- Add-on packages (`CL.WebLogic.MySql`, `CL.WebLogic.ExternalLogins`) follow the same rules as the
+  core: in-house security code, `CodeLogic*` dependencies only, same code style. They implement core
+  contracts; the core never references them.
 
 ## Code Style
 
@@ -304,3 +309,9 @@ stages.
   updates the matching guide (`docs/guides`) and, where relevant, the scenario pages.
 - Code in the docs must match the real API: check names and signatures against `src/` when writing
   them. Documented trade-offs live in `docs/guides/security-model.md` ("Known limits").
+
+## Release Rule
+
+- `main` never publishes. Nothing may merge or push into `release` or `prerelease` automatically.
+- A release is a deliberate `git push origin main:prerelease` (preview) or
+  `git push origin main:release` (stable); `release.yml` runs only on those branches.

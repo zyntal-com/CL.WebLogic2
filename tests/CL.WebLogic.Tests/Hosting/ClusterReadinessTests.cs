@@ -37,7 +37,7 @@ public sealed class ClusterReadinessTests
         var services = new ServiceCollection();
         var dataProtection = services.AddDataProtection();
         if (persistKeys)
-            dataProtection.PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "wl-cluster-keys"))).SetApplicationName("app");
+            dataProtection.PersistKeysToCodeLogicStorage("Default").SetApplicationName("app");
         foreach (var (contract, _) in ClusterReadinessCheck.SharedContracts.Concat(ClusterReadinessCheck.AdvisedContracts))
             services.AddSingleton(contract, Shared(contract));
         register?.Invoke(services);
@@ -51,6 +51,14 @@ public sealed class ClusterReadinessTests
         var report = Check().Evaluate();
         Assert.True(report.IsReady, string.Join("; ", report.Errors));
         Assert.Empty(report.Warnings);
+    }
+
+    [Fact]
+    public void A_key_folder_is_accepted_with_a_warning_to_share_it()
+    {
+        var report = Check(s => s.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(Path.GetTempPath(), "wl-cluster-keys")))).Evaluate();
+        Assert.True(report.IsReady, string.Join("; ", report.Errors));
+        Assert.Contains(report.Warnings, w => w.StartsWith("DataProtection keys are in the folder", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Optional provider layer (AGENTS.md database rule): production MySQL stores for every WebLogic
+    security contract, built on CL.MySQL2. The core package never references CL.MySQL2; apps that
+    want another database implement the same contracts.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.MySql</RootNamespace>
+    <AssemblyName>CL.WebLogic.MySql</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>CodeLogic.WebLogic.MySql</PackageId>
+    <Description>MySQL stores for CodeLogic.WebLogic on CL.MySQL2: users, sessions, API keys, recovery codes, one-time use, login throttle, rate limits, audit, widget settings, dashboards and the DataProtection key ring — with schema sync and expiry sweeps.</Description>
+    <PackageTags>codelogic;web;mysql;sessions;authentication</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.nuget.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\CL.WebLogic\CL.WebLogic.csproj" />
+    <PackageReference Include="CodeLogic.MySQL2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CL.WebLogic.MySql.Tests" />
+  </ItemGroup>
+</Project>

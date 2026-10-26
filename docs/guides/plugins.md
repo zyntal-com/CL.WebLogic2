@@ -50,6 +50,23 @@ defaults as app routes (signed-in users only, CSRF, rate limits).
 becomes `admin/index`). The site theme can override any of them by shipping a file with the same path.
 `b.MapTemplate(path, source)` adds one from a string.
 
+## Static files in the plugin
+
+```xml
+<ItemGroup>
+  <EmbeddedResource Include="assets\**\*" LogicalName="assets/%(RecursiveDir)%(Filename)%(Extension)" />
+</ItemGroup>
+```
+
+`b.MapAssets(assembly, "assets/", "admin")` serves them from memory at `/_weblogic/plugins/admin/...`
+with ETags, `theme.allowedAssetExtensions` and the same path checks as theme assets (the name defaults
+to the contributor id). In templates `{asset:admin:css/admin.css}` writes a fingerprinted URL (cached
+as immutable). A theme file at `assets/plugins/admin/css/admin.css` overrides the plugin's file. The
+files go away with the plugin.
+
+Give the plugin's pages their own look with a group layout: `b.MapGroup("/admin").WithLayout("admin/layout")`
+applies to page templates that declare no `{layout:...}`.
+
 ## Packaging
 
 Compile against WebLogic but use the host's copy at runtime, so the types match:

@@ -17,6 +17,9 @@ public sealed class WebSignInResult
     /// <summary>For <see cref="WebSignInStatus.RequiresPasswordChange"/>: a short-lived token for the set-new-password step.</summary>
     public string? PasswordChangeToken { get; init; }
 
+    /// <summary>The suspension, when <see cref="Status"/> is <see cref="WebSignInStatus.Suspended"/>.</summary>
+    public WebSuspension? Suspension { get; init; }
+
     /// <summary>True when this attempt caused the lockout.</summary>
     public bool LockedNow { get; init; }
 
@@ -26,4 +29,8 @@ public sealed class WebSignInResult
     /// <summary>A result with just a status.</summary>
     public static WebSignInResult Of(WebSignInStatus status, WebUser? user = null, TimeSpan? retryAfter = null) =>
         new() { Status = status, User = user, RetryAfter = retryAfter };
+
+    /// <summary>A <see cref="WebSignInStatus.Suspended"/> result.</summary>
+    public static WebSignInResult Suspended(WebUser user, WebSuspension suspension) =>
+        new() { Status = WebSignInStatus.Suspended, User = user, Suspension = suspension };
 }

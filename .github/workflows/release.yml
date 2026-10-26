@@ -64,7 +64,8 @@ jobs:
           set -euo pipefail
           v='${{ steps.version.outputs.version }}'
           mkdir -p artifacts
-          for proj in src/CL.WebLogic/CL.WebLogic.csproj src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj; do
+          for proj in src/CL.WebLogic/CL.WebLogic.csproj src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj \
+                      src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj src/CL.WebLogic.ExternalLogins/CL.WebLogic.ExternalLogins.csproj; do
             dotnet pack "$proj" --configuration Release --output artifacts \
               -p:ContinuousIntegrationBuild=true \
               -p:PackageVersion="$v" -p:Version="$v" -p:InformationalVersion="$v"
@@ -112,9 +113,10 @@ jobs:
             if ! printf '%s' "$nuspec" | grep -q '<id>'; then
               echo "::error::$name: nuspec has no <id>"; fail=1
             fi
-            # Database rule (AGENTS.md): the toolkit never depends on a specific database.
-            if printf '%s' "$nuspec" | grep -qi '<dependency id="CodeLogic\.MySQL2"'; then
-              echo "::error::$name: depends on CodeLogic.MySQL2 - the toolkit core must stay database-agnostic"; fail=1
+            # Database rule (AGENTS.md): the toolkit never depends on a specific database. Only the
+            # optional add-on CodeLogic.WebLogic.MySql may reference CodeLogic.MySQL2.
+            if [ "${name#CodeLogic.WebLogic.MySql.[0-9]}" = "$name" ] && printf '%s' "$nuspec" | grep -qi '<dependency id="CodeLogic\.MySQL2"'; then
+              echo "::error::$name: depends on CodeLogic.MySQL2 - only the CodeLogic.WebLogic.MySql add-on may"; fail=1
             fi
             # Dependency rule (AGENTS.md): packages depend on CodeLogic* only (plus each other).
             for dep in $(printf '%s' "$nuspec" | grep -o '<dependency id="[^"]*"' | sed 's/<dependency id="//; s/"$//' | sort -u); do

@@ -45,6 +45,8 @@ public sealed partial class AccountPages
 
         // Applies the account rules and asks two-factor users for their code, like a password sign-in.
         var result = await request.Auth.SignInExternalAsync(user, info.Provider, cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (result.Suspension is { } suspension)
+            return WebResult.AccountSuspended(suspension);
         return result.Status switch
         {
             CL.WebLogic.Auth.SignIn.WebSignInStatus.Succeeded => Redirect(returnUrl),

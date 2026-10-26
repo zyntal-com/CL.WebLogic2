@@ -24,13 +24,14 @@ report lists exactly what to fix.
 | `IWebRateLimitStore` | Rate-limit buckets | `web.UseRateLimitStore<T>()` |
 | `IWebRealtimeBackplane` | Realtime fan-out | `web.UseRealtimeBackplane<T>()` |
 | `IWebSecurityNotifier` | E-mail (the outbox writes to a local folder) | `web.UseMailNotifications()` |
-| DataProtection key ring | Cookies, CSRF secrets, link tokens, 2FA secrets, wizard state | `AddDataProtection().PersistKeysTo...().SetApplicationName(...)` |
+| DataProtection key ring | Cookies, CSRF secrets, link tokens, 2FA secrets, wizard state | `AddDataProtection().PersistKeysToCodeLogicStorage(connectionId).ProtectKeysWithSecret("KEYRING_SECRET").SetApplicationName(...)` ([Deployment](../guides/deployment.md#dataprotection-keys)) |
 
 Advised (warnings): widget settings, dashboards, the fragment cache and the output cache store.
 
 The toolkit has no Redis or database dependency; implement these contracts on whatever your cluster
 already runs (Redis, SQL, a document store). Each is small: the session store is five methods, the
-backplane two.
+backplane two. On MySQL, the [`CodeLogic.WebLogic.MySql`](../guides/mysql-stores.md) add-on implements
+every store above plus the key ring (`UseMySqlStores`, `PersistKeysToMySql`); MiniBlog runs on it.
 
 ## DataProtection
 

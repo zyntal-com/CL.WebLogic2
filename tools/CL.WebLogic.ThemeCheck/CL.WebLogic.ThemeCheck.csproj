@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Checks that every template of a theme folder parses (WebThemeChecker). Not packed. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.ThemeCheck</RootNamespace>
+    <AssemblyName>CL.WebLogic.ThemeCheck</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CL.WebLogic\CL.WebLogic.csproj" />
+  </ItemGroup>
+</Project>

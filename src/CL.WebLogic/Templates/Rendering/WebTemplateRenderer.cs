@@ -56,7 +56,7 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
         }
         else
         {
-            await RenderWithLayoutsAsync(context, template).ConfigureAwait(false);
+            await RenderWithLayoutsAsync(context, template, request.DefaultLayout).ConfigureAwait(false);
         }
         return context.Output.ToString();
     }
@@ -65,16 +65,18 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
     /// Renders the template; with a layout, its body and sections are rendered first and handed
     /// to the layout (<c>{renderbody}</c> / <c>{rendersection}</c>), repeating for nested layouts.
     /// Sections defined closer to the page win over sections of the same name further out.
+    /// <paramref name="defaultLayout"/> applies to the page itself when it declares no layout.
     /// </summary>
-    internal static async ValueTask RenderWithLayoutsAsync(TemplateRenderContext context, CompiledTemplate template)
+    internal static async ValueTask RenderWithLayoutsAsync(TemplateRenderContext context, CompiledTemplate template, string? defaultLayout = null)
     {
         var current = template;
+        var pageLayout = template.LayoutPath ?? (string.IsNullOrWhiteSpace(defaultLayout) ? null : "/" + defaultLayout.TrimStart('/'));
         var sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var visited = new List<string>();
 
         try
         {
-            while (current.LayoutPath is not null)
+            while ((ReferenceEquals(current, template) ? pageLayout : current.LayoutPath) is { } nextLayout)
             {
                 TemplateOps.Enter(context, current.Path);
                 visited.Add(current.Path);
@@ -89,7 +91,7 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
 
                 context.RenderBody = body;
                 context.Sections = sections;
-                var layoutPath = TemplatePath.Normalize(current.LayoutPath, current.Path);
+                var layoutPath = TemplatePath.Normalize(nextLayout, current.Path);
                 current = await context.Services.Loader.LoadAsync(layoutPath, context.CancellationToken).ConfigureAwait(false);
             }
 

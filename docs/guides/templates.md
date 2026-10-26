@@ -15,11 +15,16 @@ theme/
   widgets/...              widget templates
   forms/fields/{type}.html optional field overrides
   errors/404.html, errors/error.html   themed error pages
+  errors/suspended.html    page for suspended accounts (WebResult.AccountSuspended)
   assets/...               served at /assets/... (extension allowlist)
 ```
 
 Templates, layouts, partials and dotfiles are never served as assets; requests that escape the theme
-folder get a 404. `{asset:site.css}` writes a fingerprinted URL served with an immutable cache header.
+folder get a 404. `{asset:site.css}` writes a fingerprinted URL served with an immutable cache header;
+`{asset:plugin-name:css/admin.css}` points at a plugin's embedded file ([Plugins](plugins.md)).
+
+A page template picks its layout with `{layout:...}`. Pages without one get their route group's
+default layout, if it has one: `b.MapGroup("/admin").WithLayout("admin/layout")`.
 
 ## Syntax
 
@@ -95,11 +100,29 @@ the site name, the current year or navigation items.
 
 - `local`: a folder (`theme.localPath`).
 - `git`: a repository cloned and pulled through CL.GitHelper (`repositoryUrl`, `branch`, `themeSubPath`).
+  Private repositories: `gitTokenEnvironmentVariable` (an HTTPS token read from the environment;
+  `gitUserName` defaults to `x-access-token`, GitLab wants `oauth2`) or `gitSshKeyPath` (a deploy key,
+  with `gitSshPassphraseEnvironmentVariable` if it has a passphrase). `gitToken` exists as a secret
+  config field, but prefer the environment. Credentials apply at startup.
 - `storage`: a CL.Storage connection (S3, Azure, ...), synced to a local cache.
 
 Templates are re-checked at most every `theme.templateChangeCheckSeconds` (2 s by default; 0 for
 immutable production themes). Plugins can ship templates as embedded resources
 ([Plugins](plugins.md)); a theme file with the same path wins.
+
+## Checking a theme
+
+`WebThemeChecker.Check("theme")` parses every template (skipping `assets/`) and returns the ones the
+engine would refuse, with file, line and column: syntax errors, inline `on*` handlers, unquoted
+attribute values, script values without `|json`. Run it before switching a 0.x theme, or keep it in
+a test:
+
+```csharp
+[Fact] public void Theme_parses() => Assert.Empty(WebThemeChecker.Check("../../src/MySite/theme"));
+```
+
+From a clone of this repository: `dotnet run --project tools/CL.WebLogic.ThemeCheck -- path/to/theme`
+(exit code 1 when something needs changing).
 
 ## Engines
 

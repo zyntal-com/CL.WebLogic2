@@ -70,13 +70,14 @@ public sealed partial class WebAuthService
 
     /// <summary>
     /// Whether a user proven by something other than their password (a link, an external
-    /// provider) may sign in, and what comes next: disabled, other-tenant and locked accounts are
-    /// refused; two-factor users continue with their second factor.
+    /// provider) may sign in, and what comes next: disabled, other-tenant, locked and suspended
+    /// accounts are refused; two-factor users continue with their second factor.
     /// </summary>
     private WebSignInResult Evaluate(WebSecurityContext security, WebUser user) =>
         user.IsDisabled || (user.TenantId is not null && security.TenantId is not null && !string.Equals(user.TenantId, security.TenantId, StringComparison.Ordinal))
             ? WebSignInResult.Of(WebSignInStatus.NotAllowed, user)
         : _lockout.IsLockedOut(user, out var remaining) ? WebSignInResult.Of(WebSignInStatus.LockedOut, retryAfter: remaining)
+        : WebSuspension.Of(user, _time.GetUtcNow()) is { } suspension ? WebSignInResult.Suspended(user, suspension)
         : user.TwoFactorEnabled ? WebSignInResult.Of(WebSignInStatus.RequiresTwoFactor, user)
         : user.RequiresPasswordChange && user.PasswordHash is not null ? WebSignInResult.Of(WebSignInStatus.RequiresPasswordChange, user)
         : WebSignInResult.Of(WebSignInStatus.Succeeded, user);
@@ -103,6 +104,12 @@ public sealed partial class WebAuthService
         var (failure, verified) = await VerifyFactorAsync(security, user, verify, cancellationToken).ConfigureAwait(false);
         if (failure is not null)
             return failure;
+        if (WebSuspension.Of(verified, _time.GetUtcNow()) is { } suspension)
+        {
+            // Suspended while the second factor was pending.
+            await _sessions.SignOutAsync(security, false, cancellationToken).ConfigureAwait(false);
+            return WebSignInResult.Suspended(verified!, suspension);
+        }
 
         var methods = (IReadOnlyList<string>)[.. session.AuthenticationMethods, method];
         var persistent = session.GetString(PendingPersistentKey) == "1";

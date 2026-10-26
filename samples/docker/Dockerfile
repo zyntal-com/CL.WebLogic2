@@ -14,6 +14,8 @@ COPY . .
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
     VERSION="4.9.0-docker.$(date +%s)" \
  && dotnet pack src/CL.WebLogic/CL.WebLogic.csproj -c Release -o /feed -p:Version=$VERSION \
+ && dotnet pack src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj -c Release -o /feed -p:Version=$VERSION \
+ && dotnet pack src/CL.WebLogic.ExternalLogins/CL.WebLogic.ExternalLogins.csproj -c Release -o /feed -p:Version=$VERSION \
  && dotnet publish samples/${SAMPLE}/${SAMPLE}.csproj -c Release -o /app \
       -p:WebLogicFromPackage=true -p:WebLogicPackageVersion=$VERSION \
       --source /feed --source https://api.nuget.org/v3/index.json

@@ -52,6 +52,7 @@ services:
       DEMO_ADMIN_PASSWORD: ${MINIBLOG_ADMIN_PASSWORD:-}
       # The users live in MySQL; set a pepper here so the hashes do not depend on the app volume.
       DEMO_PASSWORD_PEPPER: ${MINIBLOG_PASSWORD_PEPPER:-}
+      MINIBLOG_KEYRING_SECRET: ${MINIBLOG_KEYRING_SECRET:-}
       DEMO_EXPLORER: ${DEMO_EXPLORER:-true}
       DEMO_TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       DEMO_HTTPS: ${DEMO_HTTPS:-false}

@@ -65,9 +65,12 @@ public sealed class ApiKeyAuthenticationHandler : IWebAuthenticationHandler
         if (context.TenantId is not null && key.TenantId is not null && !string.Equals(context.TenantId, key.TenantId, StringComparison.Ordinal))
             return WebAuthenticationResult.Fail("api-key-tenant");
 
-        if (key.UserId is not null && _users is not null
-            && await _users.FindByIdAsync(key.UserId, cancellationToken).ConfigureAwait(false) is not { IsDisabled: false })
-            return WebAuthenticationResult.Fail("api-key-owner");
+        if (key.UserId is not null && _users is not null)
+        {
+            var owner = await _users.FindByIdAsync(key.UserId, cancellationToken).ConfigureAwait(false);
+            if (owner is null || owner.IsDisabled || Users.WebSuspension.Of(owner, now) is not null)
+                return WebAuthenticationResult.Fail("api-key-owner");
+        }
 
         if (key.LastUsedAt is null || now - key.LastUsedAt.Value >= TimeSpan.FromMinutes(settings.TouchIntervalMinutes))
             await _store.UpdateAsync(key with { LastUsedAt = now }, cancellationToken).ConfigureAwait(false);

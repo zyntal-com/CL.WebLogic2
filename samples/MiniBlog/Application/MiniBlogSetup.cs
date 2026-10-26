@@ -1,5 +1,7 @@
 using CL.WebLogic.Auth.ApiKeys;
 using CL.WebLogic.Hosting.Services;
+using CL.WebLogic.MySql.Hosting;
+using CL.WebLogic.MySql.Models;
 using CL.WebLogic.Routing.Models;
 using MiniBlog.Configuration;
 using MiniBlog.Data;
@@ -52,15 +54,13 @@ public static class MiniBlogSetup
         web.Services.AddSingleton(new BlogDatabase(config.ConnectionId));
         web.Services.AddSingleton<DocumentStore>();
         web.Services.AddSingleton<BlogPostService>();
-        web.Services.AddHostedService<BlogSeeder>();
 
-        // App-owned persistence on CL.MySQL2. The blog has no API, so API keys are switched off.
-        web.UseUserStore<MySqlUserStore>()
-           .UseSessionStore<MySqlSessionStore>()
-           .UseRecoveryCodeStore<MySqlRecoveryCodeStore>()
-           .UseWidgetSettingsStore<MySqlWidgetSettingsStore>()
-           .UseDashboardStore<MySqlDashboardLayoutStore>()
+        // Every WebLogic store on MySQL (CodeLogic.WebLogic.MySql), so several instances can share
+        // the database. The blog has no API, so API keys stay switched off.
+        web.UseMySqlStores(config.ConnectionId, o => o.Stores = WebMySqlStores.All & ~WebMySqlStores.ApiKeys)
            .UseApiKeyStore<NullWebApiKeyStore>();
+        // After UseMySqlStores: hosted services start in order, and the seeder needs the wl_* tables.
+        web.Services.AddHostedService<BlogSeeder>();
         if (SampleConfig.HasSmtp)
             web.UseMailNotifications();
         else

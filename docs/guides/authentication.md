@@ -112,6 +112,21 @@ TOTP codes come from CL.TwoFactorAuth; each time step is accepted once (`IWebOne
 Secrets are stored DataProtection-protected, so persist your key ring. Recovery codes are shown once,
 stored hashed and consumed atomically.
 
+## Suspending accounts
+
+Set `WebUser.SuspendedUntil` (and `SuspensionReason`) to ban a user for a while, or with
+`DateTimeOffset.MaxValue` until lifted. Unlike `IsDisabled`, the user is told why:
+
+- Sign-in methods return `WebSignInStatus.Suspended` with `result.Suspension` (until, reason), but
+  only after the password, link or provider proved the user, so it tells a password guesser nothing.
+- Existing sessions end at their next security-stamp check (`auth.securityStampCheckMinutes`; change
+  the stamp as well to end them at once), and the user's API keys stop working.
+- `WebResult.AccountSuspended(result.Suspension)` answers 403 with the theme's `errors/suspended`
+  template (model: `reason`, `until`, `indefinite`), a plain built-in page without one, and
+  ProblemDetails (`suspendedUntil`) for API clients.
+
+Your user store persists the two fields like any other (the samples show JSON and MySQL).
+
 ## Links by e-mail
 
 `WebAccountService` covers registration, `ConfirmEmailAsync`, `RequestPasswordResetAsync`/`ResetPasswordAsync`,
@@ -154,8 +169,11 @@ with `web.AddExternalLoginProvider<T>()`. `WebExternalLoginFlow` handles state a
 protected `__Host-` cookie), the safe return URL and linking. Finish with
 `request.Auth.SignInExternalAsync(user, provider)`: it refuses disabled, locked and other-tenant
 accounts and asks users with two-factor authentication for their code, exactly like a password
-sign-in. (`SignInAsync` would skip the second factor.) The starter sample has a complete Steam
-OpenID 2.0 provider.
+sign-in. (`SignInAsync` would skip the second factor.)
+
+Ready-made providers (Steam, Google, Microsoft, GitHub, Discord and any OpenID Connect issuer, with
+PKCE and in-house ID token validation) are in the
+[`CodeLogic.WebLogic.ExternalLogins`](external-logins.md) add-on; the starter sample uses it.
 
 ## Tenants
 

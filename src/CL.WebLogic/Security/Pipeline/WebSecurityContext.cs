@@ -47,6 +47,9 @@ public sealed class WebSecurityContext
     /// <summary>Tenant resolved for this request, if any.</summary>
     public string? TenantId { get; internal set; }
 
+    /// <summary>True when an exempt IP rule matched: country rules and the reputation check are skipped.</summary>
+    public bool IpExempt { get; internal set; }
+
     /// <summary>True once a CSRF token was handed out (the response must not be cached).</summary>
     public bool CsrfTokenIssued { get; internal set; }
 

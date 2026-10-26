@@ -5,6 +5,7 @@ using CodeLogic.Framework.Application.Plugins;
 using Microsoft.AspNetCore.DataProtection;
 using MiniBlog.Application;
 using Samples.Hosting;
+using CL.WebLogic.MySql.Hosting;
 
 // Container health check: `dotnet MiniBlog.dll --probe`.
 if (HealthProbe.IsProbe(args))
@@ -50,9 +51,13 @@ await plugins.LoadAllAsync();
 
 // ── 3. The web host (WebLogic registers the loaded plugins' routes and widgets) ──
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDataProtection()
+// The key ring lives in MySQL with the rest of the state, so instances share it; it is encrypted
+// at rest when MINIBLOG_KEYRING_SECRET is set (32+ characters).
+var dataProtection = builder.Services.AddDataProtection()
     .SetApplicationName("MiniBlog")
-    .PersistKeysToFileSystem(new DirectoryInfo(paths.KeysFolder));
+    .PersistKeysToMySql(application.Config.ConnectionId);
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MINIBLOG_KEYRING_SECRET")))
+    dataProtection.ProtectKeysWithSecret("MINIBLOG_KEYRING_SECRET");
 builder.AddCodeLogicWebLogic(web => MiniBlogSetup.ConfigureWebLogic(web, application.Config));
 
 var app = builder.Build();

@@ -57,6 +57,7 @@ public sealed class AccountPages : IWebContributor
             {
                 WebSignInStatus.LockedOut => "Too many failed attempts: try again later.",
                 WebSignInStatus.Throttled => "Slow down and try again in a moment.",
+                WebSignInStatus.Suspended => "This account is suspended" + (result.Suspension!.Reason is { Length: > 0 } reason ? ": " + reason : "."),
                 _ => "Wrong user name or password."
             };
             return submission.AddError(string.Empty, message).Invalid(message, LoginTemplate, model);

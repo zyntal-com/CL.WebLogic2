@@ -11,4 +11,14 @@ public sealed class WebExternalChallenge
 
     /// <summary>Random nonce for providers that support one (OpenID Connect).</summary>
     public required string Nonce { get; init; }
+
+    /// <summary>
+    /// PKCE code verifier (RFC 7636): 43 random URL-safe characters, kept in the flow's protected
+    /// cookie and never sent to the browser. Send <see cref="CodeChallenge"/> with the redirect and
+    /// this value with the token request.
+    /// </summary>
+    public string CodeVerifier { get; init; } = string.Empty;
+
+    /// <summary>The S256 PKCE challenge for <see cref="CodeVerifier"/> (<c>code_challenge_method=S256</c>).</summary>
+    public string CodeChallenge => System.Buffers.Text.Base64Url.EncodeToString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(CodeVerifier)));
 }

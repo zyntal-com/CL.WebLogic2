@@ -4,7 +4,8 @@
       - runtime: CodeLogic and CodeLogic.* packages only, plus the ASP.NET shared framework
       - build-time only: Microsoft.CodeAnalysis.CSharp for the template source generator (never shipped)
       - tests only: xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk (same as CodeLogic)
-    CodeLogic.MySQL2 is referenced by the MiniBlog sample only — never by src/.
+    CodeLogic.MySQL2 is referenced only by the optional add-on src/CL.WebLogic.MySql (its own
+    package) and the MiniBlog sample — never by the core CL.WebLogic package.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -25,6 +26,8 @@
   <ItemGroup Label="Samples only">
     <!-- Used when a sample builds with -p:WebLogicFromPackage=true (CI, Docker). -->
     <PackageVersion Include="CodeLogic.WebLogic" Version="$(WebLogicPackageVersion)" />
+    <PackageVersion Include="CodeLogic.WebLogic.MySql" Version="$(WebLogicPackageVersion)" />
+    <PackageVersion Include="CodeLogic.WebLogic.ExternalLogins" Version="$(WebLogicPackageVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Build-time only">

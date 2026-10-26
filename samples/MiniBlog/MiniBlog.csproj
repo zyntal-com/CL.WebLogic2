@@ -6,6 +6,7 @@
   <PropertyGroup>
     <RootNamespace>MiniBlog</RootNamespace>
     <UsesWebLogic>true</UsesWebLogic>
+    <UsesWebLogicMySql>true</UsesWebLogicMySql>
     <UsesSampleHosting>true</UsesSampleHosting>
   </PropertyGroup>
 

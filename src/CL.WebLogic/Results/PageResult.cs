@@ -40,7 +40,8 @@ public sealed class PageResult : WebResult
             Model = Model,
             Meta = Meta,
             HttpContext = request.HttpContext,
-            IgnoreLayout = IsFragment
+            IgnoreLayout = IsFragment,
+            DefaultLayout = request.Route.Layout
         }, cancellationToken).ConfigureAwait(false);
 
         var response = request.HttpContext.Response;

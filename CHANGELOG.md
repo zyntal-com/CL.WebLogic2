@@ -1,5 +1,63 @@
 # Changelog
 
+## 4.9.3-preview (2026-10-26)
+
+### Added
+
+- App-managed IP rules and blocklists: `IWebIpRuleProvider` (`web.AddIpRuleProvider<T>()`) returns
+  `WebIpRule`s (deny, allow or exempt; network or country; expiry; reason) merged with
+  `Security.IpRules`, and `IWebReputationListProvider` returns DNSBL zones that replace the CL.NetUtils
+  services. Cached for `IpRules.ProviderCacheSeconds` (60); `IWebSecurityRulesInvalidator.Invalidate()`
+  applies edits at once; a failing provider keeps the last good rules. Exempt addresses skip the
+  allow-list, country rules and the DNSBL check.
+- `WebSecurityRejectedEvent.RuleId` (and `WebSecurityDecision.RuleId`): the matched rule
+  (`ban-42`, `config.deny[0]`, `dnsbl:{zone}`) for hit counters, never the client address.
+- DataProtection key ring in CL.Storage: `AddDataProtection().PersistKeysToCodeLogicStorage(connectionId, path)`
+  (one file per key, never overwritten, storage errors fail instead of minting new keys), and
+  `ProtectKeysWithSecret(variable, previousVariables...)` to encrypt keys at rest with AES-256-GCM
+  from an environment secret, with rotation. Cluster checks accept the storage repository and warn
+  about a plain folder.
+- Plugin assets: `b.MapAssets(assembly, "assets/", name)` serves embedded files at
+  `/_weblogic/plugins/{name}/...` (ETag, extension allowlist, path checks, removed with the plugin);
+  `{asset:name:path}` gives a fingerprinted URL, and a theme file at `assets/plugins/{name}/{path}`
+  overrides it.
+- Group layouts: `WithLayout("admin/layout")` on routes and groups, used by page templates that
+  declare no `{layout:...}` (`TemplateRenderRequest.DefaultLayout`).
+- Account suspension: `WebUser.SuspendedUntil` and `SuspensionReason`. Sign-in returns
+  `WebSignInStatus.Suspended` with `WebSignInResult.Suspension` (only after the credentials were
+  proven); sessions end at the next stamp check and API keys stop working.
+  `WebResult.AccountSuspended(suspension)` renders the theme's `errors/suspended` page (plain fallback,
+  ProblemDetails for API clients). Both samples handle it; MiniBlog adds two user columns.
+- Git theme credentials in `ThemeConfig`: `GitTokenEnvironmentVariable` (or the secret `GitToken`),
+  `GitUserName`, `GitSshKeyPath` and `GitSshPassphraseEnvironmentVariable`.
+- `WebThemeChecker.Check(folder)` lists templates that do not parse (file, line, column), and
+  `tools/CL.WebLogic.ThemeCheck` runs it from the command line. CI checks both sample themes.
+
+- New package **CodeLogic.WebLogic.MySql**: production stores on CL.MySQL2 for every contract
+  (users with lockout, e-mail and external logins; sessions with device listing; API keys; recovery
+  codes; one-time keys; login throttle; rate limits; audit; widget settings; dashboards) and the
+  DataProtection key ring. `web.UseMySqlStores(connectionId, o => o.Stores = ...)`,
+  `AddDataProtection().PersistKeysToMySql(connectionId)`. Schema sync at startup, a background sweep,
+  and cross-node guarantees (single-use consumes, atomic lockout, exact rate-limit capacity, versioned
+  dashboards). Tested against MySQL 8.4 in CI.
+- New package **CodeLogic.WebLogic.ExternalLogins**: `AddSteamLogin()` (moved from the starter
+  sample), `AddOAuthLogin(options)` for any OAuth 2.0 / OpenID Connect provider (authorization code +
+  PKCE S256, nonce, discovery with issuer check, in-house JWT validation for RS/PS/ES 256-512 with
+  JWKS rotation, `iss`/`aud`/`azp`/`exp`/`nbf`/`iat`, RFC 9207 `iss` check), and presets
+  `AddGoogleLogin`, `AddMicrosoftLogin`, `AddGitHubLogin`, `AddDiscordLogin`.
+- `WebExternalChallenge.CodeVerifier` and `CodeChallenge`: `WebExternalLoginFlow` now creates a PKCE
+  verifier per sign-in and keeps it in its protected cookie.
+
+### Changed
+
+- Releases are manual only: the `promote.yml` workflow that merged `main` into `release` after green
+  tests is removed. Publish with `git push origin main:prerelease` or `main:release`.
+- `IpRulesStage` and `ReputationStage` take a `WebSecurityRules` (resolved from DI).
+- MiniBlog uses `CodeLogic.WebLogic.MySql` for its stores and key ring (encrypted when
+  `MINIBLOG_KEYRING_SECRET` is set); its own user, session, recovery-code, widget and dashboard
+  stores are gone. The starter sample uses `CodeLogic.WebLogic.ExternalLogins` (Steam, plus Google,
+  Microsoft, GitHub and Discord when `STARTER_{PROVIDER}_CLIENT_ID` and `_CLIENT_SECRET` are set).
+
 ## 4.9.2-preview (2026-10-26)
 
 ### Added

@@ -8,6 +8,8 @@
   href: security-pipeline.md
 - name: Authentication and accounts
   href: authentication.md
+- name: External logins (add-on)
+  href: external-logins.md
 - name: Forms
   href: forms.md
 - name: Templates and themes
@@ -26,6 +28,8 @@
   href: testing.md
 - name: Deployment
   href: deployment.md
+- name: MySQL stores (add-on)
+  href: mysql-stores.md
 - name: Security model
   href: security-model.md
 - name: Performance

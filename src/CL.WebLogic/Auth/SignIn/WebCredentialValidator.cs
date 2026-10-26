@@ -20,12 +20,14 @@ public sealed class WebCredentialValidator : IWebCredentialValidator
     private readonly WebLogicConfigHolder _config;
     private readonly Lazy<string> _dummyHash;
     private readonly WebAttemptGate _gate;
+    private readonly TimeProvider _time;
 
     /// <summary>Creates the validator.</summary>
     public WebCredentialValidator(IWebUserStore users, IWebPasswordHasher hasher, IWebLoginThrottle throttle, WebLockoutService lockout, WebLogicConfigHolder config,
-        WebAttemptGate? gate = null)
+        WebAttemptGate? gate = null, TimeProvider? time = null)
     {
         _gate = gate ?? new WebAttemptGate();
+        _time = time ?? TimeProvider.System;
         _users = users ?? throw new ArgumentNullException(nameof(users));
         _hasher = hasher ?? throw new ArgumentNullException(nameof(hasher));
         _throttle = throttle ?? throw new ArgumentNullException(nameof(throttle));
@@ -90,6 +92,8 @@ public sealed class WebCredentialValidator : IWebCredentialValidator
 
         if (verified.IsDisabled || (auth.RequireConfirmedEmail && !verified.EmailConfirmed))
             return WebSignInResult.Of(WebSignInStatus.NotAllowed, verified);
+        if (WebSuspension.Of(verified, _time.GetUtcNow()) is { } suspension)
+            return WebSignInResult.Suspended(verified, suspension);
         if (verified.TwoFactorEnabled)
             return WebSignInResult.Of(WebSignInStatus.RequiresTwoFactor, verified);
         if (verified.RequiresPasswordChange)

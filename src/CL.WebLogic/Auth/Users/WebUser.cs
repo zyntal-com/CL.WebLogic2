@@ -39,6 +39,15 @@ public sealed record WebUser
     /// <summary>Disabled accounts cannot sign in.</summary>
     public bool IsDisabled { get; init; }
 
+    /// <summary>
+    /// Suspended until this time (a ban; <see cref="DateTimeOffset.MaxValue"/> = until lifted). Unlike
+    /// <see cref="IsDisabled"/>, the user is told why and until when (see <see cref="WebSuspension"/>).
+    /// </summary>
+    public DateTimeOffset? SuspendedUntil { get; init; }
+
+    /// <summary>The reason shown to a suspended user.</summary>
+    public string? SuspensionReason { get; init; }
+
     /// <summary>The user must choose a new password at the next sign-in.</summary>
     public bool RequiresPasswordChange { get; init; }
 

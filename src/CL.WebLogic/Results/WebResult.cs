@@ -96,6 +96,9 @@ public abstract class WebResult
     public static ProblemResult ValidationProblem(IReadOnlyDictionary<string, string[]> errors, string? title = null) =>
         ProblemResult.Validation(errors, title);
 
+    /// <summary>A 403 page telling a suspended user why and until when (see <see cref="AccountSuspendedResult"/>).</summary>
+    public static AccountSuspendedResult AccountSuspended(Auth.Users.WebSuspension suspension) => new(suspension);
+
     /// <summary>An empty 204 response.</summary>
     public static StatusResult NoContent() => new() { StatusCode = StatusCodes.Status204NoContent };
 

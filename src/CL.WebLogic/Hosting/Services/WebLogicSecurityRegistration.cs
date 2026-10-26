@@ -5,6 +5,7 @@ using CL.WebLogic.Security.Headers;
 using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.RateLimiting;
+using CL.WebLogic.Security.Rules;
 using CL.WebLogic.Security.Services;
 using CL.WebLogic.Security.Sessions;
 using CL.WebLogic.Security.Stages;
@@ -36,6 +37,8 @@ internal static class WebLogicSecurityRegistration
         services.TryAddSingleton<WebSecuritySettingsProvider>();
         services.TryAddSingleton<WebSecurityPipeline>();
         services.TryAddSingleton<WebSecurityResponder>();
+        services.TryAddSingleton<WebSecurityRules>();
+        services.TryAddSingleton<IWebSecurityRulesInvalidator>(sp => sp.GetRequiredService<WebSecurityRules>());
         services.TryAddSingleton<ResponseHardener>();
         services.TryAddSingleton<SecurityContributor>();
 

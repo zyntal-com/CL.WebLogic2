@@ -39,7 +39,7 @@ public sealed class WebSecurityResponder
         _context.Logger.Debug($"Security stage '{stage.Name}' stopped {httpContext.Request.Method} {httpContext.Request.Path} with {decision.StatusCode}: {reason} [{httpContext.TraceIdentifier}]");
 
         _audit.Record(security, "security." + stage.Name, reason, decision.StatusCode);
-        await _context.Events.PublishAsync(new WebSecurityRejectedEvent(stage.Name, reason, httpContext.Request.Path.Value ?? "/", decision.StatusCode)).ConfigureAwait(false);
+        await _context.Events.PublishAsync(new WebSecurityRejectedEvent(stage.Name, reason, httpContext.Request.Path.Value ?? "/", decision.StatusCode, decision.RuleId)).ConfigureAwait(false);
 
         var result = decision.Result ?? (DefaultErrorPageRenderer.WantsProblemJson(httpContext)
             ? WebResult.Problem(decision.StatusCode)

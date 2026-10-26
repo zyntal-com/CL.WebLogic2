@@ -29,12 +29,12 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | Section | What it controls |
 |---|---|
 | `siteName`, `publicBaseUrl` | Display name; the canonical URL for e-mail links, redirects and cookies. Never derived from the `Host` header. |
-| `theme` | Theme source (`local`, `git`, `storage`), folders, asset prefix and extensions, template engine, change checks |
+| `theme` | Theme source (`local`, `git`, `storage`), Git credentials (token variable, deploy key), folders, asset prefix and extensions, template engine, change checks |
 | `security` | Disabled stages, login path, probe paths and the sub-sections below |
 | `security.forwardedHeaders` | Off by default. Trusted proxies/networks, forward limit, `X-Forwarded-Prefix` |
 | `security.hosts` | Allowed hosts, redirect to the canonical host |
 | `security.https` | Redirect to HTTPS, HSTS |
-| `security.ipRules` | Allow/deny CIDRs, allow/deny countries (CL.NetUtils GeoIP) |
+| `security.ipRules` | Allow/deny CIDRs, allow/deny countries (CL.NetUtils GeoIP), provider cache time |
 | `security.reputation` | DNS blocklists (CL.NetUtils), blocking or background mode |
 | `security.rateLimits` | Global per-client limit, named policies, tracked-key bound, IPv6 prefix length |
 | `security.limits` | Default body size and form field count |

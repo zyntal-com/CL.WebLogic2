@@ -5,11 +5,12 @@ namespace CL.WebLogic.Security.Pipeline;
 /// <summary>The outcome of a security stage.</summary>
 public sealed class WebSecurityDecision
 {
-    private WebSecurityDecision(WebResult? result, string? reason, int statusCode)
+    private WebSecurityDecision(WebResult? result, string? reason, int statusCode, string? ruleId = null)
     {
         Result = result;
         Reason = reason;
         StatusCode = statusCode;
+        RuleId = ruleId;
     }
 
     /// <summary>Let the request continue.</summary>
@@ -26,6 +27,13 @@ public sealed class WebSecurityDecision
     public static WebSecurityDecision Reject(int statusCode, string reason) =>
         new(null, reason, statusCode);
 
+    /// <summary>
+    /// Like <see cref="Reject(int, string)"/>, naming the rule that matched (reported in
+    /// <c>WebSecurityRejectedEvent.RuleId</c> for hit counters).
+    /// </summary>
+    public static WebSecurityDecision Reject(int statusCode, string reason, string? ruleId) =>
+        new(null, reason, statusCode, ruleId);
+
     /// <summary>True when the request continues.</summary>
     public bool IsContinue => StatusCode == 0;
 
@@ -34,6 +42,9 @@ public sealed class WebSecurityDecision
 
     /// <summary>Internal reason (for logs and audit).</summary>
     public string? Reason { get; }
+
+    /// <summary>The id of the rule that caused the rejection, when a rule did.</summary>
+    public string? RuleId { get; }
 
     /// <summary>Status code of the rejection.</summary>
     public int StatusCode { get; }

@@ -7,4 +7,5 @@ namespace CL.WebLogic.Security.Events;
 /// <param name="Reason">Internal reason.</param>
 /// <param name="Path">Request path.</param>
 /// <param name="StatusCode">Response status.</param>
-public sealed record WebSecurityRejectedEvent(string Stage, string Reason, string Path, int StatusCode) : IEvent;
+/// <param name="RuleId">The matched rule (e.g. an app ban id or <c>config.deny[0]</c>), when a rule caused it.</param>
+public sealed record WebSecurityRejectedEvent(string Stage, string Reason, string Path, int StatusCode, string? RuleId = null) : IEvent;

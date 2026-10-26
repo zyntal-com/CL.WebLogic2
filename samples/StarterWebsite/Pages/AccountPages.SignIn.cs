@@ -1,5 +1,7 @@
 using CL.WebLogic.Auth.Accounts;
 using CL.WebLogic.Auth.SignIn;
+using CL.WebLogic.Auth.Users;
+using CL.WebLogic.Forms.Models;
 using CL.WebLogic.Results;
 using CL.WebLogic.Runtime.Models;
 using StarterWebsite.Forms;
@@ -36,6 +38,8 @@ public sealed partial class AccountPages
 
         var next = WebRequestAuth.GetSafeReturnUrl(submission.Model.ReturnUrl);
         var result = await request.Auth.PasswordSignInAsync(submission.Model.Login!, submission.Model.Password!, submission.Model.RememberMe, cancellationToken).ConfigureAwait(false);
+        if (result.Suspension is { } suspension)
+            return Suspended(request, submission, suspension);
         var problem = result.Status switch
         {
             WebSignInStatus.Succeeded => null,
@@ -52,6 +56,17 @@ public sealed partial class AccountPages
         return result.Status == WebSignInStatus.RequiresTwoFactor
             ? FormResult.Success(redirect: "/account/two-factor?returnUrl=" + Uri.EscapeDataString(next))
             : FormResult.Success(redirect: next);
+    }
+
+    /// <summary>The themed page for a plain form post; a form message for the WebLogic client.</summary>
+    private WebResult Suspended(WebRequestContext request, WebFormSubmission<LoginForm> submission, WebSuspension suspension)
+    {
+        if (!request.IsWebLogicClient)
+            return WebResult.AccountSuspended(suspension);
+        var message = "This account is suspended"
+            + (suspension.IsIndefinite ? "." : $" until {suspension.Until.UtcDateTime:yyyy-MM-dd HH:mm} UTC.")
+            + (suspension.Reason is { Length: > 0 } reason ? " Reason: " + reason : "");
+        return submission.AddError(string.Empty, message).Invalid(message, LoginTemplate, LoginModel(request));
     }
 
     private async ValueTask<WebResult> ShowTwoFactorAsync(WebRequestContext request, CancellationToken cancellationToken)

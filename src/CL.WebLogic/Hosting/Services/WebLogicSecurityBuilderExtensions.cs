@@ -3,6 +3,7 @@ using CL.WebLogic.Security.Authorization;
 using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.RateLimiting;
+using CL.WebLogic.Security.Rules;
 using CL.WebLogic.Security.Sessions;
 using CL.WebLogic.Security.Tenancy;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +47,25 @@ public static class WebLogicSecurityBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IWebSecurityStage, TStage>());
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds app-managed IP rules (bans, allow-lists, trusted addresses) merged with
+    /// <c>Security.IpRules</c>. Inject <see cref="IWebSecurityRulesInvalidator"/> to apply edits at once.
+    /// </summary>
+    public static WebLogicBuilder AddIpRuleProvider<TProvider>(this WebLogicBuilder builder) where TProvider : class, IWebIpRuleProvider
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IWebIpRuleProvider, TProvider>());
+        return builder;
+    }
+
+    /// <summary>Adds app-managed DNS blocklist zones for the reputation stage (replacing the CL.NetUtils services when non-empty).</summary>
+    public static WebLogicBuilder AddReputationListProvider<TProvider>(this WebLogicBuilder builder) where TProvider : class, IWebReputationListProvider
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IWebReputationListProvider, TProvider>());
         return builder;
     }
 

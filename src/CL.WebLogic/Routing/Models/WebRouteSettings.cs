@@ -49,6 +49,9 @@ public sealed class WebRouteSettings
     /// <summary>Route-scoped middleware, run in order after the security pipeline.</summary>
     public List<IWebMiddleware> Middleware { get; } = [];
 
+    /// <summary>Layout for page templates that declare none (e.g. an admin area's own look).</summary>
+    public string? Layout { get; set; }
+
     /// <summary>Sign-in page for this route or area (null = <c>Security.LoginPath</c>).</summary>
     public string? LoginPath { get; set; }
 
@@ -80,6 +83,7 @@ public sealed class WebRouteSettings
         Policies.InsertRange(0, source.Policies.Except(Policies, StringComparer.Ordinal));
         Middleware.InsertRange(0, source.Middleware);
         LoginPath ??= source.LoginPath;
+        Layout ??= source.Layout;
         AccessDeniedPath ??= source.AccessDeniedPath;
         if (RecentSignInMaxAge is null && source.RecentSignInMaxAge is not null)
         {

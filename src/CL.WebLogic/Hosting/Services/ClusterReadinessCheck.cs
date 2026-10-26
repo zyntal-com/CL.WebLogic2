@@ -86,8 +86,10 @@ public sealed class ClusterReadinessCheck
             warnings.Add("IOutputCacheStore → in-memory: evicting a tag only clears this node's cached pages (register a shared IOutputCacheStore).");
 
         var keyManagement = (_services.GetService(typeof(IOptions<KeyManagementOptions>)) as IOptions<KeyManagementOptions>)?.Value;
-        if (keyManagement?.XmlRepository is null)
-            errors.Add("DataProtection keys are not persisted to a shared repository: cookies, CSRF tokens, reset links and 2FA secrets made on one node cannot be read on another (call services.AddDataProtection().PersistKeysTo…() with storage every node shares).");
+        if (keyManagement?.XmlRepository is Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository fileRepository)
+            warnings.Add($"DataProtection keys are in the folder '{fileRepository.Directory.FullName}': every node must mount the same folder (or use PersistKeysToCodeLogicStorage).");
+        else if (keyManagement?.XmlRepository is null)
+            errors.Add("DataProtection keys are not persisted to a shared repository: cookies, CSRF tokens, reset links and 2FA secrets made on one node cannot be read on another (call services.AddDataProtection().PersistKeysToCodeLogicStorage(connectionId) or another PersistKeysTo…() with storage every node shares).");
 
         var discriminator = (_services.GetService(typeof(IOptions<DataProtectionOptions>)) as IOptions<DataProtectionOptions>)?.Value.ApplicationDiscriminator;
         if (string.IsNullOrEmpty(discriminator)

@@ -7,7 +7,9 @@ namespace CL.WebLogic.Theming.Services;
 
 /// <summary>
 /// <c>Source = Git</c>: clones the theme repository through CL.GitHelper into
-/// <c>{data}/themes/{RepositoryId}</c> and fast-forwards it on every sync.
+/// <c>{data}/themes/{RepositoryId}</c> and fast-forwards it on every sync. Credentials come from the
+/// <c>Theme.Git…</c> fields (token or deploy key; secrets read from environment variables) or, when
+/// those are empty, from a repository already configured in CL.GitHelper.
 /// </summary>
 public sealed class GitThemeSource : IWebThemeSource
 {
@@ -33,14 +35,14 @@ public sealed class GitThemeSource : IWebThemeSource
         var localPath = Path.Combine(_context.DataDirectory, "themes", config.RepositoryId);
         try
         {
-            git.RegisterRepository(new RepositoryConfiguration
+            git.RegisterRepository(Configure(new RepositoryConfiguration
             {
                 Id = config.RepositoryId,
                 Name = "WebLogic theme",
                 RepositoryUrl = config.RepositoryUrl,
                 LocalPath = localPath,
                 DefaultBranch = config.Branch
-            });
+            }, config));
         }
         catch (ArgumentException)
         {
@@ -60,6 +62,34 @@ public sealed class GitThemeSource : IWebThemeSource
         }
 
         return Combine(result.Value.LocalPath, config.ThemeSubPath);
+    }
+
+    /// <summary>Applies the credentials from <paramref name="config"/>; never logs them.</summary>
+    internal static RepositoryConfiguration Configure(RepositoryConfiguration repository, ThemeConfig config)
+    {
+        var token = !string.IsNullOrWhiteSpace(config.GitTokenEnvironmentVariable)
+            ? Environment.GetEnvironmentVariable(config.GitTokenEnvironmentVariable.Trim()) is { Length: > 0 } value
+                ? value.Trim()
+                : throw new InvalidOperationException($"Theme.GitTokenEnvironmentVariable names '{config.GitTokenEnvironmentVariable}', but that environment variable is not set.")
+            : config.GitToken.Trim();
+        if (token.Length > 0)
+        {
+            repository.Username = string.IsNullOrWhiteSpace(config.GitUserName) ? "x-access-token" : config.GitUserName.Trim();
+            repository.Password = token;
+        }
+        else if (!string.IsNullOrWhiteSpace(config.GitUserName))
+        {
+            repository.Username = config.GitUserName.Trim();
+        }
+
+        if (!string.IsNullOrWhiteSpace(config.GitSshKeyPath))
+        {
+            repository.SshKeyPath = config.GitSshKeyPath.Trim();
+            if (!string.IsNullOrWhiteSpace(config.GitSshPassphraseEnvironmentVariable))
+                repository.SshPassphrase = Environment.GetEnvironmentVariable(config.GitSshPassphraseEnvironmentVariable.Trim())
+                    ?? throw new InvalidOperationException($"Theme.GitSshPassphraseEnvironmentVariable names '{config.GitSshPassphraseEnvironmentVariable}', but that environment variable is not set.");
+        }
+        return repository;
     }
 
     private static string Combine(string root, string subPath)

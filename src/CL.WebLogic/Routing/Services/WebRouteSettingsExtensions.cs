@@ -101,6 +101,20 @@ public static class WebRouteSettingsExtensions
     }
 
     /// <summary>
+    /// Default layout for page templates of these routes that declare no <c>{layout:…}</c>, e.g.
+    /// <c>MapGroup("/admin").WithLayout("admin/layout")</c>. A template's own layout still wins, and
+    /// the theme can override the layout file like any template.
+    /// </summary>
+    public static T WithLayout<T>(this T builder, string layoutPath) where T : IWebRouteSettingsBuilder
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(layoutPath);
+        if (layoutPath.Contains("..", StringComparison.Ordinal) || layoutPath.Contains('\\') ||layoutPath.Contains(':'))
+            throw new ArgumentException($"'{layoutPath}' is not a valid template path.", nameof(layoutPath));
+        builder.Settings.Layout = layoutPath.TrimStart('/');
+        return builder;
+    }
+
+    /// <summary>
     /// Sends unauthenticated visitors of these pages to <paramref name="path"/> instead of
     /// <c>Security.LoginPath</c> (e.g. an admin area with its own sign-in page). Local paths only.
     /// </summary>

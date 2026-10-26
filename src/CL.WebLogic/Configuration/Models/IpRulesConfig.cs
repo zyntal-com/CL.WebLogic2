@@ -20,4 +20,8 @@ public sealed class IpRulesConfig
     /// <summary>When set, only these countries may connect (needs CL.NetUtils with a GeoIP database).</summary>
     [ConfigField(Label = "Allow Countries", Description = "ISO 3166 country codes allowed to connect. Empty = all.", Group = "IP Rules", Order = 43, Collapsed = true)]
     public List<string> AllowCountries { get; set; } = [];
+
+    /// <summary>How long rules and zones from app providers are cached (invalidate to apply edits at once).</summary>
+    [ConfigField(Label = "Provider Cache (seconds)", Description = "How long rules from IWebIpRuleProvider / IWebReputationListProvider are cached.", Min = 1, Max = 3600, Group = "IP Rules", Order = 44, Collapsed = true)]
+    public int ProviderCacheSeconds { get; set; } = 60;
 }

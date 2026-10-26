@@ -1,6 +1,7 @@
 using CL.NetUtils;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Security.Pipeline;
+using CL.WebLogic.Security.Rules;
 using CL.WebLogic.Security.Services;
 using Microsoft.AspNetCore.Http;
 
@@ -8,20 +9,24 @@ namespace CL.WebLogic.Security.Stages;
 
 /// <summary>
 /// Allow / deny by address and network, plus optional country rules through CL.NetUtils GeoIP
-/// (cached). Addresses GeoIP cannot place (private, unknown) are not country-filtered.
+/// (cached). Rules come from <c>Security.IpRules</c> and any <see cref="IWebIpRuleProvider"/>.
+/// Order: deny, then exempt (skips the rest and the reputation check), then the allow-list, then
+/// countries. Addresses GeoIP cannot place (private, unknown) are not country-filtered.
 /// </summary>
 public sealed class IpRulesStage : IWebSecurityStage
 {
     private readonly IWebLibraryResolver _libraries;
     private readonly IWebLogicContext _context;
+    private readonly WebSecurityRules _rules;
     private readonly BoundedTtlCache<string> _countries;
     private int _warnedNoGeoIp;
 
     /// <summary>Creates the stage.</summary>
-    public IpRulesStage(IWebLibraryResolver libraries, IWebLogicContext context, TimeProvider? time = null)
+    public IpRulesStage(IWebLibraryResolver libraries, IWebLogicContext context, WebSecurityRules rules, TimeProvider? time = null)
     {
         _libraries = libraries ?? throw new ArgumentNullException(nameof(libraries));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _rules = rules ?? throw new ArgumentNullException(nameof(rules));
         _countries = new BoundedTtlCache<string>(50_000, time);
     }
 
@@ -37,22 +42,27 @@ public sealed class IpRulesStage : IWebSecurityStage
     /// <inheritdoc/>
     public async ValueTask<WebSecurityDecision> ExecuteAsync(WebSecurityContext context, CancellationToken cancellationToken)
     {
-        var settings = context.Settings;
-        if (IpNetworkParser.ContainsAny(settings.DenyNetworks, context.ClientIp))
-            return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "ip-denied");
-        if (settings.AllowNetworks.Count > 0 && !IpNetworkParser.ContainsAny(settings.AllowNetworks, context.ClientIp))
+        var rules = await _rules.GetIpRulesAsync(context.Settings, cancellationToken).ConfigureAwait(false);
+        var ip = context.ClientIp;
+        if (rules.MatchDeny(ip) is { } denied)
+            return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "ip-denied", denied);
+        if (rules.MatchExempt(ip) is not null)
+        {
+            context.IpExempt = true;
+            return WebSecurityDecision.Continue;
+        }
+        if (rules.HasAllowList && rules.MatchAllow(ip) is null)
             return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "ip-not-allowed");
 
-        var rules = settings.Config.IpRules;
-        if ((rules.DenyCountries.Count == 0 && rules.AllowCountries.Count == 0) || context.ClientIp is null)
+        if (!rules.HasCountryRules || ip is null)
             return WebSecurityDecision.Continue;
 
-        var country = await LookupCountryAsync(context.ClientIp.ToString(), cancellationToken).ConfigureAwait(false);
+        var country = await LookupCountryAsync(ip.ToString(), cancellationToken).ConfigureAwait(false);
         if (country.Length == 0)
             return WebSecurityDecision.Continue;
-        if (rules.DenyCountries.Contains(country, StringComparer.OrdinalIgnoreCase))
-            return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "country-denied:" + country);
-        if (rules.AllowCountries.Count > 0 && !rules.AllowCountries.Contains(country, StringComparer.OrdinalIgnoreCase))
+        if (rules.MatchDenyCountry(country) is { } countryRule)
+            return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "country-denied:" + country, countryRule);
+        if (!rules.CountryAllowed(country))
             return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "country-not-allowed:" + country);
         return WebSecurityDecision.Continue;
     }

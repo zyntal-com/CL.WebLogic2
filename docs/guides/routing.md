@@ -57,6 +57,7 @@ On a route or a group:
 | `RequireRecentSignIn(maxAge, methods...)` | Step-up: credentials proven recently (pages redirect with `reauth=1`, APIs 401) |
 | `WithLoginPath(path)`, `WithAccessDeniedPath(path)` | Per-area sign-in and access-denied pages (pages only) |
 | `WithCsp(c => ...)` | Extra Content-Security-Policy sources for these routes |
+| `WithLayout(path)` | Default layout for page templates that declare none |
 | `WithRateLimit(policy)` | A named rate-limit policy from `security.rateLimits.policies` |
 | `WithBodyLimit(bytes)` | Request body limit for this route |
 | `WithOutputCache(policy)` | Output cache policy (anonymous GET only; see [Caching](caching.md)) |

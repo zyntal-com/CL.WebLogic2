@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    External sign-in providers for WebLogic's IWebExternalLoginProvider: Steam (OpenID 2.0) and a
+    generic OAuth 2.0 / OpenID Connect provider (code flow + PKCE) with presets. Token and JWT
+    checks are our own, on System.Security.Cryptography — no third-party packages.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.ExternalLogins</RootNamespace>
+    <AssemblyName>CL.WebLogic.ExternalLogins</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>CodeLogic.WebLogic.ExternalLogins</PackageId>
+    <Description>External sign-in for CodeLogic.WebLogic: Steam OpenID 2.0 and OAuth 2.0 / OpenID Connect (authorization code + PKCE, nonce, issuer and audience checks, in-house JWT/JWKS validation) with Google, Microsoft, GitHub and Discord presets.</Description>
+    <PackageTags>codelogic;web;oauth;openid-connect;steam;authentication</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.nuget.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\CL.WebLogic\CL.WebLogic.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CL.WebLogic.ExternalLogins.Tests" />
+  </ItemGroup>
+</Project>

@@ -6,7 +6,7 @@
 |---|---|---|
 | ☐ | Real stores for users, sessions, API keys, recovery codes | The app refuses to start with in-memory security stores outside Development |
 | ☐ | `UseMailNotifications()` (or your own notifier) | Reset, verification and alert e-mails; the outbox notifier refuses to run in production |
-| ☐ | DataProtection keys persisted (`PersistKeysTo...`) and an application name set | Session tokens, 2FA secrets, link tokens and wizard state are protected with these keys; losing them signs everybody out and breaks 2FA |
+| ☐ | DataProtection keys persisted (`PersistKeysToCodeLogicStorage(...)` or another `PersistKeysTo...`), encrypted at rest, and an application name set | Session tokens, 2FA secrets, link tokens and wizard state are protected with these keys; losing them signs everybody out and breaks 2FA |
 | ☐ | `publicBaseUrl` = the public `https://` URL | Links in e-mails, canonical redirects, secure cookies behind a TLS proxy |
 | ☐ | `security.hosts.allowedHosts` | Host header attacks, cache poisoning |
 | ☐ | `security.forwardedHeaders` with the proxy's address (behind a proxy) | Real client IPs for rate limits, lockout and audit |
@@ -48,3 +48,22 @@ Both are exempt from the HTTPS redirect (`security.probePaths`) so container pro
 
 See the [cluster scenario](../scenarios/cluster.md): shared stores, a shared key ring, a realtime
 backplane, and `cluster.enabled` to have WebLogic check all of it at startup.
+
+## DataProtection keys
+
+```csharp
+builder.Services.AddDataProtection()
+    .SetApplicationName("my-site")
+    .PersistKeysToCodeLogicStorage("Default", "dataprotection-keys") // any CL.Storage connection
+    .ProtectKeysWithSecret("KEYRING_SECRET");                        // AES-256-GCM, secret from the environment
+```
+
+- `PersistKeysToCodeLogicStorage(connectionId, path)` keeps one file per key in a CL.Storage
+  connection (S3, Azure, FTP, a shared disk). Files are never overwritten. CL.Storage must be loaded
+  before the first request. Storage errors fail the request instead of minting a new key ring.
+- `ProtectKeysWithSecret(variable, previousVariables...)` encrypts keys at rest with a secret from the
+  environment (base64 of 32+ bytes or 32+ characters, e.g. `openssl rand -base64 48`). To rotate, set
+  a new secret and pass the old variable as a previous one until the old keys have expired (90 days by
+  default). `ProtectKeysWithCertificate(...)` from ASP.NET works too.
+- Cluster checks accept the storage repository as shared; a plain folder (`PersistKeysToFileSystem`)
+  gets a warning to make sure every node mounts the same folder.

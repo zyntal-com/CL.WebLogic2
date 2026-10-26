@@ -40,6 +40,11 @@ public sealed class ContributorBootstrapper : IHostedService
             cancellationToken).ConfigureAwait(false);
 
         await _registrar.RegisterAsync(
+            _services.GetRequiredService<PluginAssetContributor>(),
+            PluginAssetContributor.Descriptor,
+            cancellationToken).ConfigureAwait(false);
+
+        await _registrar.RegisterAsync(
             _services.GetRequiredService<SecurityContributor>(),
             SecurityContributor.Descriptor,
             cancellationToken).ConfigureAwait(false);

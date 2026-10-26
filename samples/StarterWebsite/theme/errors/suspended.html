@@ -1,0 +1,7 @@
+{layout:layouts/main}
+<div class="text-center py-5">
+  <h1 class="display-5">Account suspended</h1>
+  {if:model:reason}<p class="lead">{model:reason}</p>{/if}
+  <p>{if:model:indefinite}The suspension has no end date.{else}You can sign in again after {model:until|date:yyyy-MM-dd} (UTC).{/if}</p>
+  <a class="btn btn-primary" href="/">Home</a>
+</div>

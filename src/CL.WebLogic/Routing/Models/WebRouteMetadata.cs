@@ -54,6 +54,9 @@ public sealed class WebRouteMetadata
     /// <summary>Unsafe methods may come from cross-site origins.</summary>
     public bool AllowCrossSitePost { get; init; }
 
+    /// <summary>Layout for page templates that declare none, or null.</summary>
+    public string? Layout { get; init; }
+
     /// <summary>Sign-in page for this route (null = <c>Security.LoginPath</c>).</summary>
     public string? LoginPath { get; init; }
 
@@ -91,6 +94,7 @@ public sealed class WebRouteMetadata
         OutputCachePolicy = settings.OutputCachePolicy,
         AllowCrossSitePost = settings.AllowCrossSitePost,
         LoginPath = settings.LoginPath,
+        Layout = settings.Layout,
         AccessDeniedPath = settings.AccessDeniedPath,
         RecentSignIn = settings.RecentSignInMaxAge is { } maxAge ? new Security.Authorization.RecentSignInRequirement(maxAge, [.. settings.RecentSignInMethods]) : null,
         CspAdditions = settings.Csp.Sources

@@ -6,6 +6,7 @@
   <PropertyGroup>
     <RootNamespace>StarterWebsite</RootNamespace>
     <UsesWebLogic>true</UsesWebLogic>
+    <UsesWebLogicExternalLogins>true</UsesWebLogicExternalLogins>
     <UsesSampleHosting>true</UsesSampleHosting>
   </PropertyGroup>
 

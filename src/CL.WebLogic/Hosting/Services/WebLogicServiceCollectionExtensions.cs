@@ -76,6 +76,8 @@ public static class WebLogicServiceCollectionExtensions
         services.TryAddSingleton<ThemeSyncService>();
         services.TryAddSingleton<ThemeAssetResolver>();
         services.TryAddSingleton<ThemeAssetContributor>();
+        services.TryAddSingleton<PluginAssetContributor>();
+        services.TryAddSingleton<WebContributedAssets>();
 
         WebLogicSecurityRegistration.AddSecurity(services);
         WebLogicAuthRegistration.AddAuth(services);

@@ -20,7 +20,7 @@ public sealed class ThemeConfig
         Placeholder = "weblogic-theme", RequiresRestart = true, Group = "Theme", Order = 30, Collapsed = true)]
     public string RepositoryId { get; set; } = "weblogic-theme";
 
-    /// <summary>Theme repository URL when <see cref="Source"/> is Git. Credentials belong in the CL.GitHelper config.</summary>
+    /// <summary>Theme repository URL when <see cref="Source"/> is Git (credentials: the <c>Git…</c> fields below, or the CL.GitHelper config).</summary>
     [ConfigField(Label = "Repository URL", InputType = ConfigInputType.Url, Description = "HTTPS or SSH URL of the theme Git repository.",
         Placeholder = "https://github.com/org/theme.git", RequiresRestart = true, Group = "Theme", Order = 31, Collapsed = true)]
     public string RepositoryUrl { get; set; } = "";
@@ -33,6 +33,31 @@ public sealed class ThemeConfig
     [ConfigField(Label = "Theme Sub-path", Description = "Folder inside the repository that holds the theme.",
         RequiresRestart = true, Group = "Theme", Order = 33, Collapsed = true)]
     public string ThemeSubPath { get; set; } = "";
+
+    /// <summary>User name for HTTPS access (empty with a token = <c>x-access-token</c>; GitLab wants <c>oauth2</c>).</summary>
+    [ConfigField(Label = "Git User Name", Description = "User name for HTTPS access. Empty with a token = x-access-token (GitHub); GitLab uses oauth2.",
+        RequiresRestart = true, Group = "Theme", Order = 36, Collapsed = true)]
+    public string GitUserName { get; set; } = "";
+
+    /// <summary>Name of the environment variable holding the HTTPS access token (keeps the token out of config files).</summary>
+    [ConfigField(Label = "Git Token Variable", Description = "Environment variable holding an HTTPS access token for the theme repository.",
+        Placeholder = "THEME_GIT_TOKEN", RequiresRestart = true, Group = "Theme", Order = 37, Collapsed = true)]
+    public string GitTokenEnvironmentVariable { get; set; } = "";
+
+    /// <summary>HTTPS access token stored in the config (prefer <see cref="GitTokenEnvironmentVariable"/>).</summary>
+    [ConfigField(Label = "Git Token", Description = "HTTPS access token (prefer the environment variable).",
+        Secret = true, RequiresRestart = true, Group = "Theme", Order = 38, Collapsed = true)]
+    public string GitToken { get; set; } = "";
+
+    /// <summary>Path of an SSH deploy key for <c>git@…</c> URLs.</summary>
+    [ConfigField(Label = "Git SSH Key Path", Description = "Private key file (deploy key) for SSH repository URLs.",
+        RequiresRestart = true, Group = "Theme", Order = 39, Collapsed = true)]
+    public string GitSshKeyPath { get; set; } = "";
+
+    /// <summary>Name of the environment variable holding the SSH key's passphrase, if it has one.</summary>
+    [ConfigField(Label = "Git SSH Passphrase Variable", Description = "Environment variable holding the deploy key's passphrase.",
+        RequiresRestart = true, Group = "Theme", Order = 40, Collapsed = true)]
+    public string GitSshPassphraseEnvironmentVariable { get; set; } = "";
 
     /// <summary>CL.Storage connection id when <see cref="Source"/> is Storage.</summary>
     [ConfigField(Label = "Storage Connection", Description = "CL.Storage connection the theme is downloaded from.",

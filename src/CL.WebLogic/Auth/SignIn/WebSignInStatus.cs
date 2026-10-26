@@ -22,5 +22,11 @@ public enum WebSignInStatus
     RequiresPasswordChange,
 
     /// <summary>Too many attempts; retry later (see <see cref="WebSignInResult.RetryAfter"/>).</summary>
-    Throttled
+    Throttled,
+
+    /// <summary>
+    /// The account is suspended (see <see cref="WebSignInResult.Suspension"/>). Only reported after
+    /// the credentials were proven, so it reveals nothing to someone guessing passwords.
+    /// </summary>
+    Suspended
 }

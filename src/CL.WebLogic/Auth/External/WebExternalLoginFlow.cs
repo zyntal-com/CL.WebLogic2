@@ -52,10 +52,11 @@ public sealed class WebExternalLoginFlow
         {
             CallbackUrl = Absolute(request, callbackPath),
             State = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16)),
-            Nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16))
+            Nonce = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16)),
+            CodeVerifier = System.Buffers.Text.Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32))
         };
         var state = new FlowState(p.Name, challenge.State, challenge.Nonce, challenge.CallbackUrl, WebUrl.SafeReturnUrl(returnUrl),
-            _time.GetUtcNow().AddMinutes(10).ToUnixTimeSeconds());
+            _time.GetUtcNow().AddMinutes(10).ToUnixTimeSeconds(), challenge.CodeVerifier);
 
         var http = request.HttpContext;
         http.Response.Cookies.Append(WebSessionCookies.Name(http, CookieName), _protector.Protect(JsonSerializer.Serialize(state)),
@@ -94,7 +95,7 @@ public sealed class WebExternalLoginFlow
             || !_providers.TryGetValue(state.Provider, out var p))
             return Result<WebExternalLoginOutcome>.Failure(Error.Validation("weblogic.auth.external_state", "The sign-in attempt expired; try again."));
 
-        var challenge = new WebExternalChallenge { CallbackUrl = state.CallbackUrl, State = state.State, Nonce = state.Nonce };
+        var challenge = new WebExternalChallenge { CallbackUrl = state.CallbackUrl, State = state.State, Nonce = state.Nonce, CodeVerifier = state.CodeVerifier ?? string.Empty };
         var info = await p.HandleCallbackAsync(request, challenge, cancellationToken).ConfigureAwait(false);
         if (info.IsFailure)
             return Result<WebExternalLoginOutcome>.Failure(info.Error!);
@@ -126,5 +127,5 @@ public sealed class WebExternalLoginFlow
         return baseUrl + (path.StartsWith('/') ? path : "/" + path);
     }
 
-    private sealed record FlowState(string Provider, string State, string Nonce, string CallbackUrl, string ReturnUrl, long ExpiresAt);
+    private sealed record FlowState(string Provider, string State, string Nonce, string CallbackUrl, string ReturnUrl, long ExpiresAt, string? CodeVerifier = null);
 }

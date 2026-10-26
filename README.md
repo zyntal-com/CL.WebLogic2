@@ -41,6 +41,8 @@ Build it locally with `dotnet tool install -g docfx` and `docfx docs/docfx.json 
 | --- | --- |
 | `src/CL.WebLogic` | The toolkit (`CodeLogic.WebLogic`) |
 | `src/CL.WebLogic.Testing` | Test host and fakes (`CodeLogic.WebLogic.Testing`) |
+| `src/CL.WebLogic.MySql` | Optional MySQL stores and key ring on CL.MySQL2 (`CodeLogic.WebLogic.MySql`) |
+| `src/CL.WebLogic.ExternalLogins` | Optional Steam and OAuth 2.0 / OpenID Connect sign-in (`CodeLogic.WebLogic.ExternalLogins`) |
 | `tests/` | Unit and integration tests |
 | `samples/` | StarterWebsite (JSON-file persistence) and MiniBlog (MySQL, admin plugin) |
 | `samples/docker` | The deployable demo: `docker compose up -d --build` (see its README) |
@@ -61,6 +63,13 @@ are needed.
 
 `major.minor` comes from `version.txt` and follows the CodeLogic line (`4.9`); the patch is the
 CI run number. `release` publishes `4.9.<run>`, `prerelease` publishes `4.9.<run>-preview`.
+
+Pushing to `main` never publishes. Releasing is always a deliberate push of `main` to a release branch:
+
+```bash
+git push origin main:prerelease   # 4.9.<run>-preview
+git push origin main:release      # 4.9.<run> (stable)
+```
 
 ## License
 

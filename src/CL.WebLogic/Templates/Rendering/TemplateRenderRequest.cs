@@ -20,4 +20,10 @@ public sealed class TemplateRenderRequest
 
     /// <summary>Render only the template body, ignoring its <c>{layout:…}</c> (fragments).</summary>
     public bool IgnoreLayout { get; init; }
+
+    /// <summary>
+    /// Layout used when the template declares none (e.g. the route group's <c>WithLayout</c>).
+    /// A template's own <c>{layout:…}</c> always wins.
+    /// </summary>
+    public string? DefaultLayout { get; init; }
 }
