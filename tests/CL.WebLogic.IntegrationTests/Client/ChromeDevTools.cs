@@ -22,23 +22,40 @@ internal sealed class ChromeDevTools : IAsyncDisposable
         _profile = profile;
     }
 
-    /// <summary>Starts <paramref name="browser"/> headless and connects to it.</summary>
+    /// <summary>
+    /// Starts <paramref name="browser"/> headless and connects to it. A busy CI machine can take a
+    /// while to start Chrome, so it waits up to 45 s and tries once more with a fresh profile; a
+    /// failure carries Chrome's own output.
+    /// </summary>
     public static async Task<ChromeDevTools> LaunchAsync(string browser)
+    {
+        var errors = new List<string>();
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            if (await TryLaunchAsync(browser, errors) is { } devTools)
+                return devTools;
+        }
+        throw new InvalidOperationException("Chrome did not open a DevTools port. Output:\n" + string.Join('\n', errors.TakeLast(40)));
+    }
+
+    private static async Task<ChromeDevTools?> TryLaunchAsync(string browser, List<string> errors)
     {
         var profile = Path.Combine(Path.GetTempPath(), "wl-cdp-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(profile);
         var start = new ProcessStartInfo(browser) { UseShellExecute = false, RedirectStandardError = true, RedirectStandardOutput = true };
-        foreach (var argument in (string[])["--headless=new", "--disable-gpu", "--no-sandbox", "--no-first-run", "--no-default-browser-check",
+        foreach (var argument in (string[])["--headless=new", "--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
                      "--remote-debugging-port=0", "--user-data-dir=" + profile, "about:blank"])
             start.ArgumentList.Add(argument);
         var process = Process.Start(start)!;
+        process.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (errors) errors.Add(e.Data); };
+        process.OutputDataReceived += (_, e) => { if (e.Data is not null) lock (errors) errors.Add(e.Data); };
         process.BeginErrorReadLine();
         process.BeginOutputReadLine();
 
         // Chrome writes "port\n/devtools/browser/<id>" once it listens.
         var portFile = Path.Combine(profile, "DevToolsActivePort");
         string[]? lines = null;
-        for (var i = 0; i < 150 && lines is not { Length: >= 2 }; i++)
+        for (var i = 0; i < 450 && lines is not { Length: >= 2 } && !process.HasExited; i++)
         {
             await Task.Delay(100);
             try
@@ -52,13 +69,30 @@ internal sealed class ChromeDevTools : IAsyncDisposable
         }
         if (lines is not { Length: >= 2 })
         {
-            process.Kill(entireProcessTree: true);
-            throw new InvalidOperationException("Chrome did not open a DevTools port.");
+            lock (errors)
+                errors.Add(process.HasExited ? $"(Chrome exited with code {process.ExitCode})" : "(no DevTools port after 45 s)");
+            if (!process.HasExited)
+                process.Kill(entireProcessTree: true);
+            process.Dispose();
+            TryDelete(profile);
+            return null;
         }
 
         var socket = new ClientWebSocket();
         await socket.ConnectAsync(new Uri($"ws://127.0.0.1:{lines[0].Trim()}{lines[1].Trim()}"), CancellationToken.None);
         return new ChromeDevTools(process, socket, profile);
+    }
+
+    private static void TryDelete(string folder)
+    {
+        try
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Chrome may still hold a file; the temp folder is cleaned eventually.
+        }
     }
 
     /// <summary>Sends a command (to a page when <paramref name="sessionId"/> is set) and returns its result.</summary>
