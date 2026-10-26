@@ -8,7 +8,12 @@
     <PackageId>CodeLogic.WebLogic.Testing</PackageId>
     <Description>Test helpers for CodeLogic.WebLogic apps — an in-process Kestrel test host and fakes for the toolkit context. No third-party dependencies beyond CodeLogic.*.</Description>
     <PackageTags>codelogic;web;testing</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.nuget.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

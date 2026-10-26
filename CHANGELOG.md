@@ -1,6 +1,21 @@
 # Changelog
 
-## 4.9.x (preview)
+## Unreleased
+
+### Added
+
+- `CodeLogic.WebLogic.Testing` ships a package readme (usage example and helper overview); the
+  `CodeLogic.WebLogic` readme gains a quick start and links to the docs.
+
+### Fixed
+
+- CI: golden template snapshots are found under deterministic (`/_/`) build paths, the Markdown
+  pathological-input test compares scaling instead of wall-clock time, and parallel Docker builds
+  lock the shared NuGet cache.
+
+## 4.9.1-preview (2026-10-25)
+
+First preview of the rebuild on nuget.org.
 
 ### Added
 
