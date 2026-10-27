@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.9.8-preview (2026-10-27)
+
+### Fixed
+
+- **Form binding matched posted names case-sensitively.** A field named after the property (`Image`,
+  `Email`) did not bind from a client posting `image` or `email`: the field stayed empty, so a
+  `[Required]` field failed and an optional one was silently ignored. Posted names now match
+  case-insensitively, in `BindAsync`, remote field validation, wizard steps and repeater items (file
+  fields already did). If a name is posted twice in different case, the values are merged in posted
+  order and a single-value field takes the first, instead of the post failing. The internal `__wl_*`
+  and CSRF fields are recognised in any case too.
+
+### Changed
+
+- A form model whose fields differ only in case (`Name` and `name`) is refused when it is registered
+  (`InvalidOperationException`), because those fields could no longer be told apart.
+
 ## 4.9.7-preview (2026-10-27)
 
 ### Added

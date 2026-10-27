@@ -64,6 +64,22 @@ public sealed class FormDefinitionTests
         Assert.Equal(expected, WebFormDefinitionBuilder.DefaultId(type));
 
     [Fact]
+    public void Fields_that_differ_only_in_case_are_refused()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => WebFormDefinitionBuilder.Build(typeof(CaseClashForm)));
+        Assert.Contains("differ only in case", error.Message);
+    }
+
+    private sealed class CaseClashForm
+    {
+        public string? Name { get; set; }
+
+#pragma warning disable IDE1006 // the clash is the point
+        public string? name { get; set; }
+#pragma warning restore IDE1006
+    }
+
+    [Fact]
     public void Configurators_apply_after_attributes()
     {
         var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();

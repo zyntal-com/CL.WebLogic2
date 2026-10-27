@@ -115,7 +115,7 @@ public sealed partial class WebFormService
         if (target is null || target.Type == WebFieldType.File)
             return [];
         var form = await request.ReadFormAsync(cancellationToken).ConfigureAwait(false);
-        var values = form.Where(p => !IsInternal(p.Key, request)).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+        var values = Posted(form, request);
         var visible = WebFormVisibility.For(definition, values);
         var errors = new WebFormErrors();
         var model = _binder.Bind(definition, definition.Fields, values, visible, errors);
@@ -129,27 +129,46 @@ public sealed partial class WebFormService
 
     private (Dictionary<string, StringValues> Values, int Step, bool Back) CollectValues(WebFormDefinition definition, IFormCollection form, WebRequestContext request)
     {
-        var posted = form.Where(p => !IsInternal(p.Key, request)).ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
+        var posted = Posted(form, request);
         if (definition.Steps.Count == 0)
             return (posted, 0, false);
 
         var state = _wizard.Read(definition.Id, form[WebWizardState.TokenField].ToString());
         var step = state is null ? 0 : Math.Clamp(state.Value.Step, 0, definition.Steps.Count - 1);
-        var values = state?.Values ?? new Dictionary<string, StringValues>(StringComparer.Ordinal);
+        var values = state?.Values ?? new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
         // Only the current step's fields come from the post; earlier steps come from the protected state.
         foreach (var field in definition.FieldsOf(definition.Steps[step].Name))
         {
-            foreach (var key in values.Keys.Where(k => k == field.Name || k.StartsWith(field.Name + "[", StringComparison.Ordinal)).ToList())
+            foreach (var key in values.Keys.Where(k => Belongs(k, field.Name)).ToList())
                 values.Remove(key);
-            foreach (var (key, value) in posted.Where(p => p.Key == field.Name || p.Key.StartsWith(field.Name + "[", StringComparison.Ordinal)))
+            foreach (var (key, value) in posted.Where(p => Belongs(p.Key, field.Name)))
                 values[key] = value;
         }
         return (values, step, form.ContainsKey(WebWizardState.BackField));
     }
 
+    /// <summary>
+    /// The posted values without the internal fields, keyed case-insensitively: a client posting <c>email</c>
+    /// binds to <c>Email</c>. Names that differ only in case are merged in posted order (a scalar field takes the first).
+    /// </summary>
+    private static Dictionary<string, StringValues> Posted(IFormCollection form, WebRequestContext request)
+    {
+        var values = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in form)
+        {
+            if (!IsInternal(key, request))
+                values[key] = values.TryGetValue(key, out var existing) ? StringValues.Concat(existing, value) : value;
+        }
+        return values;
+    }
+
+    /// <summary>Whether a posted key is the field or one of its repeater items.</summary>
+    private static bool Belongs(string key, string field) =>
+        string.Equals(key, field, StringComparison.OrdinalIgnoreCase) || key.StartsWith(field + "[", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsInternal(string key, WebRequestContext request) =>
-        key.StartsWith("__wl_", StringComparison.Ordinal)
-        || string.Equals(key, request.GetRequiredService<Configuration.Services.WebLogicConfigHolder>().Current.Security.Csrf.FieldName, StringComparison.Ordinal);
+        key.StartsWith("__wl_", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(key, request.GetRequiredService<Configuration.Services.WebLogicConfigHolder>().Current.Security.Csrf.FieldName, StringComparison.OrdinalIgnoreCase);
 
     private async Task BindFilesAsync(IEnumerable<WebFieldDefinition> fields, string prefix, IFormFileCollection files, object model,
         Func<string, bool> visible, WebFormErrors errors, CancellationToken cancellationToken)

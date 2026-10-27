@@ -53,6 +53,33 @@ public sealed class FormSubmissionTests
     }
 
     [Fact]
+    public async Task Posted_names_bind_case_insensitively()
+    {
+        await using var host = await FormsTestSite.StartAsync();
+        var page = await host.Client.GetStringAsync("/contact");
+
+        var response = await ClientPostAsync(host.Client, "/contact", FormsTestSite.Post(page, ("name", "Ada"), ("EMAIL", "ada@example.com"), ("country", "dk"), ("isadmin", "true")));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Thanks Ada", json.GetProperty("message").GetString());
+        Assert.Equal("dk", json.GetProperty("data").GetProperty("country").GetString());
+        Assert.False(json.GetProperty("data").GetProperty("isAdmin").GetBoolean()); // still not bindable
+    }
+
+    [Fact]
+    public async Task Names_posted_twice_in_different_case_take_the_first_value()
+    {
+        await using var host = await FormsTestSite.StartAsync();
+        var page = await host.Client.GetStringAsync("/contact");
+
+        var response = await ClientPostAsync(host.Client, "/contact", FormsTestSite.Post(page, ("Name", "Ada"), ("name", "Bob"), ("Email", "ada@example.com")));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("Thanks Ada", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("message").GetString());
+    }
+
+    [Fact]
     public async Task Invalid_client_post_returns_422_with_field_errors()
     {
         await using var host = await FormsTestSite.StartAsync();
