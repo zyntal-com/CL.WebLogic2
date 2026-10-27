@@ -81,7 +81,7 @@ public sealed class WebTwoFactorService
         await _tokens.ValidateAsync(WebTokenPurposes.TwoFactorEnrollment, enrollmentToken, consume: true, cancellationToken).ConfigureAwait(false);
         var updated = token.Value.User with { TwoFactorSecret = token.Value.Data, SecurityStamp = WebUser.NewStamp() };
         await _users.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);
-        var codes = await RegenerateRecoveryCodesAsync(updated, cancellationToken).ConfigureAwait(false);
+        var codes = await ReplaceRecoveryCodesAsync(updated, cancellationToken).ConfigureAwait(false);
 
         _context.Events.Publish(new TwoFactorChangedEvent(user.Id, true));
         _notifications.Enqueue(updated, WebSecurityNotificationKind.TwoFactorEnabled);
@@ -114,6 +114,13 @@ public sealed class WebTwoFactorService
     public async Task<IReadOnlyList<string>> RegenerateRecoveryCodesAsync(WebUser user, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
+        var codes = await ReplaceRecoveryCodesAsync(user, cancellationToken).ConfigureAwait(false);
+        _context.Events.Publish(new RecoveryCodesRegeneratedEvent(user.Id));
+        return codes;
+    }
+
+    private async Task<IReadOnlyList<string>> ReplaceRecoveryCodesAsync(WebUser user, CancellationToken cancellationToken)
+    {
         var codes = WebRecoveryCodes.Generate(_config.Current.Auth.TwoFactor.RecoveryCodeCount);
         await _recoveryCodes.ReplaceAsync(user.Id, [.. codes.Select(c => WebRecoveryCodes.Hash(user.Id, c))], cancellationToken).ConfigureAwait(false);
         return codes;

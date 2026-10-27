@@ -53,6 +53,22 @@ public sealed partial class MySqlWebUserStore
         }, cancellationToken).ConfigureAwait(false));
     }
 
+    /// <inheritdoc/>
+    public async Task<bool> RemoveExternalLoginAsync(string userId, string provider, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        var prefix = provider.Trim().ToLowerInvariant() + ":";
+        var rows = WebMySqlDatabase.Value(await _db.Query<UserLoginRow>().Where(l => l.UserId == userId).ToListAsync(cancellationToken).ConfigureAwait(false));
+        var removed = false;
+        foreach (var key in rows.Select(r => r.LoginKey).Where(k => k.StartsWith(prefix, StringComparison.Ordinal)))
+        {
+            WebMySqlDatabase.Value(await _db.Query<UserLoginRow>().Where(l => l.LoginKey == key && l.UserId == userId).DeleteAsync(cancellationToken).ConfigureAwait(false));
+            removed = true;
+        }
+        return removed;
+    }
+
     private static string LoginKey(string provider, string providerKey)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);

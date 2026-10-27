@@ -71,8 +71,10 @@ public sealed partial class WebRequestAuth
     /// <summary>
     /// Signs a user in directly, after your own verification (e.g. right after registration).
     /// Skips the second factor: for external providers use <see cref="SignInExternalAsync"/>.
+    /// <paramref name="persistent"/>: "remember me"; null keeps the current session's setting when the same user is
+    /// signed in again (e.g. after changing their methods) and means "not persistent" for anyone else.
     /// </summary>
-    public Task SignInAsync(WebUser user, IReadOnlyList<string>? methods = null, bool persistent = false, CancellationToken cancellationToken = default) =>
+    public Task SignInAsync(WebUser user, IReadOnlyList<string>? methods = null, bool? persistent = null, CancellationToken cancellationToken = default) =>
         _service.SignInAsync(_request.Security, user, methods, persistent, Token(cancellationToken));
 
     /// <summary>Signs out.</summary>

@@ -67,6 +67,11 @@ public sealed class AccountStoreTests(MySqlFixture fixture)
         Assert.Null(await store.FindByExternalLoginAsync("Steam", steamId, default));
         await store.AddExternalLoginAsync(user.Id, "Steam", steamId, default);
         Assert.Equal(user.Id, (await store.FindByExternalLoginAsync("steam", steamId, default))?.Id);
+
+        Assert.False(await store.RemoveExternalLoginAsync(user.Id, "discord", default));
+        Assert.True(await store.RemoveExternalLoginAsync(user.Id, "STEAM", default));
+        Assert.Null(await store.FindByExternalLoginAsync("steam", steamId, default));
+        Assert.False(await store.RemoveExternalLoginAsync(user.Id, "steam", default));
     }
 
     [MySqlFact]

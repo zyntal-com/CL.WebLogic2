@@ -68,6 +68,13 @@ internal static class AuthTestSite
             return Status(result.IsSuccess ? "Changed" : result.Error!.Code);
         }, "POST");
         b.MapApi("/auth/refresh", async (r, ct) => Status(await r.Auth.RefreshAsync(ct)), "POST");
+        // Signs the current user in again without saying whether to remember them (keeps the session's choice).
+        b.MapApi("/auth/resign", async (r, ct) =>
+        {
+            var user = (await r.GetRequiredService<IWebUserStore>().FindByIdAsync(r.Identity.UserId!, ct))!;
+            await r.Auth.SignInAsync(user, ["custom"], cancellationToken: ct);
+            return Status("Resigned");
+        }, "POST");
         // Test stand-in for an external provider callback: the "provider" vouched for body.Login.
         b.MapApi("/auth/external", async (r, ct) =>
         {

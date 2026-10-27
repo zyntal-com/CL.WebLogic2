@@ -84,7 +84,7 @@ public sealed partial class WebAuthService
     /// a custom flow). Rotates the session. This does <b>not</b> ask for the user's second factor:
     /// for external providers use <see cref="SignInExternalAsync"/>, which does.
     /// </summary>
-    public Task SignInAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string>? methods, bool persistent, CancellationToken cancellationToken) =>
+    public Task SignInAsync(WebSecurityContext security, WebUser user, IReadOnlyList<string>? methods, bool? persistent, CancellationToken cancellationToken) =>
         SignInCoreAsync(security, user, methods ?? ["custom"], fresh: true, persistent, cancellationToken);
 
     /// <summary>

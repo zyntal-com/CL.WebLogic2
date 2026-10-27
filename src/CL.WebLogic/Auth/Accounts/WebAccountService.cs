@@ -129,9 +129,12 @@ public sealed partial class WebAccountService
 
         var user = old with { Email = newEmail, EmailConfirmed = true, SecurityStamp = WebUser.NewStamp() };
         await _users.UpdateAsync(user, cancellationToken).ConfigureAwait(false);
-        if (old.Email is not null && !string.Equals(old.Email, newEmail, StringComparison.OrdinalIgnoreCase))
+        var changed = !string.Equals(old.Email, newEmail, StringComparison.OrdinalIgnoreCase);
+        if (old.Email is not null && changed)
             _notifications.Enqueue(old, WebSecurityNotificationKind.EmailChanged);
         _context.Events.Publish(new EmailConfirmedEvent(user.Id));
+        if (changed)
+            _context.Events.Publish(new EmailChangedEvent(user.Id));
         return Result<WebUser>.Success(user);
     }
 

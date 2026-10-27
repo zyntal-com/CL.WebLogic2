@@ -38,7 +38,7 @@ internal static class TemplateContextRules
     /// <summary>Returns an error when a URL/text-producing directive (asset, t) is not allowed here, else null.</summary>
     public static string? ValidateTextDirective(TemplateEncodingContext context, string directive) => context switch
     {
-        TemplateEncodingContext.Html or TemplateEncodingContext.Attribute or TemplateEncodingContext.UrlAttribute => null,
+        TemplateEncodingContext.Html or TemplateEncodingContext.Attribute or TemplateEncodingContext.UrlAttribute or TemplateEncodingContext.ImageUrlAttribute => null,
         _ => $"{{{directive}:…}} can only be used in element text or a quoted attribute value."
     };
 

@@ -160,7 +160,21 @@ nodes supply a shared `IWebRateLimitStore` (`web.UseRateLimitStore<T>()`).
 ## Audit
 
 `security.audit` records rejected requests (or every request with `recordAllRequests`) and the auth
-events (sign-in, failures, lockouts, 2FA, keys) to `IWebAuditSink` (`web.UseAuditSink<T>()`) through a
-bounded background queue. Client IPs are HMAC-hashed with `audit.ipHashKey`. The default sink discards
+events to `IWebAuditSink` (`web.UseAuditSink<T>()`) through a bounded background queue:
+
+| Category | Outcomes |
+|---|---|
+| `auth.signin`, `auth.signout`, `auth.reauthenticate`, `auth.session` | success, failures by status, everywhere, revoked |
+| `auth.account` | registered |
+| `auth.password` | changed, reset |
+| `auth.email` | changed (after the new address was confirmed) |
+| `auth.two-factor` | enabled, disabled, recovery-codes-regenerated, recovery-code-used |
+| `auth.passkey` | added, removed, refused |
+| `auth.external-login` | linked, unlinked (`provider`) |
+| `auth.api-key` | created, revoked |
+| `auth.lockout` | locked (`until`) |
+
+The user is in `Data["user"]`. Changes made during a request carry the request (IP hash, path, trace id);
+changes made elsewhere (a background job, an admin tool) carry only the user. Client IPs are HMAC-hashed with `audit.ipHashKey`. The default sink discards
 entries; supply one to store them where your app keeps such data. Every rejection is also published as
 `WebSecurityRejectedEvent` on the CodeLogic event bus.

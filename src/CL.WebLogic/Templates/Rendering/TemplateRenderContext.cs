@@ -40,6 +40,9 @@ public sealed class TemplateRenderContext
     /// <summary>The child body for the layout's <c>{renderbody}</c>.</summary>
     public string? RenderBody { get; set; }
 
+    /// <summary>Path of the outermost template of the document (its top layout, or the page itself without one); null for fragments.</summary>
+    public string? DocumentTemplatePath { get; internal set; }
+
     /// <summary>Current <c>{foreach}</c> item (<c>{item:…}</c>).</summary>
     public object? CurrentItem { get; set; }
 

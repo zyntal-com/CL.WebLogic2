@@ -60,7 +60,8 @@ The parser tracks where each value lands:
 |---|---|
 | Text | HTML-encoded |
 | Attribute value | Attribute-encoded |
-| `href`, `src`, `action`, ... | Attribute-encoded, and URL schemes other than `http`, `https`, `mailto`, `tel` and relative are replaced by `#` |
+| `href`, `src`, `action`, ... | Attribute-encoded, and URL schemes other than `http`, `https`, `mailto`, `tel` and relative are replaced by `about:blank#blocked` |
+| `<img src>` | As above, and base64 raster `data:image/png\|jpeg\|gif\|webp` URLs are kept (e.g. a two-factor QR code from `QrCodeDataUri`); SVG and other `data:` URLs are blocked |
 | `style` attribute | CSS-encoded |
 | Event handler attributes (`on*`), `srcdoc` | Rejected at parse time |
 | Unquoted attribute values, inside a tag name or between attributes | Rejected at parse time |

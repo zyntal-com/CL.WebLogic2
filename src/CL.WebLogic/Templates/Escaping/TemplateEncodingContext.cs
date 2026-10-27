@@ -34,5 +34,11 @@ public enum TemplateEncodingContext
     UnquotedAttribute,
 
     /// <summary>Not written to markup (e.g. widget attribute values passed as data): no encoding.</summary>
-    Plain
+    Plain,
+
+    /// <summary>
+    /// The quoted <c>src</c> of an <c>&lt;img&gt;</c>: like <see cref="UrlAttribute"/>, plus base64 raster
+    /// <c>data:image/(png|jpeg|gif|webp)</c> URLs (e.g. a two-factor QR code). SVG data is never allowed.
+    /// </summary>
+    ImageUrlAttribute
 }

@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
+using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Results;
 using CL.WebLogic.Runtime.Models;
 using CL.WebLogic.Runtime.Services;
@@ -27,10 +29,13 @@ public sealed class WebExternalLoginFlow
     private readonly IWebUserStore _users;
     private readonly WebLogicConfigHolder _config;
     private readonly TimeProvider _time;
+    private readonly IWebLogicContext? _context;
 
     /// <summary>Creates the flow.</summary>
-    public WebExternalLoginFlow(IEnumerable<IWebExternalLoginProvider> providers, IDataProtectionProvider protection, IWebUserStore users, WebLogicConfigHolder config, TimeProvider? time = null)
+    public WebExternalLoginFlow(IEnumerable<IWebExternalLoginProvider> providers, IDataProtectionProvider protection, IWebUserStore users, WebLogicConfigHolder config,
+        TimeProvider? time = null, IWebLogicContext? context = null)
     {
+        _context = context;
         _providers = (providers ?? []).ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
         _protector = (protection ?? throw new ArgumentNullException(nameof(protection))).CreateProtector("CL.WebLogic.Auth.External.v1");
         _users = users ?? throw new ArgumentNullException(nameof(users));
@@ -106,15 +111,32 @@ public sealed class WebExternalLoginFlow
         return Result<WebExternalLoginOutcome>.Success(new WebExternalLoginOutcome { Info = info.Value!, User = user, ReturnUrl = state.ReturnUrl });
     }
 
-    /// <summary>Links an external identity to a user (requires <see cref="IWebUserExternalLoginStore"/>).</summary>
-    public Task LinkAsync(WebUser user, WebExternalLoginInfo info, CancellationToken cancellationToken)
+    /// <summary>Links an external identity to a user (requires <see cref="IWebUserExternalLoginStore"/>); raises <see cref="ExternalLoginChangedEvent"/>.</summary>
+    public async Task LinkAsync(WebUser user, WebExternalLoginInfo info, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentNullException.ThrowIfNull(info);
-        if (_users is not IWebUserExternalLoginStore links)
-            throw new InvalidOperationException("The user store does not implement IWebUserExternalLoginStore.");
-        return links.AddExternalLoginAsync(user.Id, info.Provider, info.ProviderKey, cancellationToken);
+        await Links().AddExternalLoginAsync(user.Id, info.Provider, info.ProviderKey, cancellationToken).ConfigureAwait(false);
+        _context?.Events.Publish(new ExternalLoginChangedEvent(user.Id, info.Provider, Linked: true));
     }
+
+    /// <summary>
+    /// Unlinks the user's identity at <paramref name="provider"/> and raises <see cref="ExternalLoginChangedEvent"/>.
+    /// Fails with <c>weblogic.auth.external_login_not_found</c> when there is no such link. Make sure the user keeps
+    /// another way to sign in (a password, a passkey or another provider) before calling it.
+    /// </summary>
+    public async Task<Result> UnlinkAsync(WebUser user, string provider, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider);
+        if (!await Links().RemoveExternalLoginAsync(user.Id, provider, cancellationToken).ConfigureAwait(false))
+            return Result.Failure(Error.NotFound("weblogic.auth.external_login_not_found", "That account is not linked."));
+        _context?.Events.Publish(new ExternalLoginChangedEvent(user.Id, provider, Linked: false));
+        return Result.Success();
+    }
+
+    private IWebUserExternalLoginStore Links() =>
+        _users as IWebUserExternalLoginStore ?? throw new InvalidOperationException("The user store does not implement IWebUserExternalLoginStore.");
 
     private string Absolute(WebRequestContext request, string path)
     {
