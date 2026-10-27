@@ -89,6 +89,25 @@ go through the scheme policy, and pathological input is bounded. `|sanitize` run
 sanitizer on WebLogic's own HTML tokenizer (`web.UseSanitizerOptions(...)` to change the allowlist).
 Use it for rich-text form fields and any stored HTML.
 
+Styles and embeds are off by default. Turn on only what your editor produces:
+
+```csharp
+web.UseSanitizerOptions(new WebHtmlSanitizerOptions
+{
+    AllowedStyleProperties = new Dictionary<string, Func<string, bool>>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["width"] = WebCssValues.Percentage,                         // image resize
+        ["color"] = WebCssValues.Color,
+        ["text-align"] = WebCssValues.OneOf("left", "center", "right")
+    },
+    AllowedFrameSources = [new WebFrameSource("www.youtube-nocookie.com", "/embed/")]
+});
+```
+
+The `style` attribute is rebuilt from allowed declarations (no `url()`, comments, escapes or
+non-colour functions); a kept iframe gets a fixed `sandbox`, `allow` and referrer policy. Allowed frame
+hosts also need `security.headers.frameSources`.
+
 ## Template globals
 
 `ITemplateGlobalsProvider` adds values every template sees (`web.AddTemplateGlobals<T>()`), for example

@@ -54,6 +54,29 @@ public sealed class WebHtmlSanitizerOptions
     /// <summary><c>rel</c> written on every kept link (e.g. <c>nofollow ugc noopener</c>); null writes none.</summary>
     public string? LinkRel { get; init; } = "nofollow ugc noopener noreferrer";
 
+    /// <summary>
+    /// CSS properties allowed in <c>style</c> attributes, each with a value check (see
+    /// <see cref="WebCssValues"/>). Empty (the default) drops every <c>style</c> attribute. The
+    /// attribute is rebuilt from the allowed declarations only; values with comments, escapes, quotes,
+    /// <c>url()</c> or other functions than colour functions are always refused.
+    /// </summary>
+    public IDictionary<string, Func<string, bool>> AllowedStyleProperties { get; init; } =
+        new Dictionary<string, Func<string, bool>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Embeds kept as <c>iframe</c>: https only, exact host and path prefix (e.g. YouTube's
+    /// <c>/embed/</c>). Empty (the default) drops every iframe. A kept iframe carries only
+    /// <c>src</c>, <c>width</c>, <c>height</c>, <c>title</c>, <c>loading</c> and the global attributes, plus
+    /// <see cref="FrameSandbox"/>, <see cref="FrameAllow"/> and a referrer policy.
+    /// </summary>
+    public IList<WebFrameSource> AllowedFrameSources { get; init; } = [];
+
+    /// <summary><c>sandbox</c> written on every kept iframe.</summary>
+    public string FrameSandbox { get; init; } = "allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox";
+
+    /// <summary><c>allow</c> (permissions policy) written on every kept iframe; null writes none.</summary>
+    public string? FrameAllow { get; init; } = "accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen";
+
     /// <summary>Maximum element nesting kept; deeper elements are unwrapped.</summary>
     public int MaxDepth { get; init; } = 64;
 

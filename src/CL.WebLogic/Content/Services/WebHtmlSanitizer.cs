@@ -48,6 +48,15 @@ public sealed class WebHtmlSanitizer : IWebHtmlSanitizer
                     output.Append(TemplateEncoder.HtmlText(token.Text));
                     break;
 
+                case HtmlTokenKind.StartTag when token.Name == "iframe" && AllowedFrame(token) is { } src:
+                    WriteFrame(output, token, src);
+                    if (!token.SelfClosing)
+                    {
+                        dropping = "iframe"; // its fallback text and end tag
+                        dropDepth = 1;
+                    }
+                    break;
+
                 case HtmlTokenKind.StartTag when _options.DroppedElements.Contains(token.Name):
                     if (!token.SelfClosing && !VoidElements.Contains(token.Name))
                     {
@@ -87,6 +96,12 @@ public sealed class WebHtmlSanitizer : IWebHtmlSanitizer
 
         foreach (var (name, value) in token.Attributes)
         {
+            if (name == "style")
+            {
+                if (CleanStyle(value) is { Length: > 0 } style)
+                    output.Append(" style=\"").Append(Encoder.Encode(style)).Append('"');
+                continue;
+            }
             if (!_options.GlobalAttributes.Contains(name) && elementAttributes?.Contains(name) != true)
                 continue;
             if (_options.UrlAttributes.Contains(name) && !_options.UrlPolicy.IsAllowed(value))
@@ -103,6 +118,89 @@ public sealed class WebHtmlSanitizer : IWebHtmlSanitizer
             output.Append(" rel=\"").Append(Encoder.Encode(rel)).Append('"');
 
         output.Append('>');
+    }
+
+    /// <summary>The iframe's <c>src</c> when it matches an allowed frame source, otherwise null.</summary>
+    private string? AllowedFrame(HtmlToken token)
+    {
+        if (_options.AllowedFrameSources.Count == 0)
+            return null;
+        var src = token.Attributes.FirstOrDefault(a => a.Key == "src").Value;
+        return src is not null && _options.AllowedFrameSources.Any(f => f.Matches(src)) ? new Uri(src.Trim()).AbsoluteUri : null;
+    }
+
+    /// <summary>Rebuilds an allowed iframe: src, size, title, loading, global attributes and the fixed sandbox.</summary>
+    private void WriteFrame(StringBuilder output, HtmlToken token, string src)
+    {
+        output.Append("<iframe src=\"").Append(Encoder.Encode(src)).Append('"');
+        foreach (var (name, value) in token.Attributes)
+        {
+            var keep = name switch
+            {
+                "width" or "height" => IsSmallNumber(value),
+                "title" => true,
+                "loading" => value is "lazy" or "eager",
+                "src" or "style" => false,
+                _ => _options.GlobalAttributes.Contains(name)
+            };
+            if (keep)
+                output.Append(' ').Append(name).Append("=\"").Append(Encoder.Encode(value)).Append('"');
+        }
+        if (CleanStyle(token.Attributes.FirstOrDefault(a => a.Key == "style").Value) is { Length: > 0 } style)
+            output.Append(" style=\"").Append(Encoder.Encode(style)).Append('"');
+        output.Append(" sandbox=\"").Append(Encoder.Encode(_options.FrameSandbox)).Append('"');
+        if (_options.FrameAllow is { Length: > 0 } allow)
+            output.Append(" allow=\"").Append(Encoder.Encode(allow)).Append('"');
+        output.Append(" allowfullscreen referrerpolicy=\"strict-origin-when-cross-origin\"></iframe>");
+    }
+
+    /// <summary>
+    /// The allowed declarations of a <c>style</c> value, rebuilt as <c>name: value; …</c>, or null.
+    /// Anything that could load resources or escape the declaration is refused before the per-property
+    /// check: only letters, digits, space and <c># % . , ( ) - /</c> pass, no comments, and the only
+    /// functions are the colour functions.
+    /// </summary>
+    private string? CleanStyle(string? style)
+    {
+        if (string.IsNullOrWhiteSpace(style) || _options.AllowedStyleProperties.Count == 0 || style.Length > 1024)
+            return null;
+
+        var kept = new List<string>();
+        foreach (var declaration in style.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var colon = declaration.IndexOf(':');
+            if (colon <= 0)
+                continue;
+            var name = declaration[..colon].Trim().ToLowerInvariant();
+            var value = declaration[(colon + 1)..].Trim();
+            if (value.EndsWith("!important", StringComparison.OrdinalIgnoreCase))
+                value = value[..^"!important".Length].TrimEnd();
+            if (value.Length == 0 || !IsPlainCssValue(value))
+                continue;
+            if (_options.AllowedStyleProperties.TryGetValue(name, out var check) && check(value))
+                kept.Add(name + ": " + value);
+        }
+        return kept.Count == 0 ? null : string.Join("; ", kept);
+    }
+
+    private static bool IsPlainCssValue(string value)
+    {
+        if (value.Contains("/*", StringComparison.Ordinal))
+            return false;
+        foreach (var c in value)
+        {
+            if (!(char.IsAsciiLetterOrDigit(c) || c is ' ' or '#' or '%' or '.' or ',' or '(' or ')' or '-' or '/'))
+                return false;
+        }
+        var paren = value.IndexOf('(');
+        if (paren < 0)
+            return true;
+        // Only colour functions: rgb(, rgba(, hsl(, hsla( — nothing else may open a parenthesis.
+        var functionStart = paren;
+        while (functionStart > 0 && char.IsAsciiLetter(value[functionStart - 1]))
+            functionStart--;
+        var function = value[functionStart..paren].ToLowerInvariant();
+        return function is "rgb" or "rgba" or "hsl" or "hsla" && value.IndexOf('(', paren + 1) < 0;
     }
 
     private static bool IsSmallNumber(string value) =>

@@ -1,5 +1,23 @@
 # Changelog
 
+## 4.9.7-preview (2026-10-27)
+
+### Added
+
+- `WebHtmlSanitizer`: opt-in `style` declarations and embed iframes, for rich text that resizes images or
+  embeds videos.
+  - `WebHtmlSanitizerOptions.AllowedStyleProperties`: property name → value check. The attribute is
+    rebuilt from the allowed declarations only. Values with comments, escapes, quotes, `url()` or any
+    function other than `rgb()`/`rgba()`/`hsl()`/`hsla()` are refused before the check, as are
+    unknown properties; `!important` is stripped.
+  - `WebCssValues`: `Length`, `Percentage`, `Color`, `OneOf(...)`, `Any(...)` value checks.
+  - `WebHtmlSanitizerOptions.AllowedFrameSources` (`WebFrameSource(host, pathPrefix)`): https only,
+    exact host, default port, no user info. A kept iframe is rebuilt with `src`, `width`, `height`,
+    `title`, `loading` and the global attributes, plus `FrameSandbox`, `FrameAllow`, `allowfullscreen`
+    and `referrerpolicy="strict-origin-when-cross-origin"`; its fallback content is dropped.
+  - Defaults are unchanged: no `style` attributes, no iframes. Add the frame hosts to the CSP
+    (`security.headers.frameSources`) as well.
+
 ## 4.9.6-preview (2026-10-27)
 
 ### Security
