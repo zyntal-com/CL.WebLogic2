@@ -51,6 +51,10 @@ public static class WebFormDefinitionBuilder
             }
         }
 
+        // Posted names bind case-insensitively, so two fields may not differ only in case.
+        if (fields.GroupBy(f => f.Name, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1) is { } clash)
+            throw new InvalidOperationException(
+                $"Form model '{type}' has fields that differ only in case ({string.Join(", ", clash.Select(f => f.Name))}); posted names bind case-insensitively.");
         definition.Fields = [.. fields.OrderBy(f => f.Order)];
         definition.Steps = [.. steps.OrderBy(s => s.Step.Order).ThenBy(s => s.FirstUse).Select(s => s.Step)];
         if (definition.Steps.Count > 0)

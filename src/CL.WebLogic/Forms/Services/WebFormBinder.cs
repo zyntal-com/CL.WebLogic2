@@ -10,7 +10,8 @@ namespace CL.WebLogic.Forms.Services;
 /// <summary>
 /// Binds posted values to a new model instance. Only defined fields bind (no over-posting);
 /// read-only and hidden (show-when) fields keep their defaults; conversion failures and invalid
-/// fixed choices become errors. Files are bound separately by the upload checks.
+/// fixed choices become errors. Files are bound separately by the upload checks. Posted names match field
+/// names case-insensitively when the values dictionary uses a case-insensitive comparer (the form service does).
 /// </summary>
 public sealed partial class WebFormBinder
 {
@@ -102,7 +103,7 @@ public sealed partial class WebFormBinder
         var prefix = key + "[";
         foreach (var name in values.Keys)
         {
-            if (!name.StartsWith(prefix, StringComparison.Ordinal))
+            if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 continue;
             var match = RepeaterIndex().Match(name, prefix.Length);
             if (match.Success && match.Index == prefix.Length && int.TryParse(match.Groups[1].Value, out var index) && index < 10_000)

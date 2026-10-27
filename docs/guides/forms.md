@@ -86,6 +86,11 @@ b.MapPage("/signup", async (r, ct) =>
   success redirects with `303`.
 - `submission.AddError(field, message)` adds server-side errors (empty field = form-level).
 - `request.Forms.Prefill(model)` fills an edit form before rendering.
+- Posted names match field names case-insensitively (`email`, `Email` and `EMAIL` all bind to `Email`),
+  so clients that post lowercase or camelCase names need no mapping; files included. When a name is
+  posted twice in different case, a single-value field takes the first value. Only the model's fields
+  bind (`[WebIgnore]` properties never do), and a model whose fields differ only in case is refused
+  when the form is registered.
 
 ## Options and lookups
 

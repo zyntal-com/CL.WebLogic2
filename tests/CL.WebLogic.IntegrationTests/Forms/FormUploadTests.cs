@@ -20,7 +20,7 @@ public sealed class FormUploadTests
         return data;
     }
 
-    private static async Task<(HttpStatusCode Status, JsonElement Json)> UploadAsync(byte[] content, string fileName)
+    private static async Task<(HttpStatusCode Status, JsonElement Json)> UploadAsync(byte[] content, string fileName, string fieldName = "Avatar")
     {
         await using var host = await FormsTestSite.StartAsync();
         var page = await host.Client.GetStringAsync("/avatar");
@@ -29,7 +29,7 @@ public sealed class FormUploadTests
             multipart.Add(new StringContent(value), key);
         var file = new ByteArrayContent(content);
         file.Headers.ContentType = new MediaTypeHeaderValue("image/png"); // claimed type is never trusted
-        multipart.Add(file, "Avatar", fileName);
+        multipart.Add(file, fieldName, fileName);
         multipart.Add(new StringContent("hello"), "Caption");
 
         var response = await host.Client.SendAsync(FormsTestSite.AsClient(new HttpRequestMessage(HttpMethod.Post, "/avatar") { Content = multipart }));
@@ -47,6 +47,15 @@ public sealed class FormUploadTests
         Assert.Equal("image/png", data.GetProperty("detectedType").GetString());
         Assert.Equal(48, data.GetProperty("width").GetInt32());
         Assert.Equal(32, data.GetProperty("height").GetInt32());
+    }
+
+    [Fact]
+    public async Task File_fields_bind_whatever_the_case_of_the_posted_name()
+    {
+        var (status, json) = await UploadAsync(Png(48, 32), "me.png", fieldName: "avatar");
+
+        Assert.Equal(HttpStatusCode.OK, status);
+        Assert.Equal(48, json.GetProperty("data").GetProperty("width").GetInt32());
     }
 
     [Theory]

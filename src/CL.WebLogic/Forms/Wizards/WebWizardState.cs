@@ -50,7 +50,7 @@ public sealed class WebWizardState
             var payload = JsonSerializer.Deserialize<Payload>(_protector.Unprotect(token));
             if (payload is null || payload.FormId != formId || payload.ExpiresAt < _time.GetUtcNow().ToUnixTimeSeconds())
                 return null;
-            return (payload.Step, (payload.Values ?? []).ToDictionary(v => v.Key, v => new StringValues(v.Value), StringComparer.Ordinal));
+            return (payload.Step, (payload.Values ?? []).ToDictionary(v => v.Key, v => new StringValues(v.Value), StringComparer.OrdinalIgnoreCase));
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException)
         {
