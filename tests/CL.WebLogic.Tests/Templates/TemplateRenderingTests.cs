@@ -91,6 +91,53 @@ public sealed class TemplateRenderingTests
     }
 
     [Theory, MemberData(nameof(Engines))]
+    public async Task Img_src_allows_raster_data_images_only(string engine)
+    {
+        const string png = "data:image/png;base64,iVBORw0KGgo=";
+        var html = await Renderer(engine).RenderSourceAsync(
+            "<img src=\"{model:png}\"><img src=\"{model:svg}\"><a href=\"{model:png}\">x</a><img srcset=\"{model:png}\"><img alt=\"q\" src=\"{model:js}\">",
+            Model(("png", png), ("svg", "data:image/svg+xml;base64,PHN2Zz4="), ("js", "javascript:alert(1)")));
+
+        Assert.Equal(
+            $"<img src=\"{png}\"><img src=\"about:blank#blocked\"><a href=\"about:blank#blocked\">x</a>" +
+            "<img srcset=\"about:blank#blocked\"><img alt=\"q\" src=\"about:blank#blocked\">",
+            html);
+    }
+
+    [Theory, MemberData(nameof(Engines))]
+    public async Task Scripts_learn_the_document_layout(string engine)
+    {
+        var renderer = Renderer(engine);
+        var scripts = new LayoutCapturingScripts();
+        renderer.Scripts = scripts;
+        renderer.Templates
+            .Add("layouts/base", "<html><body>{renderbody}{weblogic_scripts}</body></html>")
+            .Add("layouts/main", "{layout:layouts/base}<main>{renderbody}</main>")
+            .Add("templates/page", "{layout:layouts/main}<h1>x</h1>")
+            .Add("templates/bare", "<p>{weblogic_scripts}</p>");
+
+        await renderer.RenderAsync("templates/page");
+        Assert.Equal("layouts/base.html", scripts.Layout);
+        await renderer.RenderAsync("templates/bare");
+        Assert.Equal("templates/bare.html", scripts.Layout);
+        await renderer.RenderAsync("templates/bare", ignoreLayout: true);
+        Assert.Null(scripts.Layout);
+    }
+
+    private sealed class LayoutCapturingScripts : ITemplateScriptProvider
+    {
+        public string? Layout { get; private set; }
+
+        public string GetScriptTags(HttpContext? httpContext, string nonce) => string.Empty;
+
+        public string GetScriptTags(HttpContext? httpContext, string nonce, string? layout)
+        {
+            Layout = layout;
+            return string.Empty;
+        }
+    }
+
+    [Theory, MemberData(nameof(Engines))]
     public async Task Partials_WithParameters_AndRecursionGuard(string engine)
     {
         var renderer = Renderer(engine);

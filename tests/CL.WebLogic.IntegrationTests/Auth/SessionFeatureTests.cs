@@ -61,6 +61,21 @@ public sealed class SessionFeatureTests
     }
 
     [Fact]
+    public async Task Signing_the_same_user_in_again_keeps_remember_me()
+    {
+        await using var host = await AuthTestSite.StartAsync();
+        await AuthTestSite.CreateUserAsync(host);
+
+        var remembered = host.CreateClient();
+        await AuthTestSite.PostRawAsync(remembered, "/auth/login", new { login = "alice", password = AuthTestSite.Password, remember = true });
+        Assert.Contains("expires=", SessionCookie(await AuthTestSite.PostRawAsync(remembered, "/auth/resign", new { })), StringComparison.OrdinalIgnoreCase);
+
+        var plain = host.CreateClient();
+        await AuthTestSite.PostRawAsync(plain, "/auth/login", new { login = "alice", password = AuthTestSite.Password });
+        Assert.DoesNotContain("expires=", SessionCookie(await AuthTestSite.PostRawAsync(plain, "/auth/resign", new { })), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Users_list_their_sessions_and_end_another_one()
     {
         await using var host = await AuthTestSite.StartAsync();

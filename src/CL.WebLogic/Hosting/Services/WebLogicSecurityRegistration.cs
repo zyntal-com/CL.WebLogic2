@@ -74,6 +74,8 @@ internal static class WebLogicSecurityRegistration
         services.TryAddSingleton<IWebAuditLog>(sp => sp.GetRequiredService<WebAuditLog>());
         services.TryAddSingleton<IWebAuditSink, NullAuditSink>();
         services.AddHostedService<AuditFlushService>();
+        services.AddHttpContextAccessor();
+        services.AddHostedService<WebAccountAuditRecorder>();
 
         // Template integration
         services.TryAddSingleton<ITemplateCsrfProvider>(sp => sp.GetRequiredService<WebCsrfTokens>());

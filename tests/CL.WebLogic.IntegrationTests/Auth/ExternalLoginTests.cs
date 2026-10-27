@@ -1,4 +1,5 @@
 using System.Net;
+using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.External;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Hosting.Services;
@@ -86,6 +87,24 @@ public sealed class ExternalLoginTests
         var other = host.CreateClient();
         state = (await other.GetAsync("/ext/fake")).Headers.Location!.ToString().Split("state=")[1];
         Assert.StartsWith("ok:steam-user:", await other.GetStringAsync("/ext/fake/callback?state=" + state + "&id=42"));
+    }
+
+    [Fact]
+    public async Task Unlinking_removes_the_identity_once()
+    {
+        await using var host = await StartAsync();
+        var changes = new List<ExternalLoginChangedEvent>();
+        host.Context.Events.Subscribe<ExternalLoginChangedEvent>(changes.Add);
+        var state = (await host.Client.GetAsync("/ext/fake")).Headers.Location!.ToString().Split("state=")[1];
+        await host.Client.GetStringAsync("/ext/fake/callback?state=" + state + "&id=42");
+        var flow = host.Services.GetRequiredService<WebExternalLoginFlow>();
+        var links = (IWebUserExternalLoginStore)host.Services.GetRequiredService<IWebUserStore>();
+        var user = (await links.FindByExternalLoginAsync("fake", "42", default))!;
+
+        Assert.True((await flow.UnlinkAsync(user, "fake", default)).IsSuccess);
+        Assert.Null(await links.FindByExternalLoginAsync("fake", "42", default));
+        Assert.Equal("weblogic.auth.external_login_not_found", (await flow.UnlinkAsync(user, "fake", default)).Error!.Code);
+        Assert.Equal([true, false], changes.Select(c => c.Linked));
     }
 
     private sealed class FakeProvider : IWebExternalLoginProvider

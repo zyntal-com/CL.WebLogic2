@@ -53,6 +53,14 @@ b.MapPage("/account/external/{provider}/callback", async (r, ct) =>
 `SignInExternalAsync` applies the account rules (disabled, locked, suspended, other tenant) and asks
 two-factor users for their code. The starter sample has the complete flow.
 
+## Linking and unlinking
+
+`flow.LinkAsync(user, info)` links an identity to a signed-in user and `flow.UnlinkAsync(user, provider)`
+removes it (`weblogic.auth.external_login_not_found` when there is none). Both raise
+`ExternalLoginChangedEvent` and are audited. Before unlinking, check that the user keeps another way to sign
+in (a password, a passkey or another provider). Custom user stores implement
+`IWebUserExternalLoginStore.RemoveExternalLoginAsync`; stores without it throw `NotSupportedException`.
+
 ## What is checked
 
 | Step | Check |

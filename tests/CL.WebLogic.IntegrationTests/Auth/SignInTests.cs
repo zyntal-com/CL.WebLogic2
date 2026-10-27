@@ -64,11 +64,12 @@ public sealed class SignInTests
     [Fact]
     public async Task Throttle_BacksOffPerLogin()
     {
+        // The first back-off is one second: freeze the clock so a slow runner cannot outlast it.
         await using var host = await AuthTestSite.StartAsync(c =>
         {
             c.Auth.Lockout.FreeAttempts = 2;
             c.Auth.Lockout.MaxFailedAttempts = 0;
-        });
+        }, w => w.Services.AddSingleton<TimeProvider>(new FrozenTime(DateTimeOffset.UtcNow)));
         await AuthTestSite.CreateUserAsync(host);
 
         await AuthTestSite.LoginAsync(host.Client, "alice", "nope nope 1");
@@ -253,4 +254,9 @@ public sealed class SignInTests
     private static string Code(string secret) => TotpCodes.At(secret, TotpCodes.CurrentStep + 1);
 
     private static string EnrollmentCode(string secret) => TotpCodes.At(secret, TotpCodes.CurrentStep);
+
+    private sealed class FrozenTime(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
 }

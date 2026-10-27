@@ -29,7 +29,10 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
     }
 
     /// <inheritdoc/>
-    public string GetScriptTags(HttpContext? httpContext, string nonce)
+    public string GetScriptTags(HttpContext? httpContext, string nonce) => GetScriptTags(httpContext, nonce, null);
+
+    /// <inheritdoc/>
+    public string GetScriptTags(HttpContext? httpContext, string nonce, string? layout)
     {
         var config = _config.Current;
         var client = config.Client;
@@ -41,7 +44,7 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
         var html = new StringBuilder();
 
         html.Append("<script type=\"application/json\" id=\"wl-config\">")
-            .Append(ConfigJson(basePath, client.Navigation))
+            .Append(ConfigJson(basePath, client.Navigation, layout))
             .Append("</script>\n");
 
         if (client.IncludeStylesheet)
@@ -54,7 +57,13 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
     }
 
     /// <summary>The client configuration JSON (safe inside a script element).</summary>
-    public string ConfigJson(string basePath, bool navigation)
+    public string ConfigJson(string basePath, bool navigation) => ConfigJson(basePath, navigation, null);
+
+    /// <summary>
+    /// The client configuration JSON (safe inside a script element). <paramref name="layout"/> (the document's outermost
+    /// template) lets partial navigation fall back to a full load when the next page uses another layout.
+    /// </summary>
+    public string ConfigJson(string basePath, bool navigation, string? layout)
     {
         var csrf = _config.Current.Security.Csrf;
         var realtime = _config.Current.Realtime;
@@ -66,6 +75,7 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
             ["csrfField"] = csrf.FieldName,
             ["csrfUrl"] = "/_weblogic/csrf",
             ["navigation"] = navigation,
+            ["layout"] = layout,
             ["debug"] = _environment.IsDevelopment(),
             ["realtime"] = new Dictionary<string, object?>
             {

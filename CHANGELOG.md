@@ -1,5 +1,60 @@
 # Changelog
 
+## 4.9.9-preview (2026-10-27)
+
+### Added
+
+- **Account changes are audited.** `WebAccountAuditRecorder` writes these to the audit log:
+  - registration, password change and reset;
+  - e-mail change;
+  - two-factor on/off, recovery codes regenerated or used;
+  - external logins linked or unlinked;
+  - API keys created or revoked;
+  - lockouts.
+  Changes made during a request carry the request (IP hash, path, trace id); others carry only the user.
+  Before, only sign-in/out, passkeys, re-authentication and session revokes were audited, so apps kept
+  their own logs for the rest. `AddHttpContextAccessor` is now registered.
+- **New events:**
+  - `EmailChangedEvent`, raised after a confirmed address change, in addition to `EmailConfirmedEvent`;
+  - `RecoveryCodesRegeneratedEvent`, which is not raised for the first codes created when two-factor is
+    turned on;
+  - `ExternalLoginChangedEvent`.
+- **Unlinking external logins:**
+  - `WebExternalLoginFlow.UnlinkAsync(user, provider)` fails with
+    `weblogic.auth.external_login_not_found` when there is no link;
+  - `IWebUserExternalLoginStore.RemoveExternalLoginAsync` is implemented by the in-memory and MySQL
+    stores. It is a default interface method, so existing custom stores still compile; they throw
+    `NotSupportedException` until they implement it;
+  - `LinkAsync` now raises `ExternalLoginChangedEvent`.
+- **`<img src>` accepts base64 raster `data:` images** (png, jpeg, gif, webp), for example a two-factor
+  QR code from `WebTwoFactorEnrollment.QrCodeDataUri`. SVG data, other `data:` URLs and `data:` in every
+  other URL attribute stay blocked. A new encoding context, `TemplateEncodingContext.ImageUrlAttribute`,
+  handles this.
+
+### Fixed
+
+- **Partial navigation between layouts.**
+  - **Before:** when a theme did not set `data-wl-layout` on its shells, a link to a page with another
+    layout swapped that page's shell content into the current layout.
+  - **Now:** WebLogic writes the document's outermost template into `wl-config` (`layout`), and the
+    client loads the page in full when it differs. A `data-wl-layout` set by the theme still wins.
+  - **API:** `ITemplateScriptProvider.GetScriptTags(httpContext, nonce, layout)` (default method) and
+    `TemplateRenderContext.DocumentTemplatePath`.
+- **Signing the same user in again kept dropping "remember me".** `SignInAsync` took `bool persistent`
+  (default `false`), so signing the same user in again turned a persistent session into a browser
+  session. It now takes `bool? persistent` (default `null`): null keeps the current choice for the same
+  user and means "not persistent" for anyone else. Callers passing `true`/`false` are unchanged; code
+  compiled against the old signature must be rebuilt.
+
+### Docs
+
+- `client.md`: requests (`wl.http.post` sends JSON; forms and uploads use `request(url, { method, form })`;
+  errors throw `HttpError`) and partial navigation across layouts.
+- `templates.md`: `<img src>` data images. The blocked-URL replacement is `about:blank#blocked`, not `#`.
+- `security-pipeline.md`: audit categories.
+- `external-logins.md`: linking and unlinking.
+- `authentication.md`: `persistent: null`.
+
 ## 4.9.8-preview (2026-10-27)
 
 ### Fixed

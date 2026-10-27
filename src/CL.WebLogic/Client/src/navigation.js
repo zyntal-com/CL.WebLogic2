@@ -2,10 +2,10 @@
  * Partial page navigation: same-origin link clicks inside a page with [data-wl-shell] fetch the
  * next page and swap only the shell's content, the title and the managed head nodes
  * ([data-wl-head]). Inline scripts are never re-run — modules are re-mounted instead. Anything
- * unusual (other origin, non-HTML, different data-wl-layout, network error) falls back to a
- * normal page load.
+ * unusual (other origin, non-HTML, another layout, network error) falls back to a normal page
+ * load. The layout is the shell's data-wl-layout, or else the server's "layout" in wl-config.
  */
-import { parseConfig } from './core.js';
+import { parseConfig, readConfig } from './core.js';
 import { isExecutableScript } from './dom.js';
 
 /**
@@ -28,6 +28,20 @@ export function shouldIntercept(link, event, location) {
   }
   if (url.origin !== location.origin || (url.protocol !== 'http:' && url.protocol !== 'https:')) return false;
   return !(url.hash && url.pathname === location.pathname && url.search === location.search);
+}
+
+/**
+ * True when two shells belong to the same layout: their data-wl-layout attributes, or else the
+ * "layout" (outermost template) the server wrote into each document's wl-config.
+ * @param {Element} shell
+ * @param {Element} incoming
+ * @param {{ layout?: string | null }} currentConfig
+ * @param {{ layout?: string | null }} nextConfig
+ */
+export function sameLayout(shell, incoming, currentConfig, nextConfig) {
+  const current = shell.getAttribute('data-wl-layout') ?? (currentConfig && currentConfig.layout) ?? '';
+  const next = incoming.getAttribute('data-wl-layout') ?? (nextConfig && nextConfig.layout) ?? '';
+  return current === next;
 }
 
 /**
@@ -86,7 +100,7 @@ export function createNavigation({ bus, ui, config, beforeSwap, afterSwap, onCon
       const next = new DOMParser().parseFromString(await response.text(), 'text/html');
       const shell = document.querySelector('[data-wl-shell]');
       const incoming = next.querySelector('[data-wl-shell]');
-      if (!shell || !incoming || (shell.getAttribute('data-wl-layout') || '') !== (incoming.getAttribute('data-wl-layout') || '')) {
+      if (!shell || !incoming || !sameLayout(shell, incoming, config, readConfig(next))) {
         globalThis.location.assign(finalUrl.href);
         return false;
       }

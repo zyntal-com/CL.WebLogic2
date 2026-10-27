@@ -208,7 +208,7 @@ public static class TemplateOps
                     output.Append(" nonce=\"").Append(TemplateEncoder.Html.Encode(nonce)).Append('"');
                 break;
             case TemplateKeyword.WebLogicScripts:
-                output.Append(context.Services.Scripts.GetScriptTags(context.HttpContext, context.Nonce));
+                output.Append(context.Services.Scripts.GetScriptTags(context.HttpContext, context.Nonce, context.DocumentTemplatePath));
                 break;
         }
     }

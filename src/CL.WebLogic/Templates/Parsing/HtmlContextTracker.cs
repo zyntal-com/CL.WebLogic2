@@ -36,7 +36,7 @@ internal sealed class HtmlContextTracker
         State.RawText => string.Equals(_rawTextElement, "script", StringComparison.OrdinalIgnoreCase)
             ? TemplateEncodingContext.Script
             : TemplateEncodingContext.Style,
-        State.AttrValueQuoted => ForAttribute(_attrName),
+        State.AttrValueQuoted => ForAttribute(_tagName, _attrName),
         State.AttrValueUnquoted or State.BeforeAttrValue => TemplateEncodingContext.UnquotedAttribute,
         _ => TemplateEncodingContext.TagBody
     };
@@ -164,13 +164,15 @@ internal sealed class HtmlContextTracker
         _state = State.Text;
     }
 
-    private static TemplateEncodingContext ForAttribute(string name)
+    private static TemplateEncodingContext ForAttribute(string tag, string name)
     {
         // srcdoc is an HTML document the browser entity-decodes and runs: as dangerous as a handler.
         if ((name.StartsWith("on", StringComparison.OrdinalIgnoreCase) && name.Length > 2) || string.Equals(name, "srcdoc", StringComparison.OrdinalIgnoreCase))
             return TemplateEncodingContext.EventHandler;
         if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase))
             return TemplateEncodingContext.StyleAttribute;
+        if (string.Equals(tag, "img", StringComparison.OrdinalIgnoreCase) && string.Equals(name, "src", StringComparison.OrdinalIgnoreCase))
+            return TemplateEncodingContext.ImageUrlAttribute;
         if (UrlAttributes.Contains(name))
             return TemplateEncodingContext.UrlAttribute;
         return TemplateEncodingContext.Attribute;

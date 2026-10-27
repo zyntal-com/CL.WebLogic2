@@ -52,7 +52,8 @@ Other `request.Auth` members: `CompleteTwoFactorAsync(code)`, `RedeemRecoveryCod
 `SignInWithMagicLinkAsync(token)`, `SignInExternalAsync(user, provider)`,
 `CompletePasswordChangeAsync(token, password)` (a refused password keeps the token and sets
 `result.Error` to the policy message, safe to show), `ReauthenticateAsync(password, code)`,
-`SignInAsync(user)` (after your own checks; skips the second factor), `SignOutAsync(everywhere)`,
+`SignInAsync(user, methods, persistent)` (after your own checks; skips the second factor; `persistent: null`
+keeps "remember me" when the same user is signed in again), `SignOutAsync(everywhere)`,
 `RefreshAsync()`, `ChangePasswordAsync(current, new)`, `ListSessionsAsync()`,
 `RevokeSessionAsync(idHash)` and `GetCurrentUserAsync()`.
 

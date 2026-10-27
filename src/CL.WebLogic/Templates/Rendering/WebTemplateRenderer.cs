@@ -98,6 +98,7 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
             TemplateOps.Enter(context, current.Path);
             visited.Add(current.Path);
             context.TemplatePath = current.Path;
+            context.DocumentTemplatePath = current.Path;
             await current.Body(context).ConfigureAwait(false);
         }
         finally

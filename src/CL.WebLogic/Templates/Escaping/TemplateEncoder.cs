@@ -44,6 +44,7 @@ public static class TemplateEncoder
         {
             TemplateEncodingContext.Plain => text,
             TemplateEncodingContext.UrlAttribute => Html.Encode(UrlSchemePolicy.Default.IsAllowed(text) ? text : BlockedUrl),
+            TemplateEncodingContext.ImageUrlAttribute => Html.Encode(UrlSchemePolicy.WithDataImages.IsAllowed(text) ? text : BlockedUrl),
             TemplateEncodingContext.StyleAttribute or TemplateEncodingContext.Style => Html.Encode(SanitizeCssValue(text)),
             TemplateEncodingContext.Script => JavaScriptEncoder.Default.Encode(text),
             TemplateEncodingContext.Html => HtmlText(text),

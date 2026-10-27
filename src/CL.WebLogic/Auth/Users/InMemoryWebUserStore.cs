@@ -86,4 +86,16 @@ public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, 
         _externalLogins[provider + "|" + providerKey] = userId;
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc/>
+    public Task<bool> RemoveExternalLoginAsync(string userId, string provider, CancellationToken cancellationToken)
+    {
+        var removed = false;
+        foreach (var (key, owner) in _externalLogins)
+        {
+            if (owner == userId && key.StartsWith(provider + "|", StringComparison.Ordinal))
+                removed |= _externalLogins.TryRemove(key, out _);
+        }
+        return Task.FromResult(removed);
+    }
 }

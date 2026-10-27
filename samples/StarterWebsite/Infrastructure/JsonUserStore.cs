@@ -86,6 +86,10 @@ public sealed class JsonUserStore : IWebUserStore, IWebUserLockoutStore, IWebUse
     public Task AddExternalLoginAsync(string userId, string provider, string providerKey, CancellationToken cancellationToken) =>
         _externalLogins.SetAsync(provider + "|" + providerKey, userId, cancellationToken);
 
+    /// <inheritdoc/>
+    public async Task<bool> RemoveExternalLoginAsync(string userId, string provider, CancellationToken cancellationToken) =>
+        await _externalLogins.RemoveWhereAsync((key, owner) => owner == userId && key.StartsWith(provider + "|", StringComparison.Ordinal), cancellationToken).ConfigureAwait(false) > 0;
+
     /// <summary>Number of accounts (for the home page).</summary>
     public async Task<int> CountAsync(CancellationToken cancellationToken) =>
         (await _users.WhereAsync(_ => true, cancellationToken).ConfigureAwait(false)).Count;
