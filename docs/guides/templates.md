@@ -35,7 +35,7 @@ default layout, if it has one: `b.MapGroup("/admin").WithLayout("admin/layout")`
 | `{model:title\|upper\|truncate:60}` | Filters, chained left to right |
 | `{if:model:items}...{else}...{/if}` | Truthiness; comparisons: `{if:model:count gt 0}` (`eq ne gt gte lt lte`) |
 | `{if:auth}`, `{ifnot:...}` | Signed in / negation |
-| `{foreach:model:posts as p}{p:title}{/foreach}` | Loops; `{loop:index}`, `{loop:first}`, `{loop:last}` |
+| `{foreach:model:posts as p}{p:title}{/foreach}` | Loops; `{loop:index}`, `{loop:first}`, `{loop:last}`. The alias can't be a directive or scope word (`t`, `section`, `item`, `loop`, `model`…): those already mean something before `:`, so the parser refuses them |
 | `{switch:model:status}{case:draft}...{default}...{/switch}` | Switch |
 | `{layout:layouts/main}` | First line of a page: render inside a layout |
 | `{section:scripts}...{/section}` / `{rendersection:scripts}` | Named sections |

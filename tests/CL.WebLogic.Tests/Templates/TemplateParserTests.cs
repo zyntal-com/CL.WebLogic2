@@ -148,6 +148,22 @@ public sealed class TemplateParserTests
         Assert.Contains("templates/list.html", ex.Message);
     }
 
+    [Theory]
+    [InlineData("t")]
+    [InlineData("section")]
+    [InlineData("Item")]
+    [InlineData("loop")]
+    public void ForeachAlias_ThatIsATemplateKeyword_IsAnError(string alias)
+    {
+        var ex = Assert.Throws<TemplateParseException>(() => TemplateParser.Parse($"<ul>{{foreach:model:tabs as {alias}}}<li>{{{alias}:label}}</li>{{/foreach}}</ul>"));
+
+        Assert.Contains($"'{alias}' can't be a foreach alias", ex.Message);
+    }
+
+    [Fact]
+    public void ForeachAlias_GroupIsAllowed() =>
+        Assert.NotNull(TemplateParser.Parse("<ul>{foreach:model:groups as group}<li>{group:name}</li>{/foreach}</ul>"));
+
     [Fact]
     public void StrayMarker_IsAnError() =>
         Assert.Throws<TemplateParseException>(() => TemplateParser.Parse("<p>{/if}</p>"));
