@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.9.10-preview (2026-10-29)
+
+### Fixed
+
+- **A foreach alias can no longer be a template keyword.** `{foreach:model:tabs as t}` followed by `{t:label}`
+  printed the text key "label" (the `{t:…}` text directive wins over the alias) with no error, and an alias named
+  `section` opened a section and failed later with an unrelated "Unexpected {empty}". The parser now refuses
+  aliases that are directive or scope words (`section`, `rendersection`, `foreach`, `if`, `ifnot`, `elseif`,
+  `switch`, `case`, `widgetarea`, `form`, `widget`, `partial`, `asset`, `t`, `raw`, `model`, `page`, `query`,
+  `route`, `item`, `param`, `loop`, `user`) with a message naming the alias. ThemeCheck reports it the same way.
+  The MiniBlog sample used `as t` and showed "url"/"name" instead of its tags; it now uses `tag`.
+
 ## 4.9.9-preview (2026-10-27)
 
 ### Added

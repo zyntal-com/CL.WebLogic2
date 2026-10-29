@@ -7,6 +7,14 @@ namespace CL.WebLogic.Templates.Parsing;
 // Block directives: foreach, section, if/elseif/else, switch, partial and widget.
 public sealed partial class TemplateParser
 {
+    // Words that already mean something before a ':' inside {…}. A foreach alias with one of these names is shadowed
+    // ({t:label} prints the text key "label") or opens a block ({section:x}), so it is refused up front.
+    private static readonly HashSet<string> ReservedAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "section", "rendersection", "foreach", "if", "ifnot", "elseif", "switch", "case", "widgetarea", "form", "widget",
+        "partial", "asset", "t", "raw", "model", "page", "query", "route", "item", "param", "loop", "user"
+    };
+
     private ForeachNode ParseForeach(string rest, int start)
     {
         var source = rest.Trim();
@@ -16,6 +24,8 @@ public sealed partial class TemplateParser
         {
             alias = source.Substring(asIndex + 4).Trim();
             source = source.Substring(0, asIndex).Trim();
+            if (ReservedAliases.Contains(alias))
+                throw Error($"'{alias}' can't be a foreach alias in {{foreach:{rest}}}: {{{alias}:…}} already means something in templates. Pick another name.", start);
         }
 
         var selector = SelectorSyntax.TryParseSelector(source, IsAlias) ?? throw Error($"Unknown scope in {{foreach:{rest}}}.", start);
