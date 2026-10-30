@@ -25,10 +25,12 @@ api.MapApi("/orders", CreateOrderAsync, "POST").RequirePolicy("orders-write");
 
 static async ValueTask<WebResult> CreateOrderAsync(WebRequestContext r, CancellationToken ct)
 {
-    var input = await r.ReadJsonAsync<CreateOrder>(ct);
-    if (input is null || input.Quantity <= 0)
-        return WebResult.ValidationProblem(new Dictionary<string, string[]> { ["quantity"] = ["Must be positive."] });
-    // ...
+    // 415 / 413 / 400 problems for wrong content type, oversized, malformed or invalid bodies;
+    // CreateOrder's DataAnnotations (e.g. [Range(1, 100)] Quantity) are the rules.
+    var input = await r.BindJsonAsync<CreateOrder>(ct);
+    if (!input.IsValid)
+        return input.ToProblem();
+    // ... input.Model
     return WebResult.Json(order, 201);
 }
 ```
