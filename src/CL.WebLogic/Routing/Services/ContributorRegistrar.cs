@@ -137,7 +137,12 @@ public sealed class ContributorRegistrar : IDisposable
 
         // Secure by default: every opt-out is visible at startup.
         foreach (var route in routes.Where(r => r.Metadata.AllowAnonymous))
-            _context.Logger.Info($"  anonymous route: {string.Join(",", route.Metadata.Methods)} {route.Metadata.Pattern}");
+        {
+            var m = route.Metadata;
+            _context.Logger.Info($"  anonymous route: {string.Join(",", m.Methods)} {m.Pattern}");
+            if (m.RequiredGroups.Count > 0 || m.RequiredPermissions.Count > 0 || m.Policies.Count > 0 || m.RecentSignIn is not null)
+                _context.Logger.Warning($"  anonymous route {m.Pattern} also has groups, permissions, policies or step-up; AllowAnonymous wins and they are not checked");
+        }
     }
 
     private sealed record Registration(WebContributionHandle Handle, IReadOnlyList<Func<ValueTask>> Cleanups);

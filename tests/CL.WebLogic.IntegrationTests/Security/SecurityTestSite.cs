@@ -39,6 +39,7 @@ internal static class SecurityTestSite
         b.MapApi("/perm", (_, _) => Text("perm")).RequirePermissions("posts.edit");
         b.MapApi("/policy", (_, _) => Text("policy")).RequirePolicy("editors");
         b.MapApi("/bad-policy", (_, _) => Text("bad")).RequirePolicy("does-not-exist");
+        b.MapGroup("/open").AllowAnonymous().MapApi("/policy", (_, _) => Text("open-policy")).RequirePolicy("editors");
 
         b.MapPage("/signin", async (r, ct) =>
         {
