@@ -72,8 +72,21 @@ test('keyed requests cancel the previous one', async () => {
   assert.deepEqual((await second).data, { ok: 2 });
 });
 
+test('errors keep the body; a plain message becomes the detail', async () => {
+  const body = { success: false, error: 'abuse_block', message: 'Come back in 24 hours.' };
+  const fetchImpl = fakeFetch(() => json(body, 429));
+  const http = createHttp({ config, fetchImpl, origin: 'https://site.test' });
+  const error = await http.get('/api/thing').then(() => null, (e) => e);
+  assert.ok(error instanceof HttpError);
+  assert.equal(error.status, 429);
+  assert.deepEqual(error.data, body);
+  assert.equal(error.problem.detail, 'Come back in 24 hours.');
+  assert.equal(error.message, 'Come back in 24 hours.');
+});
+
 test('problem helpers', () => {
   assert.equal(parseProblem(500, 'oops').title, 'Request failed (500)');
+  assert.equal(parseProblem(400, { detail: 'd', message: 'm' }).detail, 'd');
   assert.deepEqual(normalizeErrors({ a: '', b: [1, 'x'] }), { b: ['x'] });
   assert.deepEqual(normalizeErrors(['x']), {});
 });

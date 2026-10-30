@@ -34,6 +34,8 @@ export declare class HttpError extends Error {
   readonly status: number;
   readonly problem: Problem;
   readonly response: Response | null;
+  /** The parsed error body as it came (JSON or text), for errors that are not ProblemDetails. */
+  readonly data: unknown;
 }
 
 export interface RequestOptions {

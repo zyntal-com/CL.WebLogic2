@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.9.14-preview (2026-10-30)
+
+### Changed
+
+- **`HttpError` keeps the error body.** `error.data` is the parsed body as it came (JSON or text), so APIs whose
+  errors are not ProblemDetails (`{ success: false, error, message }`) no longer lose their text; a string
+  `message` field also fills `problem.detail` (and so the error's message) when there is no `detail`. Form posts
+  sent through the upload path behave the same.
+
 ## 4.9.13-preview (2026-10-30)
 
 ### Fixed

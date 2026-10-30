@@ -41,7 +41,8 @@ await wl.http.request('/search?q=' + encodeURIComponent(q), { key: 'search' }); 
 
 Every same-origin request carries the CSRF header, so POST routes accept them without a token field. Calls
 resolve to `{ data, status, headers, response }` (`data` is parsed JSON or text). A non-2xx response throws
-an `HttpError` with `status` and `problem` (ProblemDetails: `title`, `detail`, `errors`); a stale CSRF token
+an `HttpError` with `status`, `problem` (ProblemDetails: `title`, `detail`, `errors`; a plain `message` field
+counts as the detail) and `data` (the parsed body as it came, for errors in another shape); a stale CSRF token
 is refreshed and the request retried once.
 
 ## Partial navigation and layouts
