@@ -75,6 +75,8 @@ export function createNavigation({ bus, ui, config, beforeSwap, afterSwap, onCon
    */
   async function navigate(url, options = {}) {
     const target = new URL(url, globalThis.location.href);
+    // Only web pages: a javascript: or data: URL would run in this page.
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return false;
     if (!enabled || target.origin !== globalThis.location.origin) {
       globalThis.location.assign(target.href);
       return false;

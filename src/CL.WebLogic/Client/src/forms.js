@@ -120,10 +120,12 @@ export function createForms({ http, ui, commands, bus, navigate, config }) {
     setBusy(form, true);
     ui.progress.start();
     try {
-      const result = hasFiles(form)
+      const { data: result, url: answeredBy } = hasFiles(form)
         ? await upload(form, url, method, data)
-        : (await http.request(url, { method, form: data, headers: { Accept: 'application/json' }, key: 'form:' + url })).data;
-      handleResult(form, result);
+        : await http.request(url, { method, form: data, headers: { Accept: 'application/json' }, key: 'form:' + url })
+          .then((r) => ({ data: r.data, url: (r.response && r.response.url) || url }));
+      // Commands (which can swap HTML in) only come from this site, like widget fragments.
+      handleResult(form, result, isSameOrigin(answeredBy, globalThis.location.origin));
       return result;
     } catch (error) {
       handleError(form, error);
@@ -135,7 +137,7 @@ export function createForms({ http, ui, commands, bus, navigate, config }) {
     }
   }
 
-  function handleResult(form, result) {
+  function handleResult(form, result, trusted) {
     const r = result && typeof result === 'object' ? result : {};
     ui.clearErrors(form);
     if (r.ok === false) {
@@ -144,7 +146,7 @@ export function createForms({ http, ui, commands, bus, navigate, config }) {
       return;
     }
     if (typeof r.message === 'string' && r.message) ui.toast(r.message, 'success');
-    if (Array.isArray(r.commands)) commands.run(r.commands);
+    if (trusted && Array.isArray(r.commands)) commands.run(r.commands);
     if (form.hasAttribute('data-wl-reset')) form.reset();
     bus.emit('form:success', { form, result: r });
     form.dispatchEvent(new CustomEvent('wl:form-success', { bubbles: true, detail: r }));
@@ -186,7 +188,7 @@ export function createForms({ http, ui, commands, bus, navigate, config }) {
       xhr.addEventListener('load', async () => {
         const response = new Response(xhr.responseText, { status: xhr.status, headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') || '' } });
         const body = await readBody(response);
-        if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+        if (xhr.status >= 200 && xhr.status < 300) resolve({ data: body, url: xhr.responseURL || url });
         else reject(new HttpError(xhr.status, parseProblem(xhr.status, body), null, body));
       });
       xhr.addEventListener('error', () => reject(new HttpError(0, parseProblem(0, null), null)));
