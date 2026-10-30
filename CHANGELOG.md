@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 4.9.15-preview (2026-10-30)
 
 The new features below are opt-in: with no configuration, existing apps behave and render as before.
 
