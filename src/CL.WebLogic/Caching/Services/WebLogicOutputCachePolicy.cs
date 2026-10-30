@@ -1,5 +1,4 @@
 using CL.WebLogic.Security.Pipeline;
-using CL.WebLogic.Security.Sessions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OutputCaching;
 
@@ -24,11 +23,8 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
         var http = context.HttpContext;
         var security = WebSecurityContext.Get(http);
         var cacheable = HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method);
-        cacheable &= security?.Identity.IsAuthenticated != true && http.User.Identity?.IsAuthenticated != true;
-        cacheable &= !http.Request.Headers.ContainsKey("Authorization");
-        cacheable &= !Runtime.Services.WebFlash.IsPending(http);
-        if (http.RequestServices?.GetService(typeof(Configuration.Services.WebLogicConfigHolder)) is Configuration.Services.WebLogicConfigHolder config)
-            cacheable &= !http.Request.Cookies.ContainsKey(WebSessionCookies.SessionName(http, config.Current.Security.Session));
+        var config = http.RequestServices?.GetService(typeof(Configuration.Services.WebLogicConfigHolder)) as Configuration.Services.WebLogicConfigHolder;
+        cacheable &= !WebResponsePrivacy.IsPersonalRequest(http, config?.Current);
 
         context.EnableOutputCaching = true;
         context.AllowCacheLookup = cacheable;
@@ -56,14 +52,6 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
     public static bool IsStorable(HttpContext http)
     {
         ArgumentNullException.ThrowIfNull(http);
-        var response = http.Response;
-        if (response.StatusCode != StatusCodes.Status200OK || response.Headers.ContainsKey("Set-Cookie"))
-            return false;
-        var cacheControl = response.Headers.CacheControl.ToString();
-        if (cacheControl.Contains("no-store", StringComparison.OrdinalIgnoreCase) || cacheControl.Contains("private", StringComparison.OrdinalIgnoreCase))
-            return false;
-        if (WebSecurityContext.Get(http) is { CsrfTokenIssued: true })
-            return false;
-        return http.Features.Get<IWebSession>() is not LazyWebSession { Dirty: true } and not LazyWebSession { IssueCookie: true } and not LazyWebSession { Loaded: not null };
+        return http.Response.StatusCode == StatusCodes.Status200OK && !WebResponsePrivacy.IsPersonalResponse(http);
     }
 }
