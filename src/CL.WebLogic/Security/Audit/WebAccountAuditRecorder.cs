@@ -36,6 +36,13 @@ public sealed class WebAccountAuditRecorder : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         On<UserRegisteredEvent>(e => Record(e.UserId, "auth.account", "registered"));
+        On<UserDeletedEvent>(e =>
+        {
+            if (e.ByUserId is null)
+                Record(e.UserId, "auth.account", "deleted");
+            else
+                Record(e.UserId, "auth.account", "deleted", ("by", e.ByUserId));
+        });
         On<PasswordChangedEvent>(e => Record(e.UserId, "auth.password", e.ViaReset ? "reset" : "changed"));
         On<EmailChangedEvent>(e => Record(e.UserId, "auth.email", "changed"));
         On<TwoFactorChangedEvent>(e => Record(e.UserId, "auth.two-factor", e.Enabled ? "enabled" : "disabled"));

@@ -1,7 +1,9 @@
 using CL.WebLogic.Auth.Events;
 using CL.WebLogic.Auth.Notifications;
+using CL.WebLogic.Auth.Passkeys;
 using CL.WebLogic.Auth.Passwords;
 using CL.WebLogic.Auth.Tokens;
+using CL.WebLogic.Auth.TwoFactor;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
@@ -12,7 +14,7 @@ namespace CL.WebLogic.Auth.Accounts;
 
 /// <summary>
 /// Account lifecycle: registration, e-mail verification and change, password reset and change,
-/// magic links. E-mails go through the background notification queue. Links are built from
+/// magic links, deletion. E-mails go through the background notification queue. Links are built from
 /// <c>PublicBaseUrl</c> — never from the request's Host header.
 /// </summary>
 public sealed partial class WebAccountService
@@ -25,10 +27,13 @@ public sealed partial class WebAccountService
     private readonly IWebSessionStore _sessions;
     private readonly WebLogicConfigHolder _config;
     private readonly IWebLogicContext _context;
+    private readonly IWebPasskeyStore _passkeys;
+    private readonly IWebRecoveryCodeStore _recoveryCodes;
 
     /// <summary>Creates the service.</summary>
     public WebAccountService(IWebUserStore users, IWebPasswordHasher hasher, IWebPasswordPolicy policy, IWebSecurityTokenService tokens,
-        WebNotificationDispatcher notifications, IWebSessionStore sessions, WebLogicConfigHolder config, IWebLogicContext context)
+        WebNotificationDispatcher notifications, IWebSessionStore sessions, WebLogicConfigHolder config, IWebLogicContext context,
+        IWebPasskeyStore passkeys, IWebRecoveryCodeStore recoveryCodes)
     {
         _users = users ?? throw new ArgumentNullException(nameof(users));
         _hasher = hasher ?? throw new ArgumentNullException(nameof(hasher));
@@ -38,6 +43,8 @@ public sealed partial class WebAccountService
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
         _config = config ?? throw new ArgumentNullException(nameof(config));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _passkeys = passkeys ?? throw new ArgumentNullException(nameof(passkeys));
+        _recoveryCodes = recoveryCodes ?? throw new ArgumentNullException(nameof(recoveryCodes));
     }
 
     /// <summary>Creates an account (and sends the verification e-mail).</summary>

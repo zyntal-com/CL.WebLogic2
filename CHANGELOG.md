@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.9.12-preview (2026-10-30)
+
+### Added
+
+- **Deleting accounts.** `WebAccountService.DeleteAccountAsync(userId, byUserId, ct)` ends the user's sessions,
+  removes their passkeys and recovery codes, deletes the user, and ends sessions again afterwards (a request
+  running during the delete cannot leave one behind). Apps had to clear each store themselves, keyed by the exact
+  `WebUser.Id`; a wrong id format left sessions working until the next security-stamp check. Fails with
+  `weblogic.auth.delete_unsupported` or `weblogic.auth.user_not_found`.
+- **`IWebUserDeletionStore`**, an optional user-store capability: `DeleteAsync(userId)` removes the user, their
+  external-login links and the app's own data for the account. `InMemoryWebUserStore` and `MySqlWebUserStore`
+  implement it (MySQL: user and login rows in one transaction).
+- **`UserDeletedEvent(UserId, ByUserId)`**: audited as `auth.account` / `deleted` (with `by` for an administrator);
+  realtime connections of the user close.
+
+### Changed
+
+- `WebAccountService` takes `IWebPasskeyStore` and `IWebRecoveryCodeStore` in its constructor (both are always
+  registered; only code that constructs the service by hand needs to pass them).
+
 ## 4.9.11-preview (2026-10-30)
 
 ### Fixed

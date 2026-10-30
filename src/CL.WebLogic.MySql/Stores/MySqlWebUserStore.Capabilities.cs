@@ -69,6 +69,17 @@ public sealed partial class MySqlWebUserStore
         return removed;
     }
 
+    /// <inheritdoc/>
+    public async Task<bool> DeleteAsync(string userId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        await using var transaction = await _db.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        WebMySqlDatabase.Value(await _db.Query<UserLoginRow>(transaction).Where(l => l.UserId == userId).DeleteAsync(cancellationToken).ConfigureAwait(false));
+        var deleted = WebMySqlDatabase.Value(await _db.Query<UserRow>(transaction).Where(u => u.Id == userId).DeleteAsync(cancellationToken).ConfigureAwait(false));
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return deleted > 0;
+    }
+
     private static string LoginKey(string provider, string providerKey)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
