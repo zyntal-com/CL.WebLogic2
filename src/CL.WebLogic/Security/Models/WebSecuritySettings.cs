@@ -29,7 +29,14 @@ public sealed class WebSecuritySettings
             .Where(p => !string.IsNullOrWhiteSpace(p.Name))
             .GroupBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => RateLimitRule.From(g.Last()), StringComparer.OrdinalIgnoreCase);
-        ContentSecurityPolicy = CspBuilder.Build(security.Headers);
+        var assetsOrigin = ThemeConfig.AssetsOrigin(config.Theme.AssetsBaseUrl);
+        _assetSources = assetsOrigin is null
+            ? null
+            : new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+            {
+                ["script-src"] = [assetsOrigin], ["style-src"] = [assetsOrigin], ["font-src"] = [assetsOrigin], ["img-src"] = [assetsOrigin]
+            };
+        ContentSecurityPolicy = BuildPolicy(null);
         StrictTransportSecurity = BuildHsts(security.Https);
     }
 
@@ -68,6 +75,23 @@ public sealed class WebSecuritySettings
 
     /// <summary>CSP with a <c>{nonce}</c> placeholder, or null when disabled.</summary>
     public string? ContentSecurityPolicy { get; }
+
+    private readonly Dictionary<string, IReadOnlyList<string>>? _assetSources;
+
+    /// <summary>
+    /// Builds the CSP with a route's extra sources, plus the origin of <c>Theme.AssetsBaseUrl</c> when set; null when
+    /// CSP is disabled.
+    /// </summary>
+    public string? BuildPolicy(IReadOnlyDictionary<string, IReadOnlyList<string>>? additions)
+    {
+        if (_assetSources is null)
+            return CspBuilder.Build(Config.Headers, additions);
+        var merged = new Dictionary<string, IReadOnlyList<string>>(_assetSources, StringComparer.Ordinal);
+        if (additions is not null)
+            foreach (var (directive, sources) in additions)
+                merged[directive] = merged.TryGetValue(directive, out var existing) ? [.. existing, .. sources] : sources;
+        return CspBuilder.Build(Config.Headers, merged);
+    }
 
     /// <summary>HSTS header value, or null when disabled.</summary>
     public string? StrictTransportSecurity { get; }

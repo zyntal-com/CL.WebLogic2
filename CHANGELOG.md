@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **`Theme.AssetsBaseUrl` serves theme assets from a CDN or bucket.** When set to the absolute URL of an uploaded
+  copy of the assets folder, `{asset:}` writes `{base}/{path}?v={fingerprint}` and the origin joins the CSP's script,
+  style, font and image sources. The site still serves `/assets` (hard-coded links, plugin assets). Empty by default;
+  follows live config changes. `WebSecuritySettings.BuildPolicy` builds a CSP with those sources plus a route's.
+
 ## 4.9.15-preview (2026-10-30)
 
 The new features below are opt-in: with no configuration, existing apps behave and render as before.
