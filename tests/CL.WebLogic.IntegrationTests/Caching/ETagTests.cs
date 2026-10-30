@@ -56,7 +56,7 @@ public sealed class ETagTests
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         var tag = first.Headers.ETag;
         Assert.NotNull(tag);
-        Assert.False(tag.IsWeak);
+        Assert.True(tag.IsWeak); // one tag for every content encoding
         Assert.Equal("no-cache", first.Headers.CacheControl!.ToString());
         Assert.Equal("<p>v0</p>", await first.Content.ReadAsStringAsync());
 
@@ -65,8 +65,8 @@ public sealed class ETagTests
         Assert.Empty(await second.Content.ReadAsByteArrayAsync());
         Assert.Equal(tag, second.Headers.ETag);
 
-        var weak = await GetAsync(host.Client, "/tagged", new EntityTagHeaderValue(tag.Tag, isWeak: true));
-        Assert.Equal(HttpStatusCode.NotModified, weak.StatusCode);
+        var strong = await GetAsync(host.Client, "/tagged", new EntityTagHeaderValue(tag.Tag)); // weak comparison
+        Assert.Equal(HttpStatusCode.NotModified, strong.StatusCode);
     }
 
     [Fact]

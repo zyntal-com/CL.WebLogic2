@@ -13,8 +13,8 @@ namespace CL.WebLogic.Caching.Services;
 /// <summary>
 /// Conditional GET for pages and JSON. For page, fragment, API and fallback routes with ETags on
 /// (<c>WithETag()</c> or <c>Cache.ETags</c>), buffers the body of GET/HEAD requests, and when the
-/// answer is a non-personal 200 without its own ETag, adds a strong ETag (truncated SHA-256 of
-/// the body) and <c>Cache-Control: no-cache</c> when none is set. A matching <c>If-None-Match</c>
+/// answer is a non-personal 200 without its own ETag, adds a weak ETag (truncated SHA-256 of
+/// the uncompressed body, so it fits every encoding) and <c>Cache-Control: no-cache</c> when none is set. A matching <c>If-None-Match</c>
 /// gets a 304 without a body. Personal responses (<see cref="WebResponsePrivacy"/>) never get one.
 /// </summary>
 /// <remarks>
@@ -120,14 +120,14 @@ internal sealed class WebETagMiddleware
     {
         Span<byte> hash = stackalloc byte[SHA256.HashSizeInBytes];
         SHA256.HashData(body, hash);
-        return "\"" + Base64Url.EncodeToString(hash[..16]) + "\"";
+        return "W/\"" + Base64Url.EncodeToString(hash[..16]) + "\"";
     }
 
     private static bool Matches(StringValues ifNoneMatch, string tag)
     {
         if (StringValues.IsNullOrEmpty(ifNoneMatch) || !EntityTagHeaderValue.TryParseList(ifNoneMatch, out var candidates))
             return false;
-        var current = new EntityTagHeaderValue(tag);
+        var current = EntityTagHeaderValue.Parse(tag);
         return candidates.Any(c => c.Equals(EntityTagHeaderValue.Any) || c.Compare(current, useStrongComparison: false));
     }
 }

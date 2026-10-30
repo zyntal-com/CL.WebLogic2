@@ -39,7 +39,7 @@ b.MapApi("/api/menu", MenuAsync).AllowAnonymous().WithETag();
 ```
 
 The body of GET/HEAD requests is buffered (up to `cache.eTagMaxBytes`, 1 MB; larger bodies stream
-without an ETag). When the answer is a 200 without its own ETag, WebLogic adds a strong ETag (the first
+without an ETag). When the answer is a 200 without its own ETag, WebLogic adds a weak ETag (`W/"…"`, the first
 128 bits of the body's SHA-256) and `Cache-Control: no-cache` if the handler set none, so browsers
 revalidate every time. A matching `If-None-Match` gets a `304` without a body. The handler still runs
 (or the output cache answers): ETags save bandwidth, not server work.
