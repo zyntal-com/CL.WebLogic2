@@ -174,6 +174,24 @@ public sealed class AuthPrimitivesTests
         Assert.True((await tokens.ValidateAsync(WebTokenPurposes.PasswordReset, "garbage", false, default)).IsFailure);
     }
 
+    [Fact]
+    public async Task Regression_ASpentToken_CannotBeReusedByRespellingIt()
+    {
+        using var context = new FakeWebLogicContext();
+        var clock = new ManualTimeProvider();
+        var users = new InMemoryWebUserStore();
+        var user = new WebUser { Id = "u1", UserName = "alice" };
+        await users.CreateAsync(user, default);
+        var tokens = new WebSecurityTokenService(new EphemeralDataProtectionProvider(), users, new InMemoryOneTimeUseStore(clock), context, clock);
+
+        var token = tokens.Create(WebTokenPurposes.MagicLink, user, TimeSpan.FromMinutes(10));
+        Assert.True((await tokens.ValidateAsync(WebTokenPurposes.MagicLink, token, true, default)).IsSuccess);
+
+        // DataProtection reads all of these as the same token.
+        foreach (var respelled in new[] { token + "=", token.Insert(10, "    "), token.Insert(10, "	") })
+            Assert.True((await tokens.ValidateAsync(WebTokenPurposes.MagicLink, respelled, true, default)).IsFailure, respelled);
+    }
+
     private sealed class PlainLegacy : IWebPasswordAlgorithm
     {
         public string Id => "legacy";
