@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- **`RequirePolicy` makes a route require sign-in.** It did not clear `AllowAnonymous`, so a route in an
+  `AllowAnonymous()` group skipped its policy. Anonymous routes that still carry groups, permissions,
+  policies or step-up now log a warning at startup.
+- **Spent account links cannot be replayed.** One-time use was keyed on the token text, and DataProtection
+  accepts the same token with extra whitespace or `=` padding, so a used magic link worked again.
+- **No template values inside JavaScript template literals.** `|js` left `${…}` executable inside
+  `` `…` ``; such values are now parse errors. Quotes in `//` and `/* */` comments no longer confuse the
+  `|js` quote check.
+- **`ChangePasswordAsync` needs a signed-in browser session** and checks the current password through the
+  sign-in throttle and lockout. An API key or bearer token plus the password could change it and get a
+  fresh session cookie without the second factor.
+- **A locked account answers `LockedOut` for any password.** Only the right password said so, which made
+  guessing during a lock free.
+- **A user name may not equal another account's e-mail** (or the reverse); sign-in matched either and could
+  pick the wrong account.
+- **Steam** requires the identity fields in `openid.signed` and a response nonce at most five minutes old.
+- **Widget placement rules hold everywhere.** A widget left at `Dashboard = true` skipped its placements'
+  access rules at the widget endpoint and on dashboards; dashboard items may not reuse a placement's
+  instance id.
+- **Theme files behind a link in any folder below the theme root are refused** (only the file and its
+  parent folder were checked).
+- **Realtime:** `maxConnectionsPerClient` counts IPv6 clients per prefix like the rate limits, and revoking
+  an API key closes the connections opened with it.
+
 ## 4.9.14-preview (2026-10-30)
 
 ### Changed
