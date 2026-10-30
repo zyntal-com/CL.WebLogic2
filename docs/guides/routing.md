@@ -73,12 +73,72 @@ Unknown policy names fail closed (the request is refused), not open.
 `WebRequestContext` gives the handler:
 
 - `Identity` (`WebIdentity`: user, scheme, groups, permissions, scopes, tenant) and `Security`.
-- `GetRouteValue`, `GetQuery`, `GetQueryValues`, `GetHeader`, `GetCookie`, `ReadJsonAsync<T>`, `ReadBodyAsStringAsync`.
+- `GetRouteValue`, `GetQuery`, `GetQueryValues`, `GetHeader`, `GetCookie`, `ReadJsonAsync<T>`, `BindJsonAsync<T>`, `ReadBodyAsStringAsync`.
 - `Session`: a lazy per-request session; nothing is stored until you write.
 - `Auth`: sign-in helpers ([Authentication](authentication.md)).
 - `Forms`: bind, prefill and render forms ([Forms](forms.md)).
 - `Cache`: the fragment cache ([Caching](caching.md)).
 - `GetRequiredService<T>()` for app services.
+
+## Validated JSON bodies
+
+`ReadJsonAsync<T>` only deserializes. `BindJsonAsync<T>` also checks the request and validates the
+model with its DataAnnotations, so a JSON API needs no hand-written checks:
+
+```csharp
+public sealed class CreateOrder
+{
+    [Required, StringLength(100)]
+    public string? Name { get; set; }
+
+    public List<OrderLine> Items { get; set; } = [];
+}
+
+public sealed class OrderLine
+{
+    [Required]
+    public string? Name { get; set; }
+
+    [Range(1, 1000)]
+    public int Quantity { get; set; }
+}
+
+b.MapApi("/api/orders", async (request, ct) =>
+{
+    var binding = await request.BindJsonAsync<CreateOrder>(ct);
+    if (!binding.IsValid)
+        return binding.ToProblem();
+
+    var order = await orders.CreateAsync(binding.Model!, ct);
+    return WebResult.Json(order, 201);
+}, "POST");
+```
+
+| Request | `WebJsonBinding<T>` | `ToProblem()` |
+|---|---|---|
+| Content-Type is not JSON (`application/json` or `*+json`) | `StatusCode` 415, `weblogic.json.unsupported_media_type` | `415` problem |
+| Body over the route's limit (`WithBodyLimit`, default 1 MiB) | 413, `weblogic.json.too_large` | `413` problem |
+| Empty body, `null`, or not valid JSON | 400, `weblogic.json.empty` / `weblogic.json.malformed` | `400` problem (no parser details) |
+| A value of the wrong type (`"quantity": "many"`) | 400, `Errors["items[0].quantity"]` | `400` validation problem |
+| DataAnnotations or `IValidatableObject` fail | 400, `weblogic.json.invalid`, `Errors`, `Model` set | `400` validation problem |
+| Valid | `IsValid`, `Model` | — |
+
+- **Error keys are JSON paths** in the route's JSON options (camelCase by default, `[JsonPropertyName]`
+  respected): `name`, `address.city`, `items[1].name`, `lines[key].name`; `""` holds model-level
+  results of `IValidatableObject`. The validation problem has the `errors` shape the JS client already
+  reads (`HttpError.problem.errors`).
+- **Nested objects, collections and dictionaries** are validated recursively (up to 32 levels; a cycle
+  is walked once). Like DataAnnotations, an object's `IValidatableObject.Validate` and class-level
+  attributes run only once its members are valid.
+- **Unknown JSON properties are ignored**, and members the JSON contract skips (`[JsonIgnore]`) are
+  neither bound nor validated.
+- `[Required]` without its own message uses the localizable `forms.required` text, like form fields;
+  other attributes use their DataAnnotations message, and `[Display(Name = ...)]` sets the label.
+- Put attributes on properties. On a positional record write `[property: Required]`; prefer
+  `[Required]` over the C# `required` keyword, whose failure is a plain `400` without field errors.
+
+`WebJsonValidator` (a DI singleton) runs the same validation on any object:
+`validator.Validate(model, jsonOptions)` returns the errors by JSON path.
 
 ## Results
 
