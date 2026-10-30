@@ -1,5 +1,22 @@
 # Changelog
 
+## 4.9.13-preview (2026-10-30)
+
+### Fixed
+
+- **External sign-ins and account links started from a POST form work.** Browsers apply the page's
+  `form-action` to the redirect that follows a form post, so a form posting to a route that calls
+  `WebExternalLoginFlow.ChallengeAsync` was blocked under the default `form-action 'self'` (the browser stayed on
+  the page). The origins registered providers redirect to are now added to `form-action` on every page.
+
+### Added
+
+- **`IWebExternalLoginProvider.RedirectOrigins`** (default: none): the origins the challenge redirects to. Steam
+  answers `https://steamcommunity.com`; OAuth/OIDC providers the origins of `AuthorizationEndpoint` and
+  `Authority` (an issuer whose discovered authorization endpoint is on another host needs `AuthorizationEndpoint`
+  set, or the host in `headers.formActions`).
+- **`headers.externalLoginFormActions`** (default `true`) turns this off.
+
 ## 4.9.12-preview (2026-10-30)
 
 ### Added

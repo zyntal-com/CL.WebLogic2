@@ -66,6 +66,15 @@ public sealed class OAuthLoginTests : IDisposable
     }
 
     [Fact]
+    public async Task Redirect_origins_are_allowed_form_targets()
+    {
+        await using var host = await StartAsync(w => w.AddDiscordLogin("id", "secret"));
+        Assert.Equal(["https://discord.com"], host.Services.GetServices<IWebExternalLoginProvider>().Single().RedirectOrigins);
+        var csp = (await host.Client.GetAsync("/ext/discord")).Headers.GetValues("Content-Security-Policy").Single();
+        Assert.Contains("form-action 'self' https://discord.com", csp);
+    }
+
+    [Fact]
     public async Task OpenID_Connect_signs_in_with_PKCE_and_a_validated_ID_token()
     {
         await using var host = await StartAsync(web => web.AddGoogleLogin("google-client", "google-secret"));

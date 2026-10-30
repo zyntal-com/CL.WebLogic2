@@ -107,11 +107,48 @@ public sealed class ExternalLoginTests
         Assert.Equal([true, false], changes.Select(c => c.Linked));
     }
 
+    [Fact]
+    public async Task Provider_redirect_origins_are_allowed_form_targets()
+    {
+        await using var host = await AuthTestSite.StartAsync(web: w =>
+        {
+            w.AddExternalLoginProvider<FakeProvider>();
+            w.AddContributor(new DelegateContributor(b =>
+            {
+                b.MapPage("/link-page", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Html("<form method=post></form>"))).AllowAnonymous();
+                b.MapPage("/pay-page", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Html("<p>pay</p>"))).AllowAnonymous()
+                    .WithCsp(c => c.AddFormAction("https://pay.test"));
+            }), new WebContributorDescriptor { Id = "tests.ext-csp", Name = "External CSP" });
+        });
+
+        var csp = (await host.Client.GetAsync("/link-page")).Headers.GetValues("Content-Security-Policy").Single();
+        Assert.Contains("form-action 'self' https://idp.test", csp);
+        var routeCsp = (await host.Client.GetAsync("/pay-page")).Headers.GetValues("Content-Security-Policy").Single();
+        Assert.Contains("form-action 'self' https://pay.test https://idp.test", routeCsp);
+    }
+
+    [Fact]
+    public async Task Provider_redirect_origins_can_be_turned_off()
+    {
+        await using var host = await AuthTestSite.StartAsync(c => c.Security.Headers.ExternalLoginFormActions = false, w =>
+        {
+            w.AddExternalLoginProvider<FakeProvider>();
+            w.AddContributor(new DelegateContributor(b =>
+                b.MapPage("/link-page", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Html("<p>x</p>"))).AllowAnonymous()),
+                new WebContributorDescriptor { Id = "tests.ext-csp", Name = "External CSP" });
+        });
+
+        var csp = (await host.Client.GetAsync("/link-page")).Headers.GetValues("Content-Security-Policy").Single();
+        Assert.Contains("form-action 'self';", csp);
+    }
+
     private sealed class FakeProvider : IWebExternalLoginProvider
     {
         public string Name => "fake";
 
         public string DisplayName => "Fake";
+
+        public IReadOnlyList<string> RedirectOrigins => ["https://idp.test"];
 
         public ValueTask<string> GetChallengeUrlAsync(WebExternalChallenge challenge, CancellationToken cancellationToken) =>
             ValueTask.FromResult("https://idp.test/auth?redirect_uri=" + Uri.EscapeDataString(challenge.CallbackUrl) + "&state=" + challenge.State);

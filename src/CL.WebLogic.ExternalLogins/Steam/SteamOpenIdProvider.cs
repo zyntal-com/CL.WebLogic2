@@ -30,6 +30,9 @@ public sealed partial class SteamOpenIdProvider : IWebExternalLoginProvider
     public string DisplayName => "Steam";
 
     /// <inheritdoc/>
+    public IReadOnlyList<string> RedirectOrigins { get; } = ["https://steamcommunity.com"];
+
+    /// <inheritdoc/>
     public ValueTask<string> GetChallengeUrlAsync(WebExternalChallenge challenge, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(challenge);

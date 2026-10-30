@@ -53,6 +53,16 @@ public sealed class SteamLoginTests
     }
 
     [Fact]
+    public async Task Steam_is_an_allowed_form_target()
+    {
+        using var steam = new FakeSteam(valid: true);
+        await using var host = await StartAsync(steam);
+        Assert.Equal(["https://steamcommunity.com"], host.Services.GetServices<IWebExternalLoginProvider>().Single().RedirectOrigins);
+        var csp = (await host.Client.GetAsync("/ext/steam")).Headers.GetValues("Content-Security-Policy").Single();
+        Assert.Contains("form-action 'self' https://steamcommunity.com", csp);
+    }
+
+    [Fact]
     public async Task A_confirmed_assertion_signs_in_with_the_SteamID()
     {
         using var steam = new FakeSteam(valid: true);

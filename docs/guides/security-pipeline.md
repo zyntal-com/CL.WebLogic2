@@ -77,8 +77,8 @@ so cached pages never embed a token.
 
 The CSP is built from `security.headers` with a per-request nonce and `strict-dynamic`; templates add
 the nonce to their own `<script>` and `<style>` tags. Configurable sources: script, style, image,
-connect, font, frame, media, worker and manifest sources, extra `form-action` targets and frame
-ancestors; `object-src 'none'` and `base-uri 'self'` are fixed. Violation reports go to
+connect, font, frame, media, worker and manifest sources, extra `form-action` targets (registered external
+login providers add their redirect origins, see `externalLoginFormActions`) and frame ancestors; `object-src 'none'` and `base-uri 'self'` are fixed. Violation reports go to
 `cspReportUri` (`report-uri`) and/or `cspReportTo` (`Reporting-Endpoints` + `report-to`).
 
 A page that embeds third-party content widens the policy for itself only:
