@@ -31,8 +31,14 @@ public sealed class MySqlWebApiKeyStore : IWebApiKeyStore
         WebMySqlDatabase.Value(await _db.Repository<ApiKeyRow>().InsertAsync(ToRow(key), cancellationToken).ConfigureAwait(false));
 
     /// <inheritdoc/>
-    public async Task UpdateAsync(WebApiKey key, CancellationToken cancellationToken) =>
+    public async Task UpdateAsync(WebApiKey key, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        // Revocation is sticky: a stale copy from a concurrent "last used" update must not undo it.
+        if (key.RevokedAt is null && await FindByIdAsync(key.Id, cancellationToken).ConfigureAwait(false) is { RevokedAt: { } revoked })
+            key = key with { RevokedAt = revoked };
         WebMySqlDatabase.Value(await _db.Repository<ApiKeyRow>().UpdateAsync(ToRow(key), cancellationToken).ConfigureAwait(false));
+    }
 
     /// <inheritdoc/>
     public async Task<IReadOnlyList<WebApiKey>> ListAsync(string? userId, CancellationToken cancellationToken)

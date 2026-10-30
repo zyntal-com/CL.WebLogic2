@@ -12,7 +12,11 @@ public interface IWebApiKeyStore
     /// <summary>Stores a new key.</summary>
     Task CreateAsync(WebApiKey key, CancellationToken cancellationToken);
 
-    /// <summary>Saves a changed key (last use, revocation).</summary>
+    /// <summary>
+    /// Saves a changed key (last use, revocation). Revocation is sticky: when the stored key is
+    /// revoked, keep its <c>RevokedAt</c> even if <paramref name="key"/> (a stale copy written by a
+    /// concurrent "last used" update) has none, or a revoked key comes back to life.
+    /// </summary>
     Task UpdateAsync(WebApiKey key, CancellationToken cancellationToken);
 
     /// <summary>Keys of a user (or all keys when <paramref name="userId"/> is null).</summary>

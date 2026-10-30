@@ -192,6 +192,22 @@ public sealed class AuthPrimitivesTests
             Assert.True((await tokens.ValidateAsync(WebTokenPurposes.MagicLink, respelled, true, default)).IsFailure, respelled);
     }
 
+    [Fact]
+    public async Task Regression_A_stale_update_cannot_unrevoke_an_api_key()
+    {
+        // Security review: the "last used" touch wrote back a stale copy and undid a revocation.
+        var store = new CL.WebLogic.Auth.ApiKeys.InMemoryWebApiKeyStore();
+        var key = new CL.WebLogic.Auth.ApiKeys.WebApiKey { Id = "k1", Prefix = "p1", SecretHash = "h", Name = "bot", CreatedAt = DateTimeOffset.UtcNow };
+        await store.CreateAsync(key, default);
+
+        await store.UpdateAsync(key with { RevokedAt = DateTimeOffset.UtcNow }, default);
+        await store.UpdateAsync(key with { LastUsedAt = DateTimeOffset.UtcNow }, default);
+
+        var stored = (await store.FindByIdAsync("k1", default))!;
+        Assert.NotNull(stored.RevokedAt);
+        Assert.NotNull(stored.LastUsedAt);
+    }
+
     private sealed class PlainLegacy : IWebPasswordAlgorithm
     {
         public string Id => "legacy";
