@@ -71,6 +71,11 @@ These are documented trade-offs, not open bugs:
 - **Bearer-token realtime connections.** Session and API-key connections close when the session ends or
   the key is revoked. Identities from a custom bearer validator are not re-checked until
   `realtime.maxConnectionMinutes`; keep that short if such tokens can be revoked.
+- **Sanitized HTML keeps `class`.** User HTML may use any of the site's CSS classes, so with a CSS
+  framework a comment can lay a full-page overlay or a stretched link over the page. Remove `class` from
+  `WebHtmlSanitizerOptions` (or prefix-filter it) where untrusted users write HTML.
+- **Country allow-lists fail open** when GeoIP is missing or a lookup fails, unless
+  `security.ipRules.refuseUnknownCountry` is on.
 - **CSRF and `SameSite=Lax`.** The token is the protection; Lax cookies are defence in depth. Routes
   marked `AllowCrossSitePost()` (webhooks) must authenticate the sender themselves, for example with a
   signature.

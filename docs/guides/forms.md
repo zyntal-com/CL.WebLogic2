@@ -106,7 +106,10 @@ provider. Providers are private by default: set `AllowAnonymous` or a `Policy`. 
 HTTPS lookup, only to hosts listed in `forms.allowedLookupHosts`.
 
 Remote validation of a single field (`[WebField(Remote = true)]`) is served at
-`/_weblogic/forms/{form}/validate/{field}`; fields without `Remote` are not reachable there.
+`/_weblogic/forms/{form}/validate/{field}`; fields without `Remote` are not reachable there. The endpoint
+is open to anonymous callers (rate-limited), whatever the form's page requires, so never mark a field
+`Remote` when its answer reveals something, such as "this e-mail is already registered" on a sign-in,
+reset or magic-link form.
 
 ## Uploads
 

@@ -26,7 +26,26 @@
 - **Theme files behind a link in any folder below the theme root are refused** (only the file and its
   parent folder were checked).
 - **Realtime:** `maxConnectionsPerClient` counts IPv6 clients per prefix like the rate limits, and revoking
-  an API key closes the connections opened with it.
+  an API key closes the connections opened with it. Incoming WebSocket messages are limited per connection
+  (`realtime.incomingMessagesPerMinute`, 120); a client sending more is closed with 1008.
+- **Probe paths match whole segments** (`/health` no longer exempts `/healthcare`).
+- **A response carrying a CSRF token is always `no-store`**, even when the handler set its own `Cache-Control`.
+- **Uploads with an extension WebLogic has no signature for** (for example `.svg`, `.html`) refuse programs
+  and anything that starts like markup, as the sniffer's documentation already promised.
+- **Removing a passkey changes the security stamp**: sessions signed in with it end at their next check;
+  `request.Auth.DeletePasskeyAsync` keeps the current one.
+- **API key revocation is sticky**: both built-in stores keep `RevokedAt` when a concurrent "last used"
+  update writes a stale copy. Custom `IWebApiKeyStore`s should do the same (see its docs).
+- **Recovery code hashes use the password pepper** when one is set; codes stored earlier still redeem.
+- **Client:** form commands only run when this site answered the form, and `navigate()` refuses
+  `javascript:` and `data:` URLs.
+- **Setup warnings:** a missing client address or ignored proxy headers (every visitor would share one
+  rate-limit bucket) are logged once.
+
+### Added
+
+- **`security.ipRules.refuseUnknownCountry`** (default `false`): with a country allow-list, refuse clients
+  whose country cannot be looked up instead of letting them in.
 
 ## 4.9.14-preview (2026-10-30)
 
