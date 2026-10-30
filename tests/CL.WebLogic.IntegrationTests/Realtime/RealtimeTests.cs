@@ -179,6 +179,28 @@ public sealed class RealtimeTests
     }
 
     [Fact]
+    public async Task Regression_A_websocket_that_floods_messages_is_closed()
+    {
+        // Security review: incoming WebSocket messages had no rate limit.
+        await using var host = await SecurityTestSite.StartAsync(c => c.Realtime.IncomingMessagesPerMinute = 3);
+        var url = new Uri(host.BaseAddress.ToString().Replace("http://", "ws://", StringComparison.Ordinal) + "_weblogic/realtime/ws");
+        using var socket = new ClientWebSocket();
+        socket.Options.SetRequestHeader("Origin", host.BaseAddress.GetLeftPart(UriPartial.Authority));
+        await socket.ConnectAsync(url, CancellationToken.None);
+
+        var ping = Encoding.UTF8.GetBytes("{\"type\":\"ping\"}");
+        for (var i = 0; i < 4; i++)
+            await socket.SendAsync(ping, WebSocketMessageType.Text, true, CancellationToken.None);
+
+        var buffer = new byte[1024];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        WebSocketReceiveResult result;
+        do result = await socket.ReceiveAsync(buffer, timeout.Token);
+        while (result.MessageType != WebSocketMessageType.Close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, socket.CloseStatus);
+    }
+
+    [Fact]
     public async Task WebSockets_check_the_origin_and_answer_pings()
     {
         await using var host = await SecurityTestSite.StartAsync();
