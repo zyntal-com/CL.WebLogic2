@@ -3,19 +3,24 @@ import { isSameOrigin } from './url.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-/** A non-2xx response; `problem` is the parsed ProblemDetails (or a stand-in). */
+/**
+ * A non-2xx response; `problem` is the parsed ProblemDetails (or a stand-in), `data` the parsed body as it came
+ * (JSON or text), for APIs whose errors have another shape.
+ */
 export class HttpError extends Error {
   /**
    * @param {number} status
    * @param {{ title: string, detail: string, type: string, status: number, errors: Record<string, string[]> }} problem
    * @param {Response | null} response
+   * @param {unknown} [data]
    */
-  constructor(status, problem, response) {
+  constructor(status, problem, response, data = null) {
     super(problem.detail || problem.title || `HTTP ${status}`);
     this.name = 'HttpError';
     this.status = status;
     this.problem = problem;
     this.response = response;
+    this.data = data;
   }
 }
 
@@ -46,7 +51,8 @@ export function parseProblem(status, data) {
     status,
     type: text(body.type),
     title: text(body.title) || (status === 0 ? 'Network error' : `Request failed (${status})`),
-    detail: text(body.detail),
+    // `message` is the common non-ProblemDetails field ({ error, message }).
+    detail: text(body.detail) || text(body.message),
     errors: normalizeErrors(body.errors)
   };
 }
@@ -72,7 +78,7 @@ export function createHttp({ config, fetchImpl, origin }) {
     })
       .then(async (response) => {
         const data = await readBody(response);
-        if (!response.ok || !data || typeof data.token !== 'string') throw new HttpError(response.status, parseProblem(response.status, data), response);
+        if (!response.ok || !data || typeof data.token !== 'string') throw new HttpError(response.status, parseProblem(response.status, data), response, data);
         token = data.token;
         return token;
       })
@@ -124,7 +130,7 @@ export function createHttp({ config, fetchImpl, origin }) {
         response = await send(true); // the token may have rotated (sign-in, sign-out)
       }
       const data = await readBody(response);
-      if (!response.ok) throw new HttpError(response.status, parseProblem(response.status, data), response);
+      if (!response.ok) throw new HttpError(response.status, parseProblem(response.status, data), response, data);
       return { response, data, status: response.status, headers: response.headers };
     } finally {
       if (options.key && inflight.get(options.key) === controller) inflight.delete(options.key);

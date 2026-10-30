@@ -187,7 +187,7 @@ export function createForms({ http, ui, commands, bus, navigate, config }) {
         const response = new Response(xhr.responseText, { status: xhr.status, headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') || '' } });
         const body = await readBody(response);
         if (xhr.status >= 200 && xhr.status < 300) resolve(body);
-        else reject(new HttpError(xhr.status, parseProblem(xhr.status, body), null));
+        else reject(new HttpError(xhr.status, parseProblem(xhr.status, body), null, body));
       });
       xhr.addEventListener('error', () => reject(new HttpError(0, parseProblem(0, null), null)));
       xhr.addEventListener('abort', () => reject(new DOMException('Upload aborted', 'AbortError')));
