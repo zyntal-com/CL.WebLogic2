@@ -14,6 +14,20 @@ namespace CL.WebLogic.Tests.Security;
 public sealed class SecurityPrimitivesTests
 {
     [Theory]
+    [InlineData("/health", true)]
+    [InlineData("/health/live", true)]
+    [InlineData("/HEALTH/ready", true)]
+    [InlineData("/healthcare", false)] // security review: a plain prefix match exempted this too
+    [InlineData("/healthcare/admin", false)]
+    [InlineData("/other", false)]
+    public void Regression_ProbePaths_MatchWholeSegments(string path, bool expected)
+    {
+        var config = new WebLogicConfig();
+        config.Security.ProbePaths = ["/health/"];
+        Assert.Equal(expected, WebSecuritySettings.Compile(config, 1).IsProbePath(path));
+    }
+
+    [Theory]
     [InlineData("/dashboard?tab=1", "/dashboard?tab=1")]
     [InlineData("/", "/")]
     [InlineData("https://evil.test/", "/")]

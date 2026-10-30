@@ -72,9 +72,17 @@ public sealed class WebSecuritySettings
     /// <summary>HSTS header value, or null when disabled.</summary>
     public string? StrictTransportSecurity { get; }
 
-    /// <summary>True when the path is a probe path (exempt from host filtering and HTTPS redirection).</summary>
+    /// <summary>
+    /// True when the path is a probe path or below one (exempt from host filtering and HTTPS
+    /// redirection). Matches whole segments: <c>/health</c> covers <c>/health/live</c>, not <c>/healthcare</c>.
+    /// </summary>
     public bool IsProbePath(string? path) =>
-        path is not null && Config.ProbePaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        path is not null && Config.ProbePaths.Any(p =>
+        {
+            var probe = p.TrimEnd('/');
+            return path.StartsWith(probe, StringComparison.OrdinalIgnoreCase)
+                && (path.Length == probe.Length || path[probe.Length] == '/');
+        });
 
     /// <summary>Compiles <paramref name="config"/>.</summary>
     public static WebSecuritySettings Compile(WebLogicConfig config, long revision) => new(config, revision);
