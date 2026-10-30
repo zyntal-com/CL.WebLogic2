@@ -11,6 +11,7 @@ using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Security.Audit;
+using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.Sessions;
 
@@ -164,6 +165,13 @@ public sealed partial class WebAuthService
     /// <summary>Changes the signed-in user's password, ends their other sessions and keeps this one.</summary>
     public async Task<CodeLogic.Core.Results.Result> ChangePasswordAsync(WebSecurityContext security, string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
+        // Only a signed-in browser session: an API key or bearer token plus the password must not
+        // turn into a session that skipped the second factor.
+        ArgumentNullException.ThrowIfNull(security);
+        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
+        if (security.Identity.Scheme != WebAuthenticationSchemes.Session || session.AuthStage != WebSessionAuthStage.Authenticated
+            || !string.Equals(session.UserId, security.Identity.UserId, StringComparison.Ordinal))
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
         var user = await GetCurrentUserAsync(security, cancellationToken).ConfigureAwait(false);
         if (user is null)
             return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
@@ -172,7 +180,6 @@ public sealed partial class WebAuthService
         if (changed.IsFailure)
             return CodeLogic.Core.Results.Result.Failure(changed.Error!);
 
-        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
         await _sessionStore.DeleteForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
         await SignInCoreAsync(security, changed.Value!, session.AuthenticationMethods, fresh: false, persistent: null, cancellationToken).ConfigureAwait(false);
         return CodeLogic.Core.Results.Result.Success();

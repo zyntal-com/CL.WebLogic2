@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using CL.WebLogic.Auth.ApiKeys;
 using CL.WebLogic.Auth.Handlers;
@@ -64,6 +65,26 @@ public sealed class ApiAuthenticationTests
         await users.UpdateAsync((await users.FindByIdAsync(user.Id, default))! with { IsDisabled = true }, default);
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await SendAsync(host.CreateClient(), HttpMethod.Get, "/me", ("X-Api-Key", key))).StatusCode);
+    }
+
+    [Fact]
+    public async Task Regression_An_api_key_and_the_password_cannot_change_the_password_or_mint_a_session()
+    {
+        // Security review: change-password trusted any identity and signed the user in, skipping 2FA.
+        await using var host = await AuthTestSite.StartAsync();
+        var user = await AuthTestSite.CreateUserAsync(host);
+        var key = await CreateKeyAsync(host, new WebApiKeyRequest { Name = "mine", UserId = user.Id, Scopes = ["orders:read"] });
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/auth/change-password")
+        {
+            Content = JsonContent.Create(new { current = AuthTestSite.Password, newPassword = "an attacker passphrase" })
+        };
+        request.Headers.Add("X-Api-Key", key);
+        var response = await host.CreateClient().SendAsync(request);
+
+        Assert.Equal("weblogic.auth.not_signed_in", (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal("Succeeded", await AuthTestSite.LoginAsync(host.CreateClient()));
     }
 
     [Fact]
