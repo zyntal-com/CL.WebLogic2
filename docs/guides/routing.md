@@ -134,6 +134,37 @@ There is no pager directive; render it with a partial, for example `partials/pag
 </nav>
 ```
 
+## Sitemap and robots.txt
+
+Off unless registered:
+
+```csharp
+builder.AddCodeLogicWebLogic(web => web
+    .AddSitemap(o =>
+    {
+        o.ExcludePaths.Add("/login");                 // globs: /account/**
+        o.RobotsText = "User-agent: *\nDisallow: /admin/\n";
+    })
+    .UseSitemapProvider<PostSitemap>());              // optional: dynamic pages
+
+public sealed class PostSitemap(PostStore posts) : IWebSitemapProvider
+{
+    public async ValueTask<IReadOnlyList<WebSitemapEntry>> GetEntriesAsync(CancellationToken ct) =>
+        [.. (await posts.PublishedAsync(ct)).Select(p => new WebSitemapEntry { Path = "/posts/" + p.Slug, LastModified = p.UpdatedAt })];
+}
+```
+
+- `/sitemap.xml` lists every page route that is anonymous, answers GET, has no route parameters and no
+  group, permission or policy requirement, then the provider's entries (default `NullSitemapProvider`:
+  none). `/_weblogic/*` routes, routes tagged `.WithTags(WebSitemapOptions.ExcludeTag)` and
+  `ExcludePaths` are left out; duplicates are written once, at most `MaxEntries` (50,000).
+- URLs are absolute from `PublicBaseUrl`, never the request's Host header. Provider paths must be
+  local (`/posts/x`); anything else is skipped. Paths are percent-encoded and everything is XML-escaped.
+  Without `PublicBaseUrl` the sitemap answers 404 and logs a warning.
+- `/robots.txt` is `RobotsText` (default: allow everything) plus `Sitemap: {PublicBaseUrl}/sitemap.xml`.
+- Both send `Cache-Control: public, max-age=3600` (`CacheSeconds`). Turn either off with `ServeSitemap` /
+  `ServeRobots`. Do not also map your own `/sitemap.xml` or `/robots.txt`.
+
 ## The explorer
 
 `/_weblogic/explorer` (and `/_weblogic/explorer.json`) lists every route with its kind, methods,
