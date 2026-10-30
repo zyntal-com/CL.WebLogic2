@@ -50,7 +50,11 @@ Editors are signed in, so they always see fresh pages; visitors get cached ones.
 
 ## Feeds and sitemaps
 
-Return them as byte results with their content type from anonymous, cached routes:
+`web.AddSitemap()` serves `/sitemap.xml` and `/robots.txt`; posts come from your
+`IWebSitemapProvider` ([Sitemap and robots.txt](../guides/routing.md#sitemap-and-robotstxt)). MiniBlog
+predates it and maps its own `/sitemap.xml`; use one or the other, not both.
+
+Feeds (and a hand-written sitemap) are byte results with their content type from anonymous, cached routes:
 
 ```csharp
 b.MapPage("/feed.xml", async (r, ct) =>

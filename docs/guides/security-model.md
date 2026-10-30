@@ -65,7 +65,8 @@ These are documented trade-offs, not open bugs:
   honestly covers the Brotli, gzip and identity forms of a response.
 - **CSRF and `SameSite=Lax`.** The token is the protection; Lax cookies are defence in depth. Routes
   marked `AllowCrossSitePost()` (webhooks) must authenticate the sender themselves, for example with a
-  signature.
+  signature (`WebWebhookVerifier`, see [Webhooks](security-pipeline.md#webhooks)). Its timestamp window
+  limits replays but does not make delivery exactly-once; de-duplicate event ids where that matters.
 
 ## Reporting a vulnerability
 
