@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Sockets;
+using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.Services;
 using Microsoft.AspNetCore.Http;
@@ -12,6 +14,13 @@ namespace CL.WebLogic.Security.Stages;
 /// </summary>
 public sealed class ForwardedHeadersStage : IWebSecurityStage
 {
+    private readonly IWebLogicContext? _context;
+    private int _warnedUnknownClient;
+    private int _warnedIgnoredProxy;
+
+    /// <summary>Creates the stage; <paramref name="context"/> is used for one-time setup warnings.</summary>
+    public ForwardedHeadersStage(IWebLogicContext? context = null) => _context = context;
+
     /// <inheritdoc/>
     public string Name => "forwarded-headers";
 
@@ -27,7 +36,10 @@ public sealed class ForwardedHeadersStage : IWebSecurityStage
         var settings = context.Settings;
         var config = settings.Config.ForwardedHeaders;
         if (!config.Enabled || !IpNetworkParser.ContainsAny(settings.TrustedProxies, context.ClientIp))
+        {
+            WarnAboutSetup(context);
             return ValueTask.FromResult(WebSecurityDecision.Continue);
+        }
 
         var request = context.HttpContext.Request;
         var client = context.ClientIp!;
@@ -69,6 +81,35 @@ public sealed class ForwardedHeadersStage : IWebSecurityStage
             request.PathBase = new PathString(prefix!.TrimEnd('/')) + request.PathBase;
 
         return ValueTask.FromResult(WebSecurityDecision.Continue);
+    }
+
+    // Per-client limits (rate limits, throttles, realtime caps) key on the client address. Without
+    // one, or behind a proxy whose headers are ignored, every visitor shares a single bucket.
+    private void WarnAboutSetup(WebSecurityContext context)
+    {
+        if (_context is null)
+            return;
+        if (context.ClientIp is null)
+        {
+            if (Interlocked.Exchange(ref _warnedUnknownClient, 1) == 0)
+                _context.Logger.Warning("The client address is unknown (a Unix socket or an in-process server?): per-client rate limits, "
+                    + "throttles and realtime caps count every visitor together.");
+            return;
+        }
+        if (context.HttpContext.Request.Headers.ContainsKey("X-Forwarded-For") && IsPrivate(context.ClientIp)
+            && Interlocked.Exchange(ref _warnedIgnoredProxy, 1) == 0)
+            _context.Logger.Warning($"X-Forwarded-For from {context.ClientIp} is ignored (forwardedHeaders is off or the peer is not a trusted proxy): "
+                + "every visitor counts as the proxy for rate limits. Turn on forwardedHeaders and list the proxy in trustedProxies.");
+    }
+
+    private static bool IsPrivate(IPAddress address)
+    {
+        if (IPAddress.IsLoopback(address))
+            return true;
+        if (address.AddressFamily == AddressFamily.InterNetworkV6)
+            return address.IsIPv6UniqueLocal || address.IsIPv6LinkLocal;
+        var b = address.GetAddressBytes();
+        return b[0] == 10 || (b[0] == 172 && b[1] is >= 16 and <= 31) || (b[0] == 192 && b[1] == 168);
     }
 
     private static string? LastValue(Microsoft.Extensions.Primitives.StringValues values)
