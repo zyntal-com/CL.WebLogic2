@@ -112,7 +112,9 @@ Remote validation of a single field (`[WebField(Remote = true)]`) is served at
 
 `WebUploadedFile` properties are bound from multipart posts with size, count and extension limits,
 magic-byte detection (`DetectedType`) and image dimensions read by WebLogic's own header reader (PNG,
-JPEG, GIF, WebP, BMP). Nothing is stored automatically; call an `IWebUploadSink` (`web.UseUploadSink<T>()`,
+JPEG, GIF, WebP, BMP). The bytes must match the extension; an extension WebLogic has no signature for
+(for example `.svg` or `.html`) refuses programs and anything that starts like markup, because storage or a
+CDN that picks the content type from the name could serve it as a live page. Nothing is stored automatically; call an `IWebUploadSink` (`web.UseUploadSink<T>()`,
 default on CL.Storage) or handle the stream yourself. Stored names are random; the original name is
 only metadata.
 
