@@ -100,6 +100,7 @@ public static class WebLogicServiceCollectionExtensions
         services.TryAddSingleton<ITemplateLoader>(sp => sp.GetRequiredService<ThemeTemplateLoader>());
         services.TryAddSingleton<TemplateFilterRegistry>();
         services.TryAddSingleton<Client.Services.ClientAssetCatalog>(_ => new Client.Services.ClientAssetCatalog());
+        services.TryAddSingleton<Runtime.Services.WebFlash>();
         services.TryAddSingleton<Client.Services.ClientScriptProvider>();
         services.TryAddSingleton<Client.Services.ClientContributor>();
         services.TryAddSingleton<ITemplateScriptProvider>(sp => sp.GetRequiredService<Client.Services.ClientScriptProvider>());

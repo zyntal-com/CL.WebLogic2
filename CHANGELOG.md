@@ -1,5 +1,25 @@
 # Changelog
 
+## 4.9.11-preview (2026-10-30)
+
+### Fixed
+
+- **Form messages survive plain posts.** `FormResult.Success("Saved.", "/next")` only reached the user when the
+  WebLogic client posted the form; a plain post (no `data-wl-form`, or no JavaScript) got the 303 and the message
+  was lost. The message now travels to the next page as a one-shot flash and the client shows it as a toast.
+- **Plain posts with errors and no fallback template go back to the form.** They used to get a bare 422 text page
+  with the summary. When the post came from a page of this site (Referer, same scheme and host) they now get a 303
+  back to it and the errors as a `danger` toast; without such a Referer the 422 text answer stays.
+
+### Added
+
+- **`WebFlash`** (DI singleton): `Set(http, message, variant)` before any redirect, `Take(http)` to read and clear.
+  The message rides in the HttpOnly cookie `__Host-wl_flash` (no prefix over plain HTTP), protected with
+  DataProtection, valid for two minutes and cut to 500 characters; forged or expired cookies are dropped.
+  `{weblogic_scripts}` takes it into the client config as `flash: { message, variant }` (`success`, `info`,
+  `warning`, `danger`), and the client shows it once at start and after partial navigation (as text, never HTML).
+  Requests that carry the cookie skip the output cache so the message is not stuck behind a cached page.
+
 ## 4.9.10-preview (2026-10-29)
 
 ### Fixed

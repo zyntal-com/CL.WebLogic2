@@ -9,8 +9,10 @@ namespace CL.WebLogic.Results;
 /// <summary>
 /// The answer to a form post. For the WebLogic client (or JSON callers) it is the JSON form
 /// result <c>{ ok, formId, errors, summary, message, redirect, commands, data, step }</c>
-/// (status 200, or 422 for errors). Plain browser posts get a 303 redirect on success and the
-/// fallback page (422) on errors.
+/// (status 200, or 422 for errors). Plain browser posts get a 303 redirect on success (the message
+/// travels to the next page as a <see cref="WebFlash"/> toast) and the fallback page (422) on errors.
+/// Without a fallback template they go back to the posting page (a Referer on this site) with the
+/// errors as a toast, or get a plain 422 text answer when there is no such page.
 /// </summary>
 public sealed class FormResult : WebResult
 {
@@ -124,16 +126,39 @@ public sealed class FormResult : WebResult
             return;
         }
 
+        var flash = request.GetService<WebFlash>();
         if (Ok)
         {
+            flash?.Set(request.HttpContext, Message, "success");
             await new RedirectResult(RedirectUrl ?? (request.Path + request.QueryString), permanent: false, preserveMethod: false) { StatusCode = StatusCodes.Status303SeeOther }
+                .ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var problem = Summary ?? string.Join('\n', Errors.SelectMany(e => e.Value));
+        if (FallbackTemplate is null && flash is not null && LocalReferer(request) is { } back)
+        {
+            flash.Set(request.HttpContext, problem.Length > 0 ? problem : "Please correct the highlighted fields.", "danger");
+            await new RedirectResult(back, permanent: false, preserveMethod: false) { StatusCode = StatusCodes.Status303SeeOther }
                 .ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
             return;
         }
 
         WebResult fallback = FallbackTemplate is not null
             ? Page(FallbackTemplate, FallbackModel, statusCode: StatusCodes.Status422UnprocessableEntity)
-            : Text(Summary ?? string.Join('\n', Errors.SelectMany(e => e.Value)), StatusCodes.Status422UnprocessableEntity);
+            : Text(problem, StatusCodes.Status422UnprocessableEntity);
         await fallback.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The Referer as a local path when it is a page of this site (same scheme and host), else null.</summary>
+    private static string? LocalReferer(WebRequestContext request)
+    {
+        var http = request.HttpContext.Request;
+        if (!Uri.TryCreate(request.GetHeader("Referer"), UriKind.Absolute, out var referer)
+            || !string.Equals(referer.Scheme, http.Scheme, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(referer.Authority, http.Host.Value, StringComparison.OrdinalIgnoreCase))
+            return null;
+        var local = referer.PathAndQuery;
+        return WebUrl.IsLocal(local) ? local : null;
     }
 }

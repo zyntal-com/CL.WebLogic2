@@ -10,6 +10,8 @@ export interface WebLogicConfig {
   navigation: boolean;
   debug: boolean;
   realtime: RealtimeSettings | null;
+  /** One-shot message carried from a plain form post; shown as a toast at start, then cleared. */
+  flash: { message: string; variant: 'success' | 'info' | 'warning' | 'danger' } | null;
 }
 
 export interface RealtimeSettings {
