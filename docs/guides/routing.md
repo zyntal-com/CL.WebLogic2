@@ -96,6 +96,44 @@ Unknown policy names fail closed (the request is refused), not open.
 `WebPageMeta` sets the title, description, canonical URL, robots and Open Graph tags that
 `{renderhead}` writes.
 
+## Pagination
+
+`WebPagination` does the page arithmetic and clamps what came from the query string; `WebPageLinks`
+builds the links.
+
+```csharp
+b.MapPage("/posts", async (request, ct) =>
+{
+    var total = await posts.CountAsync(ct);
+    var pagination = WebPagination.Create(WebPagination.ParsePage(request), pageSize: 20, total); // max page size 100
+    var items = await posts.ListAsync(pagination.Skip, pagination.PageSize, ct);
+    return WebResult.Page("templates/posts", new { items, pager = WebPageLinks.Build(request, pagination) });
+}).AllowAnonymous();
+```
+
+- `Create(page, pageSize, totalItems, maxPageSize = 100)` clamps the page size to 1..max and the page
+  to 1..`TotalPages` (an empty list is page 1 of 1). It exposes `HasPrevious`, `HasNext`, `Skip`,
+  `FirstItem`, `LastItem`. `ParsePage` accepts digits only; anything else is page 1.
+- `pagination.Apply(list)` pages an in-memory sequence into a `WebPagedResult<T>` (`Items`, `Pagination`).
+- `WebPageLinks.Build(request, pagination, window = 2, parameter = "page")` returns `WebPagerLinks`:
+  `PreviousUrl`, `NextUrl`, `FirstUrl`, `LastUrl` (null when there is no such page) and `Pages`
+  (`Number`, `Url`, `IsCurrent`) around the current page. Every URL is the request's own local path
+  (with path base) and keeps the other query values (filters, search, sort); keys and values are
+  encoded and page 1 drops the parameter. `WebPageLinks.PageUrl(...)` builds a single link; the
+  overloads that take a path refuse anything but a local path.
+
+There is no pager directive; render it with a partial, for example `partials/pager.html`:
+
+```html
+<nav class="pager" aria-label="Pages">
+  {if:model:pager.previousUrl}<a href="{model:pager.previousUrl}" rel="prev">Previous</a>{/if}
+  {foreach:model:pager.pages as pg}
+    {if:pg:isCurrent}<span aria-current="page">{pg:number}</span>{else}<a href="{pg:url}">{pg:number}</a>{/if}
+  {/foreach}
+  {if:model:pager.nextUrl}<a href="{model:pager.nextUrl}" rel="next">Next</a>{/if}
+</nav>
+```
+
 ## The explorer
 
 `/_weblogic/explorer` (and `/_weblogic/explorer.json`) lists every route with its kind, methods,
