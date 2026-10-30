@@ -108,6 +108,8 @@ public sealed class DashboardTests
         Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(host.Client, token, new { version = 0, items = new[] { new { widgetName = "nope" } } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(host.Client, token, new { version = 0, items = new[] { new { widgetName = "counter" } } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(host.Client, token, new { version = 0, items = new[] { new { widgetName = "greeting", zone = "Bad Zone" } } })).StatusCode);
+        // Security review: a dashboard item may not take over a placement's instance id.
+        Assert.Equal(HttpStatusCode.BadRequest, (await PutAsync(host.Client, token, new { version = 0, items = new[] { new { widgetName = "greeting", zone = "main", instanceId = "side-counter" } } })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await PutAsync(host.Client, "", new { version = 0, items = Array.Empty<object>() })).StatusCode);
     }
 }

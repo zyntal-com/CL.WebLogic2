@@ -119,6 +119,33 @@ public sealed class WidgetTests
     }
 
     [Fact]
+    public async Task Regression_Placement_access_also_holds_for_dashboard_widgets()
+    {
+        // Security review: a widget left at Dashboard = true skipped its placements' rules at the
+        // endpoint and could be added to any dashboard.
+        await using var host = await WidgetTestSite.StartAsync();
+        var registrar = host.Services.GetRequiredService<ContributorRegistrar>();
+        await using var _ = await registrar.RegisterAsync(new DelegateContributor(b =>
+        {
+            b.MapWidget("server-stats", (_, _) => ValueTask.FromResult(WebWidgetResult.FromHtml("<p>stats</p>")));
+            b.PlaceWidget("side", "server-stats", o => o.Access = new CL.WebLogic.Security.Authorization.WebAccessRule { Groups = ["admin"] });
+        }), new WebContributorDescriptor { Id = "tests.server", Name = "Server" }, CancellationToken.None);
+
+        await host.Client.GetAsync("/signin?user=u1");
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.Client.GetAsync("/_weblogic/widgets/server-stats")).StatusCode);
+        var put = new HttpRequestMessage(HttpMethod.Put, "/_weblogic/dashboard/home")
+        {
+            Content = JsonContent.Create(new { version = 0, items = new[] { new { widgetName = "server-stats", zone = "main" } } })
+        };
+        put.Headers.Add("X-CSRF-Token", await SecurityTestSite.GetCsrfTokenAsync(host.Client));
+        Assert.Equal(HttpStatusCode.BadRequest, (await host.Client.SendAsync(put)).StatusCode);
+
+        var admin = host.CreateClient();
+        await admin.GetAsync("/signin?user=u2&groups=admin");
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/_weblogic/widgets/server-stats")).StatusCode);
+    }
+
+    [Fact]
     public async Task Failed_contributions_leave_nothing_behind_and_removal_cleans_up()
     {
         await using var host = await WidgetTestSite.StartAsync();
