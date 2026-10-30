@@ -1,4 +1,5 @@
 using System.Text;
+using CL.WebLogic.Diagnostics.Services;
 
 namespace CL.WebLogic.Templates.Rendering;
 
@@ -8,13 +9,21 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
     private readonly TemplateRenderServices _services;
     private readonly IEnumerable<ITemplateGlobalsProvider> _globals;
     private readonly IEnumerable<ITemplateRenderPreparer> _preparers;
+    private readonly WebLogicMetrics? _metrics;
 
     /// <summary>Creates the renderer.</summary>
     public WebTemplateRenderer(TemplateRenderServices services, IEnumerable<ITemplateGlobalsProvider> globals, IEnumerable<ITemplateRenderPreparer>? preparers = null)
+        : this(services, globals, preparers, null)
+    {
+    }
+
+    /// <summary>Creates the renderer with tracing (a span per render when a listener samples it).</summary>
+    public WebTemplateRenderer(TemplateRenderServices services, IEnumerable<ITemplateGlobalsProvider> globals, IEnumerable<ITemplateRenderPreparer>? preparers, WebLogicMetrics? metrics)
     {
         _preparers = preparers ?? [];
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _globals = globals ?? [];
+        _metrics = metrics;
     }
 
     /// <inheritdoc/>
@@ -25,6 +34,7 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
     {
         ArgumentNullException.ThrowIfNull(request);
         var path = TemplatePath.Normalize(request.TemplatePath);
+        using var activity = _metrics?.StartTemplateRender(path);
         var template = await _services.Loader.LoadAsync(path, cancellationToken).ConfigureAwait(false);
 
         var globals = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);

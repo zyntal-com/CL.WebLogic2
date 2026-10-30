@@ -36,5 +36,7 @@
   href: security-model.md
 - name: Performance
   href: performance.md
+- name: Observability
+  href: observability.md
 - name: Migrating from 0.x
   href: migrating.md

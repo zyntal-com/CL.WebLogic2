@@ -1,5 +1,6 @@
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Content.Services;
+using CL.WebLogic.Diagnostics.Services;
 using CL.WebLogic.Localization.Services;
 using CL.WebLogic.Routing.Services;
 using CL.WebLogic.Security.Headers;
@@ -66,6 +67,11 @@ public static class WebLogicServiceCollectionExtensions
         services.AddHostedService<PluginContributionWatcher>();
         services.AddHealthChecks().AddCheck<WebLogicHealthCheck>("weblogic", tags: ["ready"]);
         services.AddCors();
+
+        // Diagnostics: metrics and spans cost a flag check until a listener (OpenTelemetry) attaches.
+        services.AddMetrics();
+        services.TryAddSingleton<WebLogicMetrics>();
+        services.AddHostedService<WebLogicMetricsRecorder>();
 
         // Theming
         services.TryAddSingleton<WebThemeRoot>();
