@@ -34,7 +34,7 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `security.forwardedHeaders` | Off by default. Trusted proxies/networks, forward limit, `X-Forwarded-Prefix` |
 | `security.hosts` | Allowed hosts, redirect to the canonical host |
 | `security.https` | Redirect to HTTPS, HSTS |
-| `security.ipRules` | Allow/deny CIDRs, allow/deny countries (CL.NetUtils GeoIP), provider cache time |
+| `security.ipRules` | Allow/deny CIDRs, allow/deny countries (CL.NetUtils GeoIP), `refuseUnknownCountry` (an allow-list refuses clients whose country cannot be looked up; off = they get in), provider cache time |
 | `security.reputation` | DNS blocklists (CL.NetUtils), blocking or background mode |
 | `security.rateLimits` | Global per-client limit, named policies, tracked-key bound, IPv6 prefix length |
 | `security.limits` | Default body size and form field count |

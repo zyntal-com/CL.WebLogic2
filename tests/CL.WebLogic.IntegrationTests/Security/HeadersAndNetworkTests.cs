@@ -152,6 +152,21 @@ public sealed class HeadersAndNetworkTests
     }
 
     [Fact]
+    public async Task Country_allow_list_without_GeoIP_lets_clients_in_unless_told_to_refuse()
+    {
+        // Security review: an allow-list silently failed open without GeoIP; refusing is now an option.
+        await using (var open = await SecurityTestSite.StartAsync(c => c.Security.IpRules.AllowCountries.Add("DK")))
+            Assert.Equal(HttpStatusCode.OK, (await open.Client.GetAsync("/public")).StatusCode);
+
+        await using var strict = await SecurityTestSite.StartAsync(c =>
+        {
+            c.Security.IpRules.AllowCountries.Add("DK");
+            c.Security.IpRules.RefuseUnknownCountry = true;
+        });
+        Assert.Equal(HttpStatusCode.Forbidden, (await strict.Client.GetAsync("/public")).StatusCode);
+    }
+
+    [Fact]
     public async Task GlobalRateLimit_Returns429_WithRetryAfter()
     {
         await using var host = await SecurityTestSite.StartAsync(c =>

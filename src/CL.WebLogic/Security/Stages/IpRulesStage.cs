@@ -59,7 +59,12 @@ public sealed class IpRulesStage : IWebSecurityStage
 
         var country = await LookupCountryAsync(ip.ToString(), cancellationToken).ConfigureAwait(false);
         if (country.Length == 0)
-            return WebSecurityDecision.Continue;
+        {
+            // Unknown country: an allow-list fails open unless the operator asked otherwise.
+            return context.Settings.Config.IpRules.RefuseUnknownCountry && !rules.CountryAllowed("")
+                ? WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "country-unknown")
+                : WebSecurityDecision.Continue;
+        }
         if (rules.MatchDenyCountry(country) is { } countryRule)
             return WebSecurityDecision.Reject(StatusCodes.Status403Forbidden, "country-denied:" + country, countryRule);
         if (!rules.CountryAllowed(country))
@@ -76,7 +81,8 @@ public sealed class IpRulesStage : IWebSecurityStage
         if (netUtils is null || !netUtils.HasGeoIp)
         {
             if (Interlocked.Exchange(ref _warnedNoGeoIp, 1) == 0)
-                _context.Logger.Warning("Country rules are configured but CL.NetUtils GeoIP is not available; country rules are skipped.");
+                _context.Logger.Warning("Country rules are configured but CL.NetUtils GeoIP is not available; country rules are skipped "
+                    + "(an allow-list lets everyone in unless ipRules.refuseUnknownCountry is on).");
             return string.Empty;
         }
 
