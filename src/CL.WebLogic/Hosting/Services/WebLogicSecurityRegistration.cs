@@ -41,6 +41,7 @@ internal static class WebLogicSecurityRegistration
         services.TryAddSingleton<IWebSecurityRulesInvalidator>(sp => sp.GetRequiredService<WebSecurityRules>());
         services.TryAddSingleton<ResponseHardener>();
         services.TryAddSingleton<SecurityContributor>();
+        services.TryAddSingleton<Security.Webhooks.WebWebhookVerifier>();
 
         // Stages (built-in names are validated for order at startup)
         AddStage<ForwardedHeadersStage>(services);

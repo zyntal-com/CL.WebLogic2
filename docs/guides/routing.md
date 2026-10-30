@@ -62,7 +62,7 @@ On a route or a group:
 | `WithBodyLimit(bytes)` | Request body limit for this route |
 | `WithOutputCache(policy)` | Output cache policy (anonymous GET only; see [Caching](caching.md)) |
 | `WithCors(policy)` | An ASP.NET CORS policy |
-| `AllowCrossSitePost()` | Webhooks: skip CSRF origin checks (the route should verify a signature) |
+| `AllowCrossSitePost()` | Webhooks: skip CSRF origin checks (verify the sender with [`WebWebhookVerifier`](security-pipeline.md#webhooks)) |
 | `WithMiddleware(middleware)` | Per-route `IWebMiddleware` |
 | `WithName`, `WithDescription`, `WithTags` | Shown in the explorer |
 
