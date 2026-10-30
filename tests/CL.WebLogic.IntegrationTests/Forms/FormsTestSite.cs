@@ -34,6 +34,7 @@ internal static partial class FormsTestSite
         host.WriteContentFile("theme/layouts/main.html", "<!doctype html><html><head>{renderhead}</head><body>{renderbody}</body></html>");
         host.WriteContentFile("theme/templates/contact.html", "{layout:layouts/main}<h1>Contact</h1>{form:contact submit=\"Send it\"}");
         host.WriteContentFile("theme/templates/join.html", "{layout:layouts/main}{form:join}");
+        host.WriteContentFile("theme/templates/thanks.html", "<!doctype html><html><head></head><body><h1>Thanks</h1>{weblogic_scripts}</body></html>");
         return host;
     }
 
@@ -52,6 +53,13 @@ internal static partial class FormsTestSite
             if (!submission.IsValid)
                 return submission.Invalid(fallbackTemplate: "templates/contact");
             return FormResult.Success($"Thanks {submission.Model.Name}", "/thanks", new { submission.Model.Name, submission.Model.Country, submission.Model.IsAdmin });
+        }, "POST").AllowAnonymous();
+
+        b.MapPage("/thanks", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Page("templates/thanks"))).AllowAnonymous();
+        b.MapPage("/contact/quick", async (r, ct) =>
+        {
+            var submission = await r.Forms.BindAsync<ContactForm>(ct);
+            return submission.IsValid ? FormResult.Success("Saved.", "/thanks") : submission.Invalid("Check the form.");
         }, "POST").AllowAnonymous();
 
         b.MapPage("/join", (_, _) => ValueTask.FromResult<WebResult>(WebResult.Page("templates/join"))).AllowAnonymous();

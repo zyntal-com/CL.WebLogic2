@@ -82,8 +82,13 @@ b.MapPage("/signup", async (r, ct) =>
 
 - Posted by the client (`data-wl-form`): errors appear next to the fields without a reload;
   `FormResult` can carry a message, a redirect, data and client commands.
-- Posted without JavaScript: an invalid form re-renders `fallbackTemplate` with the values and errors;
-  success redirects with `303`.
+- Posted without the client (plain `<form method="post">` or no JavaScript): an invalid form re-renders
+  `fallbackTemplate` with the values and errors; success redirects with `303` and the message is shown on the next
+  page as a toast (a one-shot flash). An invalid form without `fallbackTemplate` goes back to the page it was posted
+  from (a Referer on this site) with the errors as a toast, otherwise it gets a plain `422` text answer.
+- Flash messages work for any redirect: call `WebFlash.Set(http, "Saved.", "success")` (inject `WebFlash`) and the
+  next page that renders `{weblogic_scripts}` shows it once. `WebFlash.Take(http)` reads and clears it if a page
+  wants to show it itself (for visitors without JavaScript).
 - `submission.AddError(field, message)` adds server-side errors (empty field = form-level).
 - `request.Forms.Prefill(model)` fills an edit form before rendering.
 - Posted names match field names case-insensitively (`email`, `Email` and `EMAIL` all bind to `Email`),

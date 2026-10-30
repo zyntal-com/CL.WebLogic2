@@ -2,7 +2,7 @@
  * WebLogic client entry: builds the runtime from the page configuration, exposes it as
  * `WebLogic` (also on globalThis) and starts it when the DOM is ready.
  */
-import { Bus, readConfig } from './core.js';
+import { Bus, readConfig, takeFlash } from './core.js';
 import { createCommands } from './commands.js';
 import { createDashboard } from './dashboard.js';
 import { append, el, parseHtml, qs, qsa, readJson, setBusy, swap } from './dom.js';
@@ -40,8 +40,15 @@ function create() {
       modules.unmount(shell);
     },
     afterSwap: (shell) => enhance(shell),
-    onConfig: (next) => Object.assign(config, next)
+    onConfig: (next) => {
+      Object.assign(config, next);
+      showFlash();
+    }
   });
+  const showFlash = () => {
+    const flash = takeFlash(config);
+    if (flash) ui.toast(flash.message, flash.variant);
+  };
   const navigate = (url) => navigation.navigate(url);
   const commands = createCommands({ ui, navigate, swap, enhance, unmount: modules.unmount });
   const forms = createForms({ http, ui, commands, bus, navigate, config });
@@ -57,6 +64,7 @@ function create() {
     for (const install of (globalThis.WebLogicPending || []).splice(0)) install(api);
     navigation.start();
     enhance(document.body);
+    showFlash();
     if (config.realtime && config.realtime.autoConnect) realtime.connect();
     bus.emit('ready', api);
     document.dispatchEvent(new CustomEvent('wl:ready', { detail: api }));

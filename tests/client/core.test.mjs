@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Bus, parseConfig, defaultConfig } from '../../src/CL.WebLogic/Client/src/core.js';
+import { Bus, parseConfig, defaultConfig, takeFlash } from '../../src/CL.WebLogic/Client/src/core.js';
 import { isLocalUrl, isSameOrigin, toLocalPath } from '../../src/CL.WebLogic/Client/src/url.js';
 
 test('parseConfig merges defaults and survives garbage', () => {
@@ -9,6 +9,14 @@ test('parseConfig merges defaults and survives garbage', () => {
   assert.deepEqual(parseConfig('not json'), { ...defaultConfig });
   assert.deepEqual(parseConfig('[1,2]'), { ...defaultConfig });
   assert.deepEqual(parseConfig(''), { ...defaultConfig });
+});
+
+test('takeFlash returns the message once and only as known variants', () => {
+  const config = parseConfig('{"flash":{"message":"Saved.","variant":"success"}}');
+  assert.deepEqual(takeFlash(config), { message: 'Saved.', variant: 'success' });
+  assert.equal(takeFlash(config), null);
+  assert.deepEqual(takeFlash({ flash: { message: 'x', variant: '<b>' } }), { message: 'x', variant: 'info' });
+  for (const bad of [null, undefined, {}, { flash: 'x' }, { flash: { message: '' } }, { flash: { message: 42 } }]) assert.equal(takeFlash(bad), null);
 });
 
 test('Bus on/once/off', () => {

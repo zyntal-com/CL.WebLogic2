@@ -7,8 +7,8 @@ namespace CL.WebLogic.Caching.Services;
 
 /// <summary>
 /// Added in front of every WebLogic output-cache policy. Lookups and storage only for anonymous
-/// GET/HEAD requests without credentials or a session cookie (a page may show anonymous session
-/// data such as a cart); nothing is stored when the response sets cookies,
+/// GET/HEAD requests without credentials, a session cookie (a page may show anonymous session
+/// data such as a cart) or a waiting flash message; nothing is stored when the response sets cookies,
 /// issued a CSRF token, wrote the session, is not 200 or is marked private/no-store. Entries
 /// vary by host, tenant and whether the WebLogic client asked (JSON vs HTML answers).
 /// </summary>
@@ -26,6 +26,7 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
         var cacheable = HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method);
         cacheable &= security?.Identity.IsAuthenticated != true && http.User.Identity?.IsAuthenticated != true;
         cacheable &= !http.Request.Headers.ContainsKey("Authorization");
+        cacheable &= !Runtime.Services.WebFlash.IsPending(http);
         if (http.RequestServices?.GetService(typeof(Configuration.Services.WebLogicConfigHolder)) is Configuration.Services.WebLogicConfigHolder config)
             cacheable &= !http.Request.Cookies.ContainsKey(WebSessionCookies.SessionName(http, config.Current.Security.Session));
 

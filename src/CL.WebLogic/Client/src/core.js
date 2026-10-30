@@ -12,8 +12,23 @@ export const defaultConfig = Object.freeze({
   csrfUrl: '/_weblogic/csrf',
   navigation: true,
   debug: false,
-  realtime: null
+  realtime: null,
+  flash: null
 });
+
+const FLASH_VARIANTS = ['success', 'info', 'warning', 'danger'];
+
+/**
+ * The one-shot message the server carried to this page (a form posted without the client), or null.
+ * @param {{ flash?: unknown } | null | undefined} config
+ * @returns {{ message: string, variant: string } | null}
+ */
+export function takeFlash(config) {
+  const flash = config ? config.flash : null;
+  if (config) config.flash = null;
+  if (!flash || typeof flash !== 'object' || typeof flash.message !== 'string' || !flash.message) return null;
+  return { message: flash.message, variant: FLASH_VARIANTS.includes(flash.variant) ? flash.variant : 'info' };
+}
 
 /**
  * Parses configuration JSON; anything invalid falls back to the defaults.
