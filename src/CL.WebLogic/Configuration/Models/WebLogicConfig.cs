@@ -52,6 +52,9 @@ public sealed class WebLogicConfig : ConfigModelBase
     /// <summary>Response compression (off by default).</summary>
     public CompressionConfig Compression { get; set; } = new();
 
+    /// <summary>Request cultures and localized texts (off by default).</summary>
+    public LocalizationConfig Localization { get; set; } = new();
+
     /// <summary>API explorer.</summary>
     public ExplorerConfig Explorer { get; set; } = new();
 
@@ -154,6 +157,8 @@ public sealed class WebLogicConfig : ConfigModelBase
 
         if (Theme.Source == ThemeSourceKind.Storage && string.IsNullOrWhiteSpace(Theme.StorageConnectionId))
             errors.Add("Theme.StorageConnectionId is required when Theme.Source is Storage");
+
+        errors.AddRange(Localization.Validate());
 
         return errors.Count == 0 ? ConfigValidationResult.Valid() : ConfigValidationResult.Invalid(errors);
     }

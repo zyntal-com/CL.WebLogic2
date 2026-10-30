@@ -66,7 +66,7 @@ public sealed class FormValidationTests
         Assert.Equal("Navn must be at most 3 characters.", messages.Format("maxLength", "Navn", 3));
     }
 
-    private sealed class DanishLocalizer : Localization.Services.IWebTextLocalizer
+    private sealed class DanishLocalizer : global::CL.WebLogic.Localization.Services.IWebTextLocalizer
     {
         public string GetText(string key, System.Globalization.CultureInfo? culture = null) => key == "forms.required" ? "{0} skal udfyldes." : key;
     }

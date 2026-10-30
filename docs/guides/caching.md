@@ -20,7 +20,8 @@ WebLogic's policy refuses to look up or store a response when:
 - the handler set a cookie, used the CSRF token or wrote the session,
 - the status is not 200, or the method is not GET/HEAD.
 
-Cache keys vary by tenant automatically. So a cached page never contains another user's data or a
+Cache keys vary by tenant automatically, and by the request culture when
+[localization](localization.md) is enabled. So a cached page never contains another user's data or a
 CSRF token. A page that renders `{form:...}` includes a token and is therefore not cached; buttons and
 scripts on cached pages can still post through the client (`WebLogic.http.post`, `data-wl-action`),
 which fetches a token from `/_weblogic/csrf` when it needs one.
@@ -79,7 +80,8 @@ var report = await request.Cache.GetOrAddAsync("sales:daily", async ct =>
 - Entries expire by time and are evicted by tag through the same `IWebCacheInvalidator`.
 - The default `MemoryFragmentCache` is bounded (`cache.fragmentMaxEntries`). Supply a shared one with
   `web.UseFragmentCache<T>()` (`IWebFragmentCache`) when nodes must agree.
-- Fragment keys are yours: include the tenant or user in the key when the content depends on them.
+- Keys are scoped to the tenant and, with localization enabled, to the request culture. Include the
+  user in the key when the content depends on them.
 
 ## Static files
 

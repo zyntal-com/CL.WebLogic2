@@ -55,7 +55,7 @@ is inferred from the property type and attributes when not given.
 
 **Rules:** `Required`, `StringLength`, `Range`, `EmailAddress`, `Url`, `Compare`, `RegularExpression`
 (with a timeout), plus `IWebFormValidator<T>` for cross-field and async rules (e.g. "name taken").
-Messages come from the localizer (`IWebTextLocalizer`).
+Messages come from the localizer (`IWebTextLocalizer`, keys `forms.required`, `forms.maxLength`, ...; see [Localization](localization.md)).
 
 ## Rendering
 
