@@ -94,6 +94,24 @@ public sealed class AccountLifecycleTests
     }
 
     [Fact]
+    public async Task Regression_ChangePassword_GuessesCountTowardsTheLockout()
+    {
+        // Security review: the current password was checked without throttle or lockout.
+        await using var host = await AuthTestSite.StartAsync(c =>
+        {
+            c.Auth.Lockout.MaxFailedAttempts = 3;
+            c.Auth.Lockout.FreeAttempts = 10;
+        });
+        await AuthTestSite.CreateUserAsync(host);
+        await AuthTestSite.LoginAsync(host.Client);
+
+        for (var i = 0; i < 3; i++)
+            await AuthTestSite.PostAsync(host.Client, "/auth/change-password", new { current = "wrong guess " + i, newPassword = "my new passphrase" });
+
+        Assert.Equal("weblogic.auth.locked_out", await AuthTestSite.PostAsync(host.Client, "/auth/change-password", new { current = AuthTestSite.Password, newPassword = "my new passphrase" }));
+    }
+
+    [Fact]
     public async Task MagicLink_SignsIn_Once()
     {
         await using var host = await AuthTestSite.StartAsync();
