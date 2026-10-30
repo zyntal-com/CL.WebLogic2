@@ -40,7 +40,11 @@ public sealed partial class WebAccountService
         return await SetPasswordAsync(user, newPassword, viaReset: true, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>Changes a password after checking the current one. The caller keeps the current session (see <c>request.Auth.ChangePasswordAsync</c>).</summary>
+    /// <summary>
+    /// Changes a password after checking the current one. The caller keeps the current session.
+    /// This check is not throttled: request handlers should use <c>request.Auth.ChangePasswordAsync</c>,
+    /// which checks the current password through the sign-in throttle and lockout.
+    /// </summary>
     public async Task<Result<WebUser>> ChangePasswordAsync(WebUser user, string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);

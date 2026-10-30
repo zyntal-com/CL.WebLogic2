@@ -24,6 +24,8 @@ internal sealed class HtmlContextTracker
     private string _pending = string.Empty;
     private char _jsQuote;
     private bool _jsEscape;
+    private char _jsComment;
+    private char _jsPrevious;
 
     private enum State { Text, Tag, TagName, AttrName, AfterAttrName, BeforeAttrValue, AttrValueQuoted, AttrValueUnquoted, Comment, RawText }
 
@@ -41,8 +43,14 @@ internal sealed class HtmlContextTracker
         _ => TemplateEncodingContext.TagBody
     };
 
-    /// <summary>True inside a quoted string literal of a script element (best effort: comments and regexes are not tracked).</summary>
-    public bool InScriptString => _state == State.RawText && _jsQuote != '\0';
+    /// <summary>
+    /// True inside a '…' or "…" string literal of a script element. Comments are skipped; regex
+    /// literals are not tracked (best effort), so keep quotes out of regexes before a |js value.
+    /// </summary>
+    public bool InScriptString => _state == State.RawText && _jsQuote is '"' or '\'';
+
+    /// <summary>True inside a `…` template literal of a script element, where <c>${…}</c> is code.</summary>
+    public bool InScriptTemplateLiteral => _state == State.RawText && _jsQuote == '`';
 
     /// <summary>True when the position is in element text (not in a tag, comment, script or style).</summary>
     public bool InText => _state == State.Text && _pending.Length == 0;
@@ -139,9 +147,24 @@ internal sealed class HtmlContextTracker
 
     private void TrackScriptString(char c)
     {
+        // A quote inside a comment ("// don't") must not open a string.
+        if (_jsComment != '\0')
+        {
+            var ends = _jsComment == '/' ? c is '\n' or '\r' : _jsPrevious == '*' && c == '/';
+            if (ends) _jsComment = '\0';
+            _jsPrevious = ends ? '\0' : c;
+            return;
+        }
         if (_jsQuote == '\0')
         {
+            if (_jsPrevious == '/' && c is '/' or '*')
+            {
+                _jsComment = c;
+                _jsPrevious = '\0';
+                return;
+            }
             if (c is '"' or '\'' or '`') _jsQuote = c;
+            _jsPrevious = c;
             return;
         }
         if (_jsEscape) _jsEscape = false;
@@ -153,6 +176,8 @@ internal sealed class HtmlContextTracker
     {
         _jsQuote = '\0';
         _jsEscape = false;
+        _jsComment = '\0';
+        _jsPrevious = '\0';
         if (!_closingTag && (string.Equals(_tagName, "script", StringComparison.OrdinalIgnoreCase)
                              || string.Equals(_tagName, "style", StringComparison.OrdinalIgnoreCase)))
         {

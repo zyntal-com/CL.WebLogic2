@@ -56,6 +56,11 @@ public sealed class RealtimeConfig
     [ConfigField(Label = "Allowed Origins", Group = "Realtime", Order = 11, Collapsed = true)]
     public List<string> AllowedOrigins { get; set; } = [];
 
+    /// <summary>Messages one WebSocket client may send per minute (pings included); more closes the socket.</summary>
+    [ConfigField(Label = "Incoming Messages / Minute", Description = "Messages one WebSocket client may send per minute (pings included); more closes the socket.",
+        Min = 1, Max = 100000, Group = "Realtime", Order = 18, Collapsed = true)]
+    public int IncomingMessagesPerMinute { get; set; } = 120;
+
     /// <summary>Lifetime of connection tickets (cross-origin clients without cookies).</summary>
     [ConfigField(Label = "Ticket Seconds", Min = 10, Max = 3600, Group = "Realtime", Order = 12, Collapsed = true)]
     public int TicketSeconds { get; set; } = 60;

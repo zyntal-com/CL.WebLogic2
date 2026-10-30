@@ -126,10 +126,15 @@ public sealed partial class WebAuthService
         await SessionUserAsync(security, cancellationToken).ConfigureAwait(false) is { } user
         && await Passkeys.RenameAsync(user, credentialId, name, cancellationToken).ConfigureAwait(false);
 
-    /// <summary>Removes one of the signed-in user's passkeys.</summary>
-    public async Task<bool> DeletePasskeyAsync(WebSecurityContext security, string credentialId, CancellationToken cancellationToken) =>
-        await SessionUserAsync(security, cancellationToken).ConfigureAwait(false) is { } user
-        && await Passkeys.DeleteAsync(security, user, credentialId, cancellationToken).ConfigureAwait(false);
+    /// <summary>Removes one of the signed-in user's passkeys; other sessions end, this one is kept.</summary>
+    public async Task<bool> DeletePasskeyAsync(WebSecurityContext security, string credentialId, CancellationToken cancellationToken)
+    {
+        if (await SessionUserAsync(security, cancellationToken).ConfigureAwait(false) is not { } user
+            || !await Passkeys.DeleteAsync(security, user, credentialId, cancellationToken).ConfigureAwait(false))
+            return false;
+        await RefreshAsync(security, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
 
     /// <summary>Account rules after a verified passkey: like <see cref="Evaluate"/>, minus lockout and the TOTP step.</summary>
     private WebSignInResult EvaluatePasskey(WebSecurityContext security, WebUser user) =>

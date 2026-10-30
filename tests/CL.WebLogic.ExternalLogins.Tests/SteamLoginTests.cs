@@ -38,7 +38,10 @@ public sealed class SteamLoginTests
             ConfigureServices = services => services.AddHttpClient(WebExternalLoginHttp.ClientName).ConfigurePrimaryHttpMessageHandler(() => steam)
         });
 
-    private static async Task<(string ReturnTo, string Callback)> ChallengeAsync(WebLogicTestHost host, string claimedId = "https://steamcommunity.com/openid/id/" + SteamId)
+    private const string Signed = "signed,op_endpoint,claimed_id,identity,return_to,response_nonce,assoc_handle";
+
+    private static async Task<(string ReturnTo, string Callback)> ChallengeAsync(WebLogicTestHost host, string claimedId = "https://steamcommunity.com/openid/id/" + SteamId,
+        string signed = Signed, DateTimeOffset? issued = null)
     {
         var location = (await host.Client.GetAsync("/ext/steam")).Headers.Location!;
         Assert.StartsWith("https://steamcommunity.com/openid/login?", location.ToString());
@@ -47,7 +50,9 @@ public sealed class SteamLoginTests
         {
             ("openid.ns", "http://specs.openid.net/auth/2.0"), ("openid.mode", "id_res"),
             ("openid.op_endpoint", "https://steamcommunity.com/openid/login"), ("openid.claimed_id", claimedId),
-            ("openid.identity", claimedId), ("openid.return_to", returnTo), ("openid.sig", "c2ln")
+            ("openid.identity", claimedId), ("openid.return_to", returnTo), ("openid.sig", "c2ln"),
+            ("openid.response_nonce", (issued ?? DateTimeOffset.UtcNow).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture) + "abc123"),
+            ("openid.assoc_handle", "1234567890"), ("openid.signed", signed)
         }.Select(p => p.Item1 + "=" + Uri.EscapeDataString(p.Item2)));
         return (returnTo, new Uri(returnTo).PathAndQuery + "&" + query);
     }
@@ -86,6 +91,20 @@ public sealed class SteamLoginTests
         Assert.Equal("failed:Steam returned an unexpected identity.",
             await other.Client.GetStringAsync((await ChallengeAsync(other, "https://evil.test/openid/id/" + SteamId)).Callback));
         Assert.Null(trusting.LastBody); // refused before asking Steam
+    }
+
+    [Fact]
+    public async Task Regression_Unsigned_fields_or_an_old_nonce_are_refused_before_asking_Steam()
+    {
+        // Security review: is_valid only covers the signed fields, so claimed_id must be one of them.
+        using var steam = new FakeSteam(valid: true);
+        await using var host = await StartAsync(steam);
+
+        Assert.Equal("failed:The Steam response was not signed as expected.",
+            await host.Client.GetStringAsync((await ChallengeAsync(host, signed: "signed,op_endpoint,return_to,response_nonce,assoc_handle")).Callback));
+        Assert.Equal("failed:The Steam response has expired; sign in again.",
+            await host.Client.GetStringAsync((await ChallengeAsync(host, issued: DateTimeOffset.UtcNow.AddMinutes(-10))).Callback));
+        Assert.Null(steam.LastBody);
     }
 
     private sealed class FakeSteam(bool valid) : HttpMessageHandler

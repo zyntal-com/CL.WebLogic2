@@ -119,21 +119,14 @@ public sealed class WidgetsContributor : IWebContributor
 
     /// <summary>
     /// Placement rules also hold at the endpoint: a placed instance needs its placement's access,
-    /// and a widget that only exists through placements (not on dashboards) needs at least one
-    /// placement the caller may see. Query parameters stay untrusted input for the widget.
+    /// and any other call needs at least one placement the caller may see when every placement has
+    /// a rule (dashboard widgets too). Query parameters stay untrusted input for the widget.
     /// </summary>
     private async ValueTask<bool> PlacementAllowsAsync(WebRequestContext request, WebWidgetDefinition widget, string? instance, CancellationToken cancellationToken)
     {
-        var placements = _registry.Placements.Where(p => string.Equals(p.WidgetName, widget.Name, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (instance is not null && placements.FirstOrDefault(p => p.InstanceId == instance) is { } placed)
+        if (instance is not null && _registry.Placements.FirstOrDefault(p => p.InstanceId == instance
+                && string.Equals(p.WidgetName, widget.Name, StringComparison.OrdinalIgnoreCase)) is { } placed)
             return placed.Access is null || await _access.AllowsAsync(request.Security, placed.Access, cancellationToken).ConfigureAwait(false);
-        if (widget.Dashboard || placements.Count == 0 || placements.Any(p => p.Access is null))
-            return true;
-        foreach (var placement in placements)
-        {
-            if (await _access.AllowsAsync(request.Security, placement.Access!, cancellationToken).ConfigureAwait(false))
-                return true;
-        }
-        return false;
+        return await WebWidgetPlacementAccess.AllowsAsync(_registry, _access, request.Security, widget, cancellationToken).ConfigureAwait(false);
     }
 }

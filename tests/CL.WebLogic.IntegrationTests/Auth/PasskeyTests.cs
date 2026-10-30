@@ -293,8 +293,14 @@ public sealed class PasskeyTests
         Assert.Equal("True", await AuthTestSite.PostAsync(host.Client, "/pk/rename", new { state = id, name = "  Phone\u0007 " }));
         Assert.Equal("Phone", JsonDocument.Parse(await host.Client.GetStringAsync("/pk/list")).RootElement[0].GetProperty("name").GetString());
         Assert.Equal("False", await AuthTestSite.PostAsync(host.Client, "/pk/delete", new { state = "not-mine" }));
+        var users = host.Services.GetRequiredService<IWebUserStore>();
+        var stamp = (await users.FindByLoginAsync("alice", default))!.SecurityStamp;
         Assert.Equal("True", await AuthTestSite.PostAsync(host.Client, "/pk/delete", new { state = id }));
         await AuthTestSite.WaitForMailAsync(host, WebSecurityNotificationKind.PasskeyRemoved);
+        // Security review: sessions signed in with a lost passkey survived its removal. The stamp
+        // changes (other sessions end at their next check); this session is kept.
+        Assert.NotEqual(stamp, (await users.FindByLoginAsync("alice", default))!.SecurityStamp);
+        Assert.NotNull(await AuthTestSite.MeAsync(host.Client));
 
         await AuthTestSite.PostAsync(host.Client, "/auth/logout", new { });
         var (options, state) = await BeginAsync(host.Client, "signin");

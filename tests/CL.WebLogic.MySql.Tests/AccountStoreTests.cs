@@ -128,6 +128,8 @@ public sealed class AccountStoreTests(MySqlFixture fixture)
         Assert.Equal(["read"], (await store.FindByPrefixAsync(key.Prefix, default))!.Scopes);
         await store.UpdateAsync(key with { RevokedAt = DateTimeOffset.UtcNow }, default);
         Assert.NotNull((await store.FindByIdAsync(key.Id, default))!.RevokedAt);
+        await store.UpdateAsync(key with { LastUsedAt = DateTimeOffset.UtcNow }, default); // stale copy from a concurrent touch
+        Assert.NotNull((await store.FindByIdAsync(key.Id, default))!.RevokedAt);
         Assert.Single(await store.ListAsync(userId, default));
         Assert.Contains(await store.ListAsync(null, default), k => k.Id == key.Id);
     }

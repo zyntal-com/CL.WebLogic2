@@ -51,7 +51,9 @@ These are documented trade-offs, not open bugs:
   them through a contributor.
 - **Realtime tickets** are valid for `realtime.ticketSeconds` (60 s) and can be reused inside that
   window. Keep the window short and do not log tickets.
-- **`|js`** only encodes for a quoted JavaScript string; outside quotes the template is rejected. For
+- **`|js`** only encodes for a `'…'` or `"…"` JavaScript string; outside quotes, and anywhere inside a
+  `` `…` `` template literal, the template is rejected. The quote tracker skips `//` and `/* */`
+  comments but not regex literals, so keep quotes out of a regex that comes before a `|js` value. For
   data, prefer `<script type="application/json">{model:data|json}</script>` and read it with
   `WebLogic.dom.readJson`.
 - **Legacy password hashes.** Unknown users cost one hash with the current settings. Users whose stored
@@ -60,6 +62,20 @@ These are documented trade-offs, not open bugs:
 - **In-memory throttles are per node and bounded** (100,000 logins / addresses). A flood of distinct
   logins can evict an entry and reset its back-off; account lockout (in your user store) still applies.
   Use a shared `IWebLoginThrottle` for clusters or stricter guarantees.
+- **Registration and unproven addresses.** Registration says when a user name or e-mail is taken, which
+  tells an attacker the address has an account (rate-limit the form). A password set at registration
+  survives e-mail verification, so someone who registers another person's address keeps a working
+  password if that person clicks the verification link. Require a confirmed e-mail before sign-in
+  (`auth.requireConfirmedEmail`), word the verification mail "ignore this if you did not sign up", or
+  register password-less and let the magic link (which drops any earlier password) prove the address.
+- **Bearer-token realtime connections.** Session and API-key connections close when the session ends or
+  the key is revoked. Identities from a custom bearer validator are not re-checked until
+  `realtime.maxConnectionMinutes`; keep that short if such tokens can be revoked.
+- **Sanitized HTML keeps `class`.** User HTML may use any of the site's CSS classes, so with a CSS
+  framework a comment can lay a full-page overlay or a stretched link over the page. Remove `class` from
+  `WebHtmlSanitizerOptions` (or prefix-filter it) where untrusted users write HTML.
+- **Country allow-lists fail open** when GeoIP is missing or a lookup fails, unless
+  `security.ipRules.refuseUnknownCountry` is on.
 - **CSRF and `SameSite=Lax`.** The token is the protection; Lax cookies are defence in depth. Routes
   marked `AllowCrossSitePost()` (webhooks) must authenticate the sender themselves, for example with a
   signature.

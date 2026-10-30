@@ -91,8 +91,12 @@ public sealed class ResponseHardener
         else
             headers.Remove("X-Frame-Options");
 
-        if ((security.Identity.IsAuthenticated && config.NoStoreWhenAuthenticated)
-            || (security.CsrfTokenIssued && !headers.ContainsKey("Cache-Control")))
+        // A page carrying a CSRF token is never cacheable, whatever the handler asked for: a shared
+        // cache would hand one visitor's token (and pre-session cookie) to everyone.
+        if (security.CsrfTokenIssued && headers.ContainsKey("Cache-Control")
+            && !headers.CacheControl.ToString().Contains("no-store", StringComparison.OrdinalIgnoreCase))
+            _context.Logger.Debug($"Cache-Control '{headers.CacheControl}' replaced by no-store: the response carries a CSRF token ({httpContext.Request.Path})");
+        if ((security.Identity.IsAuthenticated && config.NoStoreWhenAuthenticated) || security.CsrfTokenIssued)
         {
             headers.CacheControl = "no-store";
             headers.Pragma = "no-cache";

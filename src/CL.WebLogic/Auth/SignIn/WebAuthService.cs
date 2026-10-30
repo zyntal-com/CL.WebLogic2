@@ -11,6 +11,7 @@ using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Security.Audit;
+using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.Sessions;
 
@@ -164,15 +165,38 @@ public sealed partial class WebAuthService
     /// <summary>Changes the signed-in user's password, ends their other sessions and keeps this one.</summary>
     public async Task<CodeLogic.Core.Results.Result> ChangePasswordAsync(WebSecurityContext security, string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
+        // Only a signed-in browser session: an API key or bearer token plus the password must not
+        // turn into a session that skipped the second factor.
+        ArgumentNullException.ThrowIfNull(security);
+        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
+        if (security.Identity.Scheme != WebAuthenticationSchemes.Session || session.AuthStage != WebSessionAuthStage.Authenticated
+            || !string.Equals(session.UserId, security.Identity.UserId, StringComparison.Ordinal))
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
         var user = await GetCurrentUserAsync(security, cancellationToken).ConfigureAwait(false);
         if (user is null)
             return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
 
-        var changed = await _accounts.ChangePasswordAsync(user, currentPassword, newPassword, cancellationToken).ConfigureAwait(false);
+        // The current password goes through the sign-in checks (throttle, lockout), so a stolen
+        // session cannot guess it without limit.
+        if (user.PasswordHash is null)
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Validation("weblogic.auth.wrong_password", "The current password is not correct."));
+        var checkedPassword = await _validator.ValidateAsync(user.UserName, currentPassword ?? string.Empty, security, cancellationToken).ConfigureAwait(false);
+        if (checkedPassword.Status is not (WebSignInStatus.Succeeded or WebSignInStatus.RequiresTwoFactor or WebSignInStatus.RequiresPasswordChange)
+            || checkedPassword.User?.Id != user.Id)
+        {
+            Failed(security, checkedPassword);
+            return CodeLogic.Core.Results.Result.Failure(checkedPassword.Status switch
+            {
+                WebSignInStatus.Throttled => CodeLogic.Core.Results.Error.Validation("weblogic.auth.throttled", "Too many attempts. Try again shortly."),
+                WebSignInStatus.LockedOut => CodeLogic.Core.Results.Error.Validation("weblogic.auth.locked_out", "The account is locked. Try again later."),
+                _ => CodeLogic.Core.Results.Error.Validation("weblogic.auth.wrong_password", "The current password is not correct.")
+            });
+        }
+
+        var changed = await _accounts.SetPasswordAsync(checkedPassword.User, newPassword, viaReset: false, cancellationToken).ConfigureAwait(false);
         if (changed.IsFailure)
             return CodeLogic.Core.Results.Result.Failure(changed.Error!);
 
-        var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
         await _sessionStore.DeleteForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
         await SignInCoreAsync(security, changed.Value!, session.AuthenticationMethods, fresh: false, persistent: null, cancellationToken).ConfigureAwait(false);
         return CodeLogic.Core.Results.Result.Success();

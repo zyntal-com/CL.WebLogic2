@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using CL.WebLogic.Auth.External;
 using CL.WebLogic.Runtime.Models;
@@ -17,11 +18,20 @@ public sealed partial class SteamOpenIdProvider : IWebExternalLoginProvider
     private const string Endpoint = "https://steamcommunity.com/openid/login";
     private const string OpenIdNs = "http://specs.openid.net/auth/2.0";
     private const string IdentifierSelect = "http://specs.openid.net/auth/2.0/identifier_select";
+    private static readonly TimeSpan NonceMaxAge = TimeSpan.FromMinutes(5);
+
+    // OpenID 2.0 §11.4: these must be covered by the signature, or Steam's is_valid says nothing about them.
+    private static readonly string[] MustBeSigned = ["op_endpoint", "return_to", "response_nonce", "assoc_handle", "claimed_id", "identity"];
 
     private readonly IHttpClientFactory _http;
+    private readonly TimeProvider _time;
 
     /// <summary>Creates the provider.</summary>
-    public SteamOpenIdProvider(IHttpClientFactory http) => _http = http;
+    public SteamOpenIdProvider(IHttpClientFactory http, TimeProvider? time = null)
+    {
+        _http = http;
+        _time = time ?? TimeProvider.System;
+    }
 
     /// <inheritdoc/>
     public string Name => "steam";
@@ -66,6 +76,11 @@ public sealed partial class SteamOpenIdProvider : IWebExternalLoginProvider
         var match = ClaimedId().Match(claimed);
         if (!match.Success || Get("openid.identity") != claimed)
             return Fail("Steam returned an unexpected identity.");
+        var signed = Get("openid.signed").Split(',');
+        if (Get("openid.ns") != OpenIdNs || MustBeSigned.Any(field => !signed.Contains(field, StringComparer.Ordinal)))
+            return Fail("The Steam response was not signed as expected.");
+        if (!IsFreshNonce(Get("openid.response_nonce")))
+            return Fail("The Steam response has expired; sign in again.");
 
         // Ask Steam whether it really issued this assertion.
         var fields = query.Where(p => p.Key.StartsWith("openid.", StringComparison.Ordinal))
@@ -85,6 +100,16 @@ public sealed partial class SteamOpenIdProvider : IWebExternalLoginProvider
         }
 
         return Result<WebExternalLoginInfo>.Success(new WebExternalLoginInfo { Provider = Name, ProviderKey = match.Groups[1].Value });
+    }
+
+    // The nonce starts with its UTC issue time ("2026-10-30T12:00:00Z…").
+    private bool IsFreshNonce(string nonce)
+    {
+        if (nonce.Length < 20 || !DateTimeOffset.TryParseExact(nonce[..20], "yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal, out var issued))
+            return false;
+        var age = _time.GetUtcNow() - issued;
+        return age <= NonceMaxAge && age >= -TimeSpan.FromMinutes(1);
     }
 
     private static string ReturnTo(WebExternalChallenge challenge) =>

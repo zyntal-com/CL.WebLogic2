@@ -29,7 +29,7 @@ public sealed class InMemoryWebApiKeyStore : IWebApiKeyStore, IWebDevelopmentSto
     public Task UpdateAsync(WebApiKey key, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(key);
-        _keys[key.Id] = key;
+        _keys.AddOrUpdate(key.Id, key, (_, stored) => stored.RevokedAt is { } revoked && key.RevokedAt is null ? key with { RevokedAt = revoked } : key);
         return Task.CompletedTask;
     }
 

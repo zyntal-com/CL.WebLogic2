@@ -34,6 +34,16 @@ public sealed class AuthorizationAndSessionTests
     }
 
     [Fact]
+    public async Task Regression_RequirePolicy_InAnAnonymousGroup_StillRequiresThePolicy()
+    {
+        await using var host = await SecurityTestSite.StartAsync();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await host.Client.GetAsync("/open/policy")).StatusCode);
+        await host.Client.GetAsync("/signin?user=bob");
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.Client.GetAsync("/open/policy")).StatusCode);
+    }
+
+    [Fact]
     public async Task Regression_AnonymousSessions_AreNeverShared()
     {
         await using var host = await SecurityTestSite.StartAsync();

@@ -41,8 +41,12 @@ switch (result.Status)
 }
 ```
 
-- Unknown users still cost a full hash, so timing does not reveal which logins exist; a locked
-  account is only reported to someone who typed the right password.
+- Unknown users still cost a full hash, so timing does not reveal which logins exist. A locked
+  account answers `LockedOut` whatever password is typed, so guessing during a lock learns nothing.
+- `ChangePasswordAsync(current, new)` needs a signed-in browser session (not an API key or bearer
+  token) and checks the current password through the same throttle and lockout as sign-in.
+- Logins match the user name or the e-mail, so registration refuses a user name equal to another
+  account's e-mail and the reverse.
 - One attempt per login (and per pending second factor) runs at a time on a node, so parallel bursts
   cannot get around the throttle.
 - Sign-in rotates the session id and the CSRF secret.

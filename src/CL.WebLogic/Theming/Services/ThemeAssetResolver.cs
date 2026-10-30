@@ -101,7 +101,7 @@ public sealed class ThemeAssetResolver
             return null;
 
         var candidate = new FileInfo(fullPath);
-        if (!candidate.Exists || candidate.LinkTarget is not null || candidate.Directory?.LinkTarget is not null)
+        if (!candidate.Exists || ThemeLinks.AnyBelow(_root.RootPath, candidate))
             return null;
         return candidate;
     }

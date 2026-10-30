@@ -75,8 +75,10 @@ public sealed class WebDashboardService
             var widget = _widgets.Find(item.WidgetName);
             if (widget is null || !widget.Dashboard)
                 return Invalid($"'{item.WidgetName}' is not a dashboard widget.");
-            if (!await _access.AllowsAsync(security, widget.Access, cancellationToken).ConfigureAwait(false))
+            if (!await AllowsAsync(security, widget, cancellationToken).ConfigureAwait(false))
                 return Invalid($"'{item.WidgetName}' is not available to you.");
+            if (WebWidgetPlacementAccess.IsPlacementInstance(_widgets, item.InstanceId))
+                return Invalid($"Instance id '{item.InstanceId}' belongs to a widget placement.");
             if (!WebDashboardLayouts.IsValidZone(item.Zone))
                 return Invalid($"Zone '{item.Zone}' is not valid.");
             if (item.InstanceId.Length > 0 && !WebWidgetRegistry.IsValidInstanceId(item.InstanceId))
@@ -103,6 +105,7 @@ public sealed class WebDashboardService
         var layout = result.Value!;
         var zoneNames = (zones ?? []).Concat(layout.Items.Select(i => i.Zone)).Distinct(StringComparer.OrdinalIgnoreCase).DefaultIfEmpty("main").ToList();
         var basePath = httpContext.Request.PathBase.Value ?? "";
+        var security = WebSecurityContext.Get(httpContext);
 
         var html = new StringBuilder("<div class=\"wl-dashboard\" data-wl-dashboard=\"").Append(A(dashboardKey))
             .Append("\" data-wl-dashboard-url=\"").Append(A(basePath + DashboardContributor.Prefix + Uri.EscapeDataString(dashboardKey)))
@@ -112,6 +115,10 @@ public sealed class WebDashboardService
             html.Append("<section class=\"wl-dashboard-zone\" data-wl-dashboard-zone=\"").Append(A(zone)).Append("\">");
             foreach (var item in layout.Items.Where(i => string.Equals(i.Zone, zone, StringComparison.OrdinalIgnoreCase)))
             {
+                // Layouts saved before a placement rule was added may still name the widget.
+                if (_widgets.Find(item.WidgetName) is not { } widget || !await AllowsAsync(security, widget, cancellationToken).ConfigureAwait(false)
+                    || WebWidgetPlacementAccess.IsPlacementInstance(_widgets, item.InstanceId))
+                    continue;
                 var attributes = "data-wl-dashboard-item=\"" + A(item.InstanceId) + "\" data-wl-dashboard-widget=\"" + A(item.WidgetName)
                     + "\" data-wl-dashboard-params=\"" + A(JsonSerializer.Serialize(item.Parameters, WebJson.Default)) + "\"";
                 html.Append(await _renderer.RenderAsync(httpContext, item.WidgetName, item.InstanceId, item.Parameters, attributes, cancellationToken).ConfigureAwait(false));
@@ -128,7 +135,7 @@ public sealed class WebDashboardService
         var available = new List<Widgets.Models.WebWidgetDefinition>();
         foreach (var widget in _widgets.Widgets.Where(w => w.Dashboard).OrderBy(w => w.Name, StringComparer.Ordinal))
         {
-            if (await _access.AllowsAsync(security, widget.Access, cancellationToken).ConfigureAwait(false))
+            if (await AllowsAsync(security, widget, cancellationToken).ConfigureAwait(false))
                 available.Add(widget);
         }
         return available;
@@ -146,6 +153,10 @@ public sealed class WebDashboardService
             throw new InvalidOperationException("IWebDashboardOwnerResolver returned an invalid owner key.");
         return Result<string>.Success(owner);
     }
+
+    private async ValueTask<bool> AllowsAsync(WebSecurityContext? security, Widgets.Models.WebWidgetDefinition widget, CancellationToken cancellationToken) =>
+        await _access.AllowsAsync(security, widget.Access, cancellationToken).ConfigureAwait(false)
+        && await WebWidgetPlacementAccess.AllowsAsync(_widgets, _access, security, widget, cancellationToken).ConfigureAwait(false);
 
     private static Result<WebDashboardLayout> Invalid(string message) =>
         Result<WebDashboardLayout>.Failure(Error.Validation(WebDashboardErrors.InvalidCode, message));

@@ -22,9 +22,12 @@ internal sealed class RealtimeWebSocketResult : WebResult
     private readonly TimeSpan _lifetime;
     private readonly TimeProvider _time;
     private readonly IWebLogicContext _context;
+    private readonly int _messagesPerMinute;
 
-    public RealtimeWebSocketResult(WebRealtimeHub hub, WebRealtimeConnection connection, string? lastEventId, TimeSpan lifetime, TimeProvider time, IWebLogicContext context)
+    public RealtimeWebSocketResult(WebRealtimeHub hub, WebRealtimeConnection connection, string? lastEventId, TimeSpan lifetime, TimeProvider time, IWebLogicContext context,
+        int messagesPerMinute)
     {
+        _messagesPerMinute = Math.Max(1, messagesPerMinute);
         _hub = hub;
         _connection = connection;
         _lastEventId = lastEventId;
@@ -74,6 +77,9 @@ internal sealed class RealtimeWebSocketResult : WebResult
     private async Task ReceiveLoopAsync(WebSocket socket, SemaphoreSlim send, IWebRealtimeReceiver? receiver, CancellationTokenSource linked)
     {
         var buffer = new byte[MaxMessageBytes];
+        // A token bucket per socket: the HTTP rate limits do not see messages on an open socket.
+        double tokens = _messagesPerMinute;
+        var refilled = _time.GetTimestamp();
         while (socket.State == WebSocketState.Open && !linked.IsCancellationRequested)
         {
             var length = 0;
@@ -93,6 +99,16 @@ internal sealed class RealtimeWebSocketResult : WebResult
 
             if (result.MessageType == WebSocketMessageType.Close)
                 return;
+            var now = _time.GetTimestamp();
+            tokens = Math.Min(_messagesPerMinute, tokens + _time.GetElapsedTime(refilled, now).TotalMinutes * _messagesPerMinute);
+            refilled = now;
+            if (tokens < 1)
+            {
+                _context.Logger.Info($"Realtime WebSocket {_connection.Id} closed: more than {_messagesPerMinute} messages per minute.");
+                await socket.CloseOutputAsync(WebSocketCloseStatus.PolicyViolation, "too many messages", CancellationToken.None).ConfigureAwait(false);
+                return;
+            }
+            tokens--;
             if (result.MessageType != WebSocketMessageType.Text)
                 continue;
             await HandleAsync(socket, send, receiver, buffer.AsMemory(0, length), linked.Token).ConfigureAwait(false);

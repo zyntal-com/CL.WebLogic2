@@ -53,10 +53,12 @@ public sealed class WebSecurityTokenService : IWebSecurityTokenService
         if (string.IsNullOrWhiteSpace(token) || token.Length > 4096)
             return Invalid("empty or oversized");
 
+        string plaintext;
         TokenPayload? payload;
         try
         {
-            payload = JsonSerializer.Deserialize<TokenPayload>(_root.CreateProtector(purpose).Unprotect(token.Trim()));
+            plaintext = _root.CreateProtector(purpose).Unprotect(token.Trim());
+            payload = JsonSerializer.Deserialize<TokenPayload>(plaintext);
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException or FormatException)
         {
@@ -75,7 +77,9 @@ public sealed class WebSecurityTokenService : IWebSecurityTokenService
 
         if (consume)
         {
-            var key = "token:" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(purpose + "|" + token.Trim())));
+            // Keyed by the decrypted payload, not the token text: DataProtection accepts the same
+            // token with extra whitespace or padding, and each spelling must not be a new use.
+            var key = "token:" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(purpose + "|" + plaintext)));
             if (!await _oneTime.TryUseAsync(key, expiresAt, cancellationToken).ConfigureAwait(false))
                 return Invalid("already used");
         }

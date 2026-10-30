@@ -103,6 +103,25 @@ public sealed class RealtimeTests
     }
 
     [Fact]
+    public async Task Regression_Revoking_an_api_key_closes_its_connections()
+    {
+        // Security review: key and bearer connections were never re-checked after revocation.
+        await using var host = await CL.WebLogic.IntegrationTests.Auth.AuthTestSite.StartAsync();
+        var keys = host.Services.GetRequiredService<CL.WebLogic.Auth.ApiKeys.WebApiKeyService>();
+        var created = await keys.CreateAsync(new CL.WebLogic.Auth.ApiKeys.WebApiKeyRequest { Name = "feed" }, default);
+        var client = host.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Api-Key", created.PlainTextKey);
+        await using var stream = await SseStream.OpenAsync(client, Sse);
+        await using var bystander = await SseStream.OpenAsync(host.CreateClient(), Sse);
+        Assert.Equal(2, Hub(host).ConnectionCount);
+
+        await keys.RevokeAsync(created.Key.Id, null, default);
+
+        Assert.Null(await stream.NextAsync(TimeSpan.FromSeconds(3)));
+        Assert.Equal(1, Hub(host).ConnectionCount);
+    }
+
+    [Fact]
     public async Task A_connection_closes_when_its_session_is_revoked_on_any_node()
     {
         await using var host = await SecurityTestSite.StartAsync();
@@ -157,6 +176,28 @@ public sealed class RealtimeTests
 
         await Hub(enabled).PublishAsync("marker", null, WebRealtimeAudience.Public);
         Assert.Equal(["marker"], await publicStream.TypesUntilAsync("marker"));
+    }
+
+    [Fact]
+    public async Task Regression_A_websocket_that_floods_messages_is_closed()
+    {
+        // Security review: incoming WebSocket messages had no rate limit.
+        await using var host = await SecurityTestSite.StartAsync(c => c.Realtime.IncomingMessagesPerMinute = 3);
+        var url = new Uri(host.BaseAddress.ToString().Replace("http://", "ws://", StringComparison.Ordinal) + "_weblogic/realtime/ws");
+        using var socket = new ClientWebSocket();
+        socket.Options.SetRequestHeader("Origin", host.BaseAddress.GetLeftPart(UriPartial.Authority));
+        await socket.ConnectAsync(url, CancellationToken.None);
+
+        var ping = Encoding.UTF8.GetBytes("{\"type\":\"ping\"}");
+        for (var i = 0; i < 4; i++)
+            await socket.SendAsync(ping, WebSocketMessageType.Text, true, CancellationToken.None);
+
+        var buffer = new byte[1024];
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        WebSocketReceiveResult result;
+        do result = await socket.ReceiveAsync(buffer, timeout.Token);
+        while (result.MessageType != WebSocketMessageType.Close);
+        Assert.Equal(WebSocketCloseStatus.PolicyViolation, socket.CloseStatus);
     }
 
     [Fact]

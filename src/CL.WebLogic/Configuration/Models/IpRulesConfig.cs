@@ -21,7 +21,15 @@ public sealed class IpRulesConfig
     [ConfigField(Label = "Allow Countries", Description = "ISO 3166 country codes allowed to connect. Empty = all.", Group = "IP Rules", Order = 43, Collapsed = true)]
     public List<string> AllowCountries { get; set; } = [];
 
+    /// <summary>
+    /// With <see cref="AllowCountries"/>: refuse clients whose country is unknown (GeoIP missing, a
+    /// failed lookup, private addresses) instead of letting them in. Exempt your own networks with
+    /// <c>Allow</c> rules or an <c>IWebIpRuleProvider</c>.
+    /// </summary>
+    [ConfigField(Label = "Refuse Unknown Countries", Description = "With Allow Countries: refuse clients whose country cannot be looked up instead of letting them in.", Group = "IP Rules", Order = 44, Collapsed = true)]
+    public bool RefuseUnknownCountry { get; set; }
+
     /// <summary>How long rules and zones from app providers are cached (invalidate to apply edits at once).</summary>
-    [ConfigField(Label = "Provider Cache (seconds)", Description = "How long rules from IWebIpRuleProvider / IWebReputationListProvider are cached.", Min = 1, Max = 3600, Group = "IP Rules", Order = 44, Collapsed = true)]
+    [ConfigField(Label = "Provider Cache (seconds)", Description = "How long rules from IWebIpRuleProvider / IWebReputationListProvider are cached.", Min = 1, Max = 3600, Group = "IP Rules", Order = 45, Collapsed = true)]
     public int ProviderCacheSeconds { get; set; } = 60;
 }

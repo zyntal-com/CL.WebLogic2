@@ -30,12 +30,13 @@ public sealed class SignInHardeningTests
     }
 
     [Fact]
-    public async Task A_locked_account_is_only_revealed_with_the_right_password()
+    public async Task Regression_A_locked_account_answers_the_same_for_right_and_wrong_passwords()
     {
+        // Security review: only the right password said LockedOut, so guessing during a lock was free.
         await using var host = await AuthTestSite.StartAsync();
         await AuthTestSite.CreateUserAsync(host, change: u => u with { LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10) });
 
-        Assert.Equal("InvalidCredentials", await AuthTestSite.LoginAsync(host.Client, password: "wrong password!"));
+        Assert.Equal("LockedOut", await AuthTestSite.LoginAsync(host.Client, password: "wrong password!"));
         Assert.Equal("LockedOut", await AuthTestSite.LoginAsync(host.Client));
     }
 

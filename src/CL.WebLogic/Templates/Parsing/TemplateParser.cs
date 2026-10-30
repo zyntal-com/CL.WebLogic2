@@ -226,7 +226,7 @@ public sealed partial class TemplateParser
             return null;
 
         var context = _html.Current;
-        var error = TemplateContextRules.ValidateToken(context, filters, raw: false, _html.InScriptString);
+        var error = TemplateContextRules.ValidateToken(context, filters, raw: false, _html.InScriptString, _html.InScriptTemplateLiteral);
         return error is null ? new TokenNode(selector, filters, raw: false, context) : throw Error(error, start);
     }
 
@@ -238,7 +238,7 @@ public sealed partial class TemplateParser
             return null;
 
         var context = _html.Current;
-        var error = TemplateContextRules.ValidateToken(context, filters, raw, _html.InScriptString);
+        var error = TemplateContextRules.ValidateToken(context, filters, raw, _html.InScriptString, _html.InScriptTemplateLiteral);
         if (error is not null)
             throw Error(error, start);
 

@@ -45,6 +45,25 @@ test('server errors are shown; success redirects locally only', async (fixture) 
   assert.equal(form.querySelectorAll('[data-wl-error]').length, 0);
 });
 
+test('commands only run when this site answered the form', async (fixture) => {
+  // Security review: a cross-origin form response could run commands (and swap HTML in).
+  fixture.innerHTML = '<form data-wl-form action="/save"><input name="name" value="x"></form>';
+  const ran = [];
+  let answeredBy = globalThis.location.origin + '/save';
+  const http = {
+    csrfToken: async () => 'token',
+    request: async () => ({ data: { ok: true, commands: [{ type: 'toast', message: 'hi' }] }, response: { url: answeredBy } })
+  };
+  const forms = createForms({ http, ui: createUi(), commands: { run: (c) => ran.push(...c) }, bus: new Bus(), navigate: () => {}, config: { csrfField: '__wl_csrf', csrfHeader: 'X-CSRF-Token' } });
+  const form = fixture.querySelector('form');
+  forms.bind(fixture);
+  await forms.submit(form);
+  assert.equal(ran.length, 1);
+  answeredBy = 'https://evil.test/save';
+  await forms.submit(form);
+  assert.equal(ran.length, 1);
+});
+
 test('double submit is ignored while busy', async (fixture) => {
   let release;
   const { forms, form, requests } = setup(fixture, '<form data-wl-form action="/slow"><button>Go</button></form>', () => ({ ok: true }));

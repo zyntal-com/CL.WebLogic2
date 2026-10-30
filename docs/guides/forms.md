@@ -106,13 +106,18 @@ provider. Providers are private by default: set `AllowAnonymous` or a `Policy`. 
 HTTPS lookup, only to hosts listed in `forms.allowedLookupHosts`.
 
 Remote validation of a single field (`[WebField(Remote = true)]`) is served at
-`/_weblogic/forms/{form}/validate/{field}`; fields without `Remote` are not reachable there.
+`/_weblogic/forms/{form}/validate/{field}`; fields without `Remote` are not reachable there. The endpoint
+is open to anonymous callers (rate-limited), whatever the form's page requires, so never mark a field
+`Remote` when its answer reveals something, such as "this e-mail is already registered" on a sign-in,
+reset or magic-link form.
 
 ## Uploads
 
 `WebUploadedFile` properties are bound from multipart posts with size, count and extension limits,
 magic-byte detection (`DetectedType`) and image dimensions read by WebLogic's own header reader (PNG,
-JPEG, GIF, WebP, BMP). Nothing is stored automatically; call an `IWebUploadSink` (`web.UseUploadSink<T>()`,
+JPEG, GIF, WebP, BMP). The bytes must match the extension; an extension WebLogic has no signature for
+(for example `.svg` or `.html`) refuses programs and anything that starts like markup, because storage or a
+CDN that picks the content type from the name could serve it as a live page. Nothing is stored automatically; call an `IWebUploadSink` (`web.UseUploadSink<T>()`,
 default on CL.Storage) or handle the stream yourself. Stored names are random; the original name is
 only metadata.
 

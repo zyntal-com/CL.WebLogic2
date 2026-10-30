@@ -13,6 +13,41 @@ namespace CL.WebLogic.Tests.Security;
 
 public sealed class SecurityPrimitivesTests
 {
+    [Fact]
+    public async Task Regression_An_unknown_client_or_an_ignored_proxy_header_is_logged_once()
+    {
+        // Security review: without a client address (or behind an untrusted proxy) every visitor
+        // silently shared one rate-limit bucket.
+        using var context = new FakeWebLogicContext();
+        var stage = new CL.WebLogic.Security.Stages.ForwardedHeadersStage(context);
+        var settings = WebSecuritySettings.Compile(new WebLogicConfig(), 1);
+
+        var noAddress = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        await stage.ExecuteAsync(new WebSecurityContext(noAddress, settings), default);
+        await stage.ExecuteAsync(new WebSecurityContext(noAddress, settings), default);
+        Assert.Single(context.Log.Entries, e => e.Message.Contains("client address is unknown", StringComparison.Ordinal));
+
+        var proxied = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        proxied.Connection.RemoteIpAddress = IPAddress.Parse("10.0.0.2");
+        proxied.Request.Headers["X-Forwarded-For"] = "203.0.113.9";
+        await stage.ExecuteAsync(new WebSecurityContext(proxied, settings), default);
+        Assert.Single(context.Log.Entries, e => e.Message.Contains("X-Forwarded-For from 10.0.0.2 is ignored", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("/health", true)]
+    [InlineData("/health/live", true)]
+    [InlineData("/HEALTH/ready", true)]
+    [InlineData("/healthcare", false)] // security review: a plain prefix match exempted this too
+    [InlineData("/healthcare/admin", false)]
+    [InlineData("/other", false)]
+    public void Regression_ProbePaths_MatchWholeSegments(string path, bool expected)
+    {
+        var config = new WebLogicConfig();
+        config.Security.ProbePaths = ["/health/"];
+        Assert.Equal(expected, WebSecuritySettings.Compile(config, 1).IsProbePath(path));
+    }
+
     [Theory]
     [InlineData("/dashboard?tab=1", "/dashboard?tab=1")]
     [InlineData("/", "/")]

@@ -12,6 +12,9 @@ public sealed record WebRealtimeIdentity
     /// <summary>Id hash of the session the user signed in with (null for anonymous and non-session schemes); the connection closes when that session ends.</summary>
     public string? SessionId { get; init; }
 
+    /// <summary>Id of the API key the connection was opened with (null otherwise); the connection closes when the key is revoked.</summary>
+    public string? ApiKeyId { get; init; }
+
     /// <summary>Tenant.</summary>
     public string? TenantId { get; init; }
 

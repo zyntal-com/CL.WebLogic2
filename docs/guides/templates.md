@@ -65,7 +65,7 @@ The parser tracks where each value lands:
 | `style` attribute | CSS-encoded |
 | Event handler attributes (`on*`), `srcdoc` | Rejected at parse time |
 | Unquoted attribute values, inside a tag name or between attributes | Rejected at parse time |
-| `<script>` | Only `\|json`, or `\|js` inside a quoted JS string; anything else is a parse error |
+| `<script>` | Only `\|json`, or `\|js` inside a `'…'` or `"…"` JS string; values inside a `` `…` `` template literal and anything else are parse errors |
 | `<style>` | Only `\|css` |
 
 Values of type `WebHtml` (rendered Markdown, sanitized HTML, forms, widgets) are written as-is in text

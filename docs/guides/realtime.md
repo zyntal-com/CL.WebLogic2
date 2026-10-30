@@ -57,6 +57,9 @@ resumes from `Last-Event-ID`; the replay buffer only replays events the connecti
   expired session closes it at once on the same node (`SessionEndedEvent`) and within
   `realtime.sessionCheckSeconds` (30) on every other node, which look the session up in the shared
   session store. Tickets carry the session too.
+- A connection opened with an API key (or a ticket minted from one) closes when the key is revoked.
+- `realtime.maxConnectionsPerClient` counts IPv6 clients per network prefix
+  (`security.rateLimits.ipv6PrefixLength`, a /64 by default), like the rate limits.
 - WebSocket upgrades check `Origin` against the site and `realtime.allowedOrigins`.
 - Cross-origin clients get a short-lived ticket from `/_weblogic/realtime/ticket` (60 s by default,
   `realtime.ticketSeconds`). A ticket can be used more than once inside that window, so keep it short

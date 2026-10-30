@@ -57,9 +57,10 @@ public static class WebRouteSettingsExtensions
         return builder;
     }
 
-    /// <summary>Requires the named authorization policy.</summary>
+    /// <summary>Requires the named authorization policy (and so a signed-in user).</summary>
     public static T RequirePolicy<T>(this T builder, string policy) where T : IWebRouteSettingsBuilder
     {
+        builder.Settings.AllowAnonymous = false;
         builder.Settings.Policies.Add(policy);
         return builder;
     }

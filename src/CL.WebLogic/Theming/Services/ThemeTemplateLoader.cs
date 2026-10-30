@@ -137,7 +137,7 @@ public sealed class ThemeTemplateLoader : ITemplateLoader
             return false;
 
         var candidate = new FileInfo(full);
-        if (!candidate.Exists || candidate.LinkTarget is not null)
+        if (!candidate.Exists || ThemeLinks.AnyBelow(root, candidate))
             return false;
 
         file = candidate;

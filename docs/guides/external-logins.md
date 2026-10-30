@@ -89,7 +89,7 @@ users only see a generic message.
 | `Microsoft` | OIDC (`login.microsoftonline.com/{tenant}/v2.0`) | `sub` | `common`, `organizations`, `consumers` or a tenant id |
 | `GitHub` | OAuth 2.0 | `id` | name = `login`; primary verified e-mail |
 | `Discord` | OAuth 2.0 | `id` | name = `username`; `verified` |
-| Steam | OpenID 2.0 | 64-bit SteamID | no keys, no e-mail; assertion confirmed with `check_authentication` |
+| Steam | OpenID 2.0 | 64-bit SteamID | no keys, no e-mail; the identity fields must be signed, the nonce at most 5 minutes old, and the assertion is confirmed with `check_authentication` |
 
 `WebOAuthOptions` is a record, so a preset can be adjusted with `with`:
 

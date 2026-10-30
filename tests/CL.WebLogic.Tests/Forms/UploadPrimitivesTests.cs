@@ -94,6 +94,9 @@ public sealed class UploadPrimitivesTests
     [InlineData(".txt", "text/plain", true)]
     [InlineData(".docx", "application/zip", true)]
     [InlineData(".bin", "application/octet-stream", true)]
+    [InlineData(".txt", "text/html", true)] // stored and served as text
+    [InlineData(".svg", "text/html", false)] // security review: unknown extensions accepted markup
+    [InlineData(".bin", "application/x-executable", false)]
     public void Extension_must_match_content(string extension, string detected, bool expected) =>
         Assert.Equal(expected, FileSignatureSniffer.Matches(extension, detected));
 
@@ -104,7 +107,10 @@ public sealed class UploadPrimitivesTests
         Assert.Equal("application/pdf", FileSignatureSniffer.Detect("%PDF-1.7\n"u8));
         Assert.Equal("application/zip", FileSignatureSniffer.Detect("PK\u0003\u0004rest"u8));
         Assert.Equal("text/plain", FileSignatureSniffer.Detect("hello, wørld"u8));
-        Assert.Equal("application/octet-stream", FileSignatureSniffer.Detect([0x4D, 0x5A, 0x00, 0x90]));
+        Assert.Equal("application/x-executable", FileSignatureSniffer.Detect([0x4D, 0x5A, 0x00, 0x90]));
+        Assert.Equal("application/x-executable", FileSignatureSniffer.Detect([0x7F, 0x45, 0x4C, 0x46, 0x02]));
+        Assert.Equal("text/html", FileSignatureSniffer.Detect("﻿  <svg onload=alert(1)>"u8));
+        Assert.Equal("application/octet-stream", FileSignatureSniffer.Detect([0x00, 0x01, 0x02]));
     }
 
     [Theory]

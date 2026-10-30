@@ -29,7 +29,9 @@ public Task ContributeAsync(WebContributionBuilder b, CancellationToken ct)
 ```
 
 - Widgets require a signed-in user unless `AllowAnonymous()`, or set `o.Access` to a groups/permissions
-  rule. Placements can add their own access rule; it is enforced by the widget endpoint too.
+  rule. Placements can add their own access rule; it is enforced by the widget endpoint too. When every
+  placement of a widget has a rule, callers need one of them to use the widget anywhere, dashboards
+  included, and dashboard items cannot reuse a placement's instance id.
 - In templates: `{widget:clock}`, `{widget:latest-posts count="5"}`, `{widgetarea:sidebar}`.
 - Refresh and actions go through `/_weblogic/widgets/{name}` and `/_weblogic/widgets/{name}/actions/{action}`
   (CSRF-protected). **Widget parameters arrive from the query string and are untrusted**: validate them

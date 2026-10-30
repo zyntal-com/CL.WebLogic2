@@ -94,7 +94,7 @@ public sealed class RealtimeContributor : IWebContributor
         var (connection, refused) = await OpenAsync(request, WebRealtimeTransport.WebSocket, cancellationToken).ConfigureAwait(false);
         return connection is null
             ? refused!
-            : new RealtimeWebSocketResult(_hub, connection, LastEventId(request), TimeSpan.FromMinutes(config.MaxConnectionMinutes), _time, _context);
+            : new RealtimeWebSocketResult(_hub, connection, LastEventId(request), TimeSpan.FromMinutes(config.MaxConnectionMinutes), _time, _context, config.IncomingMessagesPerMinute);
     }
 
     private async ValueTask<WebResult> TicketAsync(WebRequestContext request, CancellationToken cancellationToken)

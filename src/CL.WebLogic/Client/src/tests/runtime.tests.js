@@ -90,3 +90,13 @@ test('the global runtime is started', () => {
   assert.ok(globalThis.WebLogic, 'WebLogic is loaded');
   assert.equal(typeof globalThis.WebLogic.navigate, 'function');
 });
+
+test('navigate refuses script and data URLs', async () => {
+  // Security review: navigate() handed any non-same-origin URL, javascript: included, to location.assign.
+  const before = location.href;
+  globalThis.__wlNavigated = false;
+  assert.equal(await globalThis.WebLogic.navigate('javascript:globalThis.__wlNavigated=true'), false);
+  assert.equal(await globalThis.WebLogic.navigate('data:text/html,<p>x</p>'), false);
+  assert.equal(globalThis.__wlNavigated, false);
+  assert.equal(location.href, before);
+});

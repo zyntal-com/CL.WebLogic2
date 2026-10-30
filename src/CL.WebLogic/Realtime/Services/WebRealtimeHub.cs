@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -6,6 +7,7 @@ using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Realtime.Models;
 using CL.WebLogic.Runtime.Services;
+using CL.WebLogic.Security.RateLimiting;
 
 namespace CL.WebLogic.Realtime.Services;
 
@@ -95,7 +97,10 @@ public sealed partial class WebRealtimeHub : IDisposable
             rejection = "max-connections";
             return null;
         }
-        var clientKey = clientIp ?? "unknown";
+        // Counted like the rate limits: IPv6 per network prefix, or one host could rotate addresses.
+        var clientKey = IPAddress.TryParse(clientIp, out var address)
+            ? ClientAddressKey.For(address, _config.Current.Security.RateLimits.Ipv6PrefixLength)
+            : clientIp ?? "unknown";
         var count = _perClient.AddOrUpdate(clientKey, 1, (_, current) => current + 1);
         if (count > config.MaxConnectionsPerClient)
         {
@@ -134,6 +139,18 @@ public sealed partial class WebRealtimeHub : IDisposable
     {
         var closed = 0;
         foreach (var connection in _connections.Values.Where(c => string.Equals(c.Identity.SessionId, sessionIdHash, StringComparison.Ordinal)))
+        {
+            Disconnect(connection);
+            closed++;
+        }
+        return closed;
+    }
+
+    /// <summary>Closes every connection opened with the API key <paramref name="keyId"/> (revocation).</summary>
+    public int CloseApiKey(string keyId)
+    {
+        var closed = 0;
+        foreach (var connection in _connections.Values.Where(c => string.Equals(c.Identity.ApiKeyId, keyId, StringComparison.Ordinal)))
         {
             Disconnect(connection);
             closed++;
