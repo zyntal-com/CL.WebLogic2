@@ -73,6 +73,45 @@ Templates add the field automatically to `{form:...}`; elsewhere use `{csrf}` (h
 `{csrf_token}` or `{csrf_meta}`. The client fetches a token from `/_weblogic/csrf` when it needs one,
 so cached pages never embed a token.
 
+### Webhooks
+
+A route marked `AllowCrossSitePost()` skips the CSRF checks, so it must authenticate the sender itself.
+`WebWebhookVerifier` (registered by default, does nothing until called) checks an HMAC-SHA256 signature:
+
+```csharp
+b.MapApi("/hooks/stripe", async (request, ct) =>
+{
+    var verifier = request.GetRequiredService<WebWebhookVerifier>();
+    var verified = await verifier.VerifyAsync(request, WebWebhookOptions.Stripe(secrets.Current, secrets.Previous), ct);
+    if (verified.IsFailure)
+        return WebResult.Problem(401, "Invalid signature");   // never echo the signature or secret
+    var payload = await request.ReadJsonAsync<StripeEvent>(ct);  // the body was buffered and rewound
+    ...
+}, "POST").AllowAnonymous().AllowCrossSitePost();
+```
+
+- The raw body is read up to `MaxBodyBytes` (default 1 MiB) or the route's `WithBodyLimit`, whichever
+  is smaller; `VerifyAsync` returns the bytes and rewinds the body for later reads.
+- Signatures are compared in constant time against every active secret, so rotation is: add the new
+  secret, let the sender switch, remove the old one. Secrets come from your app (config marked
+  `Secret = true`, a vault); `WebWebhookOptions` is a class so it never prints them.
+- Header shapes: a plain MAC in `SignatureHeader` (optional `SignaturePrefix` such as `sha256=`, `Hex`
+  or `Base64`), or `key=value` pairs when `TimestampKey` is set (`t=…,v1=…`, `v1` may repeat).
+- With `TimestampKey` or `TimestampHeader` the timestamp (Unix seconds) is signed in front of the body
+  (`SignedTimestampFormat`, default `{timestamp}.`) and must be within `Tolerance` (default 5 minutes)
+  of the server clock, which limits replays. Store event ids if you need exactly-once.
+- Presets: `WebWebhookOptions.GitHub(...)`, `WebWebhookOptions.Stripe(...)`. Slack-style is
+  `SignaturePrefix = "v0="`, `TimestampHeader = "X-Slack-Request-Timestamp"`, `SignedTimestampFormat = "v0:{timestamp}:"`.
+- `Verify(body, signatureHeader, timestampHeader, options)` checks bytes you already have.
+
+| Error code | Meaning |
+| --- | --- |
+| `weblogic.webhook.missing_signature` | No signature header, or nothing in it decodes |
+| `weblogic.webhook.bad_signature` | No active secret produces the signature |
+| `weblogic.webhook.bad_timestamp` | Timestamp required but missing or not Unix seconds |
+| `weblogic.webhook.expired` | Timestamp outside `Tolerance` |
+| `weblogic.webhook.too_large` | Body larger than the limit |
+
 ## Response headers
 
 The CSP is built from `security.headers` with a per-request nonce and `strict-dynamic`; templates add

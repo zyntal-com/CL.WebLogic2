@@ -54,7 +54,9 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `forms` | Renderer, honeypot, submit timing, upload limits and extensions, lookup host allowlist |
 | `client` | Client on/off, UI adapter (`plain`, `bootstrap5`), module or classic script, partial navigation |
 | `realtime` | On/off, anonymous access, WebSockets, replay, connection limits, allowed origins, tickets |
-| `cache` | Output cache on/off, default lifetimes, fragment cache size |
+| `cache` | Output cache on/off, default lifetimes, fragment cache size, page/API ETags (`eTags`, off) and their buffer limit |
+| `compression` | Brotli/gzip response compression (off), level, extra MIME types; personal responses are never compressed ([Caching](caching.md)) |
+| `localization` | Off by default. Default and supported cultures, sources (query, cookie, `Accept-Language`), cookie, switch path, theme text folder ([Localization](localization.md)) |
 | `explorer` | Explorer in Development / in production (with a permission) |
 | `cluster` | Cluster mode validation, contracts allowed to stay node-local |
 

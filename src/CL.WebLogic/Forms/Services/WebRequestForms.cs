@@ -23,6 +23,9 @@ public sealed class WebRequestForms
     /// <summary>The form definition of <typeparamref name="TModel"/>.</summary>
     public WebFormDefinition Definition<TModel>() => _service.Definitions.Get<TModel>();
 
+    /// <summary>Copies values between form models and entities (<see cref="WebFormMapper"/>).</summary>
+    public WebFormMapper Mapper => _request.GetRequiredService<WebFormMapper>();
+
     /// <summary>Shows <paramref name="model"/>'s values when the form renders in this request (edit forms).</summary>
     public void Prefill<TModel>(TModel model) => _service.Prefill(_request.HttpContext, model);
 

@@ -3,7 +3,10 @@ using CL.WebLogic.Runtime.Models;
 
 namespace CL.WebLogic.Caching.Services;
 
-/// <summary>The fragment cache for the current request (<c>request.Cache</c>); keys are scoped to the tenant.</summary>
+/// <summary>
+/// The fragment cache for the current request (<c>request.Cache</c>); keys are scoped to the tenant
+/// and, when localization is enabled, to the request culture.
+/// </summary>
 public sealed class WebRequestCache
 {
     private readonly WebRequestContext _request;
@@ -30,7 +33,8 @@ public sealed class WebRequestCache
     private string Scoped(string key)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
-        return "t:" + (_request.Security.TenantId ?? "") + "|" + key;
+        var culture = Localization.Models.WebRequestCulture.Get(_request.HttpContext);
+        return "t:" + (_request.Security.TenantId ?? "") + "|" + (culture is null ? "" : "c:" + culture.Name + "|") + key;
     }
 
     private CancellationToken Token(CancellationToken cancellationToken) =>

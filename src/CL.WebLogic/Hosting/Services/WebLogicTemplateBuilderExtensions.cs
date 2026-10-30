@@ -34,6 +34,17 @@ public static class WebLogicTemplateBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Replaces the texts behind the default localizer (default: <c>{theme}/locales/{culture}.json</c>).
+    /// Used only when <c>Localization.Enabled</c> is true.
+    /// </summary>
+    public static WebLogicBuilder UseTextResources<TResources>(this WebLogicBuilder builder) where TResources : class, IWebTextResources
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Services.Replace(ServiceDescriptor.Singleton<IWebTextResources, TResources>());
+        return builder;
+    }
+
     /// <summary>Replaces the group / permission checks used by <c>{if:group:…}</c> and <c>{if:permission:…}</c>.</summary>
     public static WebLogicBuilder UseTemplateAuthorizer<TAuthorizer>(this WebLogicBuilder builder) where TAuthorizer : class, ITemplateAuthorizer
     {

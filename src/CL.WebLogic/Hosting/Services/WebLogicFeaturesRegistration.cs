@@ -54,6 +54,10 @@ internal static class WebLogicFeaturesRegistration
         services.TryAddSingleton<IWebFragmentCache, MemoryFragmentCache>();
         services.TryAddSingleton<IWebCacheInvalidator, WebCacheInvalidator>();
 
+        // Compression (off unless Compression.Enabled): WebLogic's own provider, so an app's
+        // UseResponseCompression() keeps its options.
+        services.TryAddSingleton<WebCompressionProvider>();
+
         // Explorer.
         services.TryAddSingleton<ExplorerModelBuilder>();
         services.TryAddSingleton<ExplorerContributor>();

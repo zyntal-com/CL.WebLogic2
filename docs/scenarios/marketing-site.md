@@ -42,4 +42,8 @@ search engines and not getting spammed.
 
 Static pages change on deploy, so a long expiry is fine. When content comes from somewhere else
 (a headless CMS, a JSON file), call `IWebCacheInvalidator.EvictTagsAsync(["site"])` from the webhook
-that announces the change (`AllowCrossSitePost()` + a signature check on that route).
+that announces the change (`AllowCrossSitePost()` + `WebWebhookVerifier` on that route, see
+[Webhooks](../guides/security-pipeline.md#webhooks)).
+
+Static pages are exactly what `web.AddSitemap()` lists: `/sitemap.xml` and `/robots.txt` come for free
+([Sitemap and robots.txt](../guides/routing.md#sitemap-and-robotstxt)).

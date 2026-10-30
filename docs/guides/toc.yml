@@ -16,6 +16,8 @@
   href: forms.md
 - name: Templates and themes
   href: templates.md
+- name: Localization
+  href: localization.md
 - name: JavaScript client
   href: client.md
 - name: Widgets and dashboards
@@ -36,5 +38,7 @@
   href: security-model.md
 - name: Performance
   href: performance.md
+- name: Observability
+  href: observability.md
 - name: Migrating from 0.x
   href: migrating.md

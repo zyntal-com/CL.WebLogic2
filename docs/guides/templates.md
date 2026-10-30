@@ -42,7 +42,7 @@ default layout, if it has one: `b.MapGroup("/admin").WithLayout("admin/layout")`
 | `{partial:partials/card}` | Include (relative to the current template unless it starts with `/`) |
 | `{form:contact}` | A registered form ([Forms](forms.md)) |
 | `{widget:name}`, `{widgetarea:sidebar}` | Widgets ([Widgets](widgets-dashboards.md)) |
-| `{t:key}` | Localized text (`IWebTextLocalizer`) |
+| `{t:key}` | Localized text (`IWebTextLocalizer`, see [Localization](localization.md)); encoded like any value |
 | `{csrf}`, `{csrf_token}`, `{csrf_meta}` | CSRF field, raw token, meta tag |
 | `{nonce}` | The CSP nonce (added automatically to static `<script>` and `<style>` tags) |
 | `{renderhead}` | Title, meta, canonical, Open Graph, JSON-LD from `WebPageMeta` |

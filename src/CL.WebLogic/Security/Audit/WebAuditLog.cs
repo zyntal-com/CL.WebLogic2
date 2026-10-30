@@ -33,6 +33,9 @@ public sealed class WebAuditLog : IWebAuditLog
     /// <summary>The consumer side (read by <see cref="AuditFlushService"/>).</summary>
     internal ChannelReader<WebAuditEntry> Reader => _channel.Reader;
 
+    /// <summary>Entries waiting for the sink (for the queue-length metric).</summary>
+    internal int QueueLength => _channel.Reader.Count;
+
     /// <inheritdoc/>
     public void Record(WebAuditEntry entry)
     {

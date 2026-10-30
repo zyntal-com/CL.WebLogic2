@@ -246,7 +246,8 @@ public static class TemplateOps
 
     /// <summary>Writes a localized text.</summary>
     public static void WriteText(TemplateRenderContext context, string key, TemplateEncodingContext encoding) =>
-        context.Output.Append(TemplateEncoder.Encode(context.Services.Localizer.GetText(key), encoding));
+        context.Output.Append(TemplateEncoder.Encode(
+            context.Services.Localizer.GetText(key, Localization.Models.WebRequestCulture.Get(context.HttpContext)?.Culture), encoding));
 
     /// <summary>Writes a section captured from the child template.</summary>
     public static void WriteSection(TemplateRenderContext context, string name)

@@ -4,6 +4,9 @@ using CL.WebLogic.Security.Sessions;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
+using CL.WebLogic.Forms.Models;
+using CL.WebLogic.Forms.Services;
+using CL.WebLogic.Forms.Validation;
 using CL.WebLogic.Routing.Models;
 using CL.WebLogic.Runtime.Services;
 using Microsoft.AspNetCore.Http;
@@ -80,6 +83,9 @@ public sealed class WebRequestContext
     /// <summary>Fragment cache scoped to the tenant, and tag eviction.</summary>
     public Caching.Services.WebRequestCache Cache => _cache ??= new Caching.Services.WebRequestCache(this, GetRequiredService<Caching.Services.IWebFragmentCache>(), GetRequiredService<Caching.Services.IWebCacheInvalidator>());
 
+    /// <summary>The culture resolved for this request, or null when localization is off.</summary>
+    public Localization.Models.WebRequestCulture? Culture => Localization.Models.WebRequestCulture.Get(HttpContext);
+
     /// <summary>The visitor's session (created and stored only when written).</summary>
     public IWebSession Session =>
         HttpContext.Features.Get<IWebSession>() ?? throw new InvalidOperationException("Sessions are not available: the WebLogic security pipeline did not run for this request.");
@@ -151,6 +157,15 @@ public sealed class WebRequestContext
     /// <summary>Deserializes a JSON body within the route's body limit using the contributor's JSON options.</summary>
     public Task<T?> ReadJsonAsync<T>(CancellationToken cancellationToken) =>
         WebRequestBodyReader.ReadJsonAsync<T>(HttpContext.Request, BodyLimit, JsonOptions, cancellationToken);
+
+    /// <summary>
+    /// Reads a JSON body within the route's body limit and validates it with its DataAnnotations
+    /// (nested objects and collections included, then <see cref="System.ComponentModel.DataAnnotations.IValidatableObject"/>).
+    /// Client mistakes (not JSON, too large, malformed, invalid) come back as a failed binding,
+    /// never as an exception; return <see cref="WebJsonBinding{T}.ToProblem"/> for them.
+    /// </summary>
+    public Task<WebJsonBinding<T>> BindJsonAsync<T>(CancellationToken cancellationToken) =>
+        WebJsonBinder.BindAsync<T>(this, BodyLimit, GetRequiredService<WebJsonValidator>(), GetRequiredService<WebFormMessages>(), cancellationToken);
 
     private long BodyLimit => Route.MaxBodyBytes ?? WebRequestBodyReader.DefaultMaxBodyBytes;
 }

@@ -1,5 +1,6 @@
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Content.Services;
+using CL.WebLogic.Diagnostics.Services;
 using CL.WebLogic.Localization.Services;
 using CL.WebLogic.Routing.Services;
 using CL.WebLogic.Security.Headers;
@@ -67,6 +68,11 @@ public static class WebLogicServiceCollectionExtensions
         services.AddHealthChecks().AddCheck<WebLogicHealthCheck>("weblogic", tags: ["ready"]);
         services.AddCors();
 
+        // Diagnostics: metrics and spans cost a flag check until a listener (OpenTelemetry) attaches.
+        services.AddMetrics();
+        services.TryAddSingleton<WebLogicMetrics>();
+        services.AddHostedService<WebLogicMetricsRecorder>();
+
         // Theming
         services.TryAddSingleton<WebThemeRoot>();
         services.TryAddSingleton<IWebThemeRoot>(sp => sp.GetRequiredService<WebThemeRoot>());
@@ -105,13 +111,18 @@ public static class WebLogicServiceCollectionExtensions
         services.TryAddSingleton<Client.Services.ClientContributor>();
         services.TryAddSingleton<ITemplateScriptProvider>(sp => sp.GetRequiredService<Client.Services.ClientScriptProvider>());
         services.TryAddSingleton<ITemplateAssetUrlResolver, ThemeAssetUrlResolver>();
-        services.TryAddSingleton<IWebTextLocalizer, PassthroughTextLocalizer>();
+        services.TryAddSingleton<IWebTextResources, ThemeJsonTextResources>();
+        services.TryAddSingleton<IWebTextLocalizer, WebResourceTextLocalizer>();
+        services.TryAddSingleton<WebCultureResolver>();
+        services.TryAddSingleton<WebCultureCookie>();
+        services.TryAddSingleton<LocalizationContributor>();
         services.TryAddSingleton<ICspNonceProvider, CspNonceProvider>();
         services.TryAddSingleton<IWebMarkdownRenderer>(_ => new WebMarkdownRenderer());
         services.TryAddSingleton<IWebHtmlSanitizer>(_ => new WebHtmlSanitizer());
         services.TryAddSingleton<TemplateRenderServices>();
         services.TryAddSingleton<IWebTemplateRenderer, WebTemplateRenderer>();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateGlobalsProvider, ConfigTemplateGlobalsProvider>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateGlobalsProvider, CultureTemplateGlobalsProvider>());
     }
 
     private static IWebLogicContext ResolveLibraryContext() =>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+The new features below are opt-in: with no configuration, existing apps behave and render as before.
+
 ### Security
 
 - **`RequirePolicy` makes a route require sign-in.** It did not clear `AllowAnonymous`, so a route in an
@@ -46,6 +48,38 @@
 
 - **`security.ipRules.refuseUnknownCountry`** (default `false`): with a country allow-list, refuse clients
   whose country cannot be looked up instead of letting them in.
+
+- **Validated JSON binding:** `request.BindJsonAsync<T>(ct)` reads a JSON body within the route's limit and
+  validates its DataAnnotations (nested objects, collections, `IValidatableObject`). Failures come back as a
+  binding (415 / 413 / 400) with field errors keyed by JSON path (`items[1].name`); return `ToProblem()`.
+- **Response compression** (`compression.enabled`, off): Brotli/gzip through ASP.NET Core. Responses that are
+  signed in, use a session, set cookies or carry a CSRF token are never compressed (BREACH);
+  `WithoutCompression()` / `AllowPersonalCompression()` per route.
+- **ETags for pages and JSON** (`cache.eTags` or `WithETag()`, off): weak ETags from the body hash and `304`
+  for a matching `If-None-Match`; never on personal responses.
+- **Localization** (`localization.enabled`, off): culture per request from query, cookie or `Accept-Language`
+  (supported cultures only), `IWebTextResources` with theme JSON files (`theme/locales/{culture}.json`) and a
+  fallback chain, `{t:key}` in the request culture, a culture switch endpoint, `Content-Language`, and output
+  and fragment caches that vary by culture.
+- **Webhook signatures:** `WebWebhookVerifier` checks HMAC-SHA256 signatures (hex/Base64, prefixes, timestamp
+  window, several secrets for rotation, GitHub and Stripe presets) in constant time.
+- **Pagination:** `WebPagination`, `WebPagedResult<T>` and `WebPageLinks` (clamped pages, links that keep the
+  query string); MiniBlog uses them.
+- **Sitemap and robots.txt:** `web.AddSitemap(...)` serves `/sitemap.xml` (anonymous parameterless pages plus an
+  app `IWebSitemapProvider`, absolute URLs from `PublicBaseUrl`) and `/robots.txt`.
+- **Metrics and tracing:** a `CodeLogic.WebLogic` meter and activity source (route requests and duration,
+  security and rate-limit rejections, sign-ins, realtime connections, queue lengths; security-phase and
+  template spans). Tags are low-cardinality and never hold IPs, user ids or query strings. See
+  [Observability](docs/guides/observability.md).
+- **Form ↔ entity mapper** (back from 0.x): the injectable `WebFormMapper` (`request.Forms.Mapper`) with
+  `[WebFormMapFrom]` / `[WebFormMapIgnore]`; form → entity only writes the form's own fields.
+- **Events:** `SecondFactorRequiredEvent`, and `UserSignedInEvent.IsRefresh` for re-sign-ins that are not new
+  sign-ins.
+
+### Docs
+
+- New guides: Localization, Observability. The migration guide maps 0.x config keys to 4.9 and lists renamed
+  contracts and events.
 
 ## 4.9.14-preview (2026-10-30)
 

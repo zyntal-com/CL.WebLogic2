@@ -61,8 +61,11 @@ On a route or a group:
 | `WithRateLimit(policy)` | A named rate-limit policy from `security.rateLimits.policies` |
 | `WithBodyLimit(bytes)` | Request body limit for this route |
 | `WithOutputCache(policy)` | Output cache policy (anonymous GET only; see [Caching](caching.md)) |
+| `WithETag()` / `WithoutETag()` | Computed ETag and 304 for non-personal GET responses; overrides `cache.eTags` ([Caching](caching.md)) |
+| `WithoutCompression()` | Never compress this route's responses |
+| `AllowPersonalCompression()` | Compress even personal responses when `compression.enabled` is on (BREACH: only for content with no reflected input next to a secret) |
 | `WithCors(policy)` | An ASP.NET CORS policy |
-| `AllowCrossSitePost()` | Webhooks: skip CSRF origin checks (the route should verify a signature) |
+| `AllowCrossSitePost()` | Webhooks: skip CSRF origin checks (verify the sender with [`WebWebhookVerifier`](security-pipeline.md#webhooks)) |
 | `WithMiddleware(middleware)` | Per-route `IWebMiddleware` |
 | `WithName`, `WithDescription`, `WithTags` | Shown in the explorer |
 
@@ -73,12 +76,72 @@ Unknown policy names fail closed (the request is refused), not open.
 `WebRequestContext` gives the handler:
 
 - `Identity` (`WebIdentity`: user, scheme, groups, permissions, scopes, tenant) and `Security`.
-- `GetRouteValue`, `GetQuery`, `GetQueryValues`, `GetHeader`, `GetCookie`, `ReadJsonAsync<T>`, `ReadBodyAsStringAsync`.
+- `GetRouteValue`, `GetQuery`, `GetQueryValues`, `GetHeader`, `GetCookie`, `ReadJsonAsync<T>`, `BindJsonAsync<T>`, `ReadBodyAsStringAsync`.
 - `Session`: a lazy per-request session; nothing is stored until you write.
 - `Auth`: sign-in helpers ([Authentication](authentication.md)).
 - `Forms`: bind, prefill and render forms ([Forms](forms.md)).
 - `Cache`: the fragment cache ([Caching](caching.md)).
 - `GetRequiredService<T>()` for app services.
+
+## Validated JSON bodies
+
+`ReadJsonAsync<T>` only deserializes. `BindJsonAsync<T>` also checks the request and validates the
+model with its DataAnnotations, so a JSON API needs no hand-written checks:
+
+```csharp
+public sealed class CreateOrder
+{
+    [Required, StringLength(100)]
+    public string? Name { get; set; }
+
+    public List<OrderLine> Items { get; set; } = [];
+}
+
+public sealed class OrderLine
+{
+    [Required]
+    public string? Name { get; set; }
+
+    [Range(1, 1000)]
+    public int Quantity { get; set; }
+}
+
+b.MapApi("/api/orders", async (request, ct) =>
+{
+    var binding = await request.BindJsonAsync<CreateOrder>(ct);
+    if (!binding.IsValid)
+        return binding.ToProblem();
+
+    var order = await orders.CreateAsync(binding.Model!, ct);
+    return WebResult.Json(order, 201);
+}, "POST");
+```
+
+| Request | `WebJsonBinding<T>` | `ToProblem()` |
+|---|---|---|
+| Content-Type is not JSON (`application/json` or `*+json`) | `StatusCode` 415, `weblogic.json.unsupported_media_type` | `415` problem |
+| Body over the route's limit (`WithBodyLimit`, default 1 MiB) | 413, `weblogic.json.too_large` | `413` problem |
+| Empty body, `null`, or not valid JSON | 400, `weblogic.json.empty` / `weblogic.json.malformed` | `400` problem (no parser details) |
+| A value of the wrong type (`"quantity": "many"`) | 400, `Errors["items[0].quantity"]` | `400` validation problem |
+| DataAnnotations or `IValidatableObject` fail | 400, `weblogic.json.invalid`, `Errors`, `Model` set | `400` validation problem |
+| Valid | `IsValid`, `Model` | — |
+
+- **Error keys are JSON paths** in the route's JSON options (camelCase by default, `[JsonPropertyName]`
+  respected): `name`, `address.city`, `items[1].name`, `lines[key].name`; `""` holds model-level
+  results of `IValidatableObject`. The validation problem has the `errors` shape the JS client already
+  reads (`HttpError.problem.errors`).
+- **Nested objects, collections and dictionaries** are validated recursively (up to 32 levels; a cycle
+  is walked once). Like DataAnnotations, an object's `IValidatableObject.Validate` and class-level
+  attributes run only once its members are valid.
+- **Unknown JSON properties are ignored**, and members the JSON contract skips (`[JsonIgnore]`) are
+  neither bound nor validated.
+- `[Required]` without its own message uses the localizable `forms.required` text, like form fields;
+  other attributes use their DataAnnotations message, and `[Display(Name = ...)]` sets the label.
+- Put attributes on properties. On a positional record write `[property: Required]`; prefer
+  `[Required]` over the C# `required` keyword, whose failure is a plain `400` without field errors.
+
+`WebJsonValidator` (a DI singleton) runs the same validation on any object:
+`validator.Validate(model, jsonOptions)` returns the errors by JSON path.
 
 ## Results
 
@@ -95,6 +158,75 @@ Unknown policy names fail closed (the request is refused), not open.
 
 `WebPageMeta` sets the title, description, canonical URL, robots and Open Graph tags that
 `{renderhead}` writes.
+
+## Pagination
+
+`WebPagination` does the page arithmetic and clamps what came from the query string; `WebPageLinks`
+builds the links.
+
+```csharp
+b.MapPage("/posts", async (request, ct) =>
+{
+    var total = await posts.CountAsync(ct);
+    var pagination = WebPagination.Create(WebPagination.ParsePage(request), pageSize: 20, total); // max page size 100
+    var items = await posts.ListAsync(pagination.Skip, pagination.PageSize, ct);
+    return WebResult.Page("templates/posts", new { items, pager = WebPageLinks.Build(request, pagination) });
+}).AllowAnonymous();
+```
+
+- `Create(page, pageSize, totalItems, maxPageSize = 100)` clamps the page size to 1..max and the page
+  to 1..`TotalPages` (an empty list is page 1 of 1). It exposes `HasPrevious`, `HasNext`, `Skip`,
+  `FirstItem`, `LastItem`. `ParsePage` accepts digits only; anything else is page 1.
+- `pagination.Apply(list)` pages an in-memory sequence into a `WebPagedResult<T>` (`Items`, `Pagination`).
+- `WebPageLinks.Build(request, pagination, window = 2, parameter = "page")` returns `WebPagerLinks`:
+  `PreviousUrl`, `NextUrl`, `FirstUrl`, `LastUrl` (null when there is no such page) and `Pages`
+  (`Number`, `Url`, `IsCurrent`) around the current page. Every URL is the request's own local path
+  (with path base) and keeps the other query values (filters, search, sort); keys and values are
+  encoded and page 1 drops the parameter. `WebPageLinks.PageUrl(...)` builds a single link; the
+  overloads that take a path refuse anything but a local path.
+
+There is no pager directive; render it with a partial, for example `partials/pager.html`:
+
+```html
+<nav class="pager" aria-label="Pages">
+  {if:model:pager.previousUrl}<a href="{model:pager.previousUrl}" rel="prev">Previous</a>{/if}
+  {foreach:model:pager.pages as pg}
+    {if:pg:isCurrent}<span aria-current="page">{pg:number}</span>{else}<a href="{pg:url}">{pg:number}</a>{/if}
+  {/foreach}
+  {if:model:pager.nextUrl}<a href="{model:pager.nextUrl}" rel="next">Next</a>{/if}
+</nav>
+```
+
+## Sitemap and robots.txt
+
+Off unless registered:
+
+```csharp
+builder.AddCodeLogicWebLogic(web => web
+    .AddSitemap(o =>
+    {
+        o.ExcludePaths.Add("/login");                 // globs: /account/**
+        o.RobotsText = "User-agent: *\nDisallow: /admin/\n";
+    })
+    .UseSitemapProvider<PostSitemap>());              // optional: dynamic pages
+
+public sealed class PostSitemap(PostStore posts) : IWebSitemapProvider
+{
+    public async ValueTask<IReadOnlyList<WebSitemapEntry>> GetEntriesAsync(CancellationToken ct) =>
+        [.. (await posts.PublishedAsync(ct)).Select(p => new WebSitemapEntry { Path = "/posts/" + p.Slug, LastModified = p.UpdatedAt })];
+}
+```
+
+- `/sitemap.xml` lists every page route that is anonymous, answers GET, has no route parameters and no
+  group, permission or policy requirement, then the provider's entries (default `NullSitemapProvider`:
+  none). `/_weblogic/*` routes, routes tagged `.WithTags(WebSitemapOptions.ExcludeTag)` and
+  `ExcludePaths` are left out; duplicates are written once, at most `MaxEntries` (50,000).
+- URLs are absolute from `PublicBaseUrl`, never the request's Host header. Provider paths must be
+  local (`/posts/x`); anything else is skipped. Paths are percent-encoded and everything is XML-escaped.
+  Without `PublicBaseUrl` the sitemap answers 404 and logs a warning.
+- `/robots.txt` is `RobotsText` (default: allow everything) plus `Sitemap: {PublicBaseUrl}/sitemap.xml`.
+- Both send `Cache-Control: public, max-age=3600` (`CacheSeconds`). Turn either off with `ServeSitemap` /
+  `ServeRobots`. Do not also map your own `/sitemap.xml` or `/robots.txt`.
 
 ## The explorer
 

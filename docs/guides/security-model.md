@@ -76,9 +76,13 @@ These are documented trade-offs, not open bugs:
   `WebHtmlSanitizerOptions` (or prefix-filter it) where untrusted users write HTML.
 - **Country allow-lists fail open** when GeoIP is missing or a lookup fails, unless
   `security.ipRules.refuseUnknownCountry` is on.
+- **Compression and ETags** skip personal responses. `AllowPersonalCompression()` is an explicit BREACH
+  trade-off for that route. ETags hash the uncompressed body and are weak (`W/"…"`), so one tag
+  honestly covers the Brotli, gzip and identity forms of a response.
 - **CSRF and `SameSite=Lax`.** The token is the protection; Lax cookies are defence in depth. Routes
   marked `AllowCrossSitePost()` (webhooks) must authenticate the sender themselves, for example with a
-  signature.
+  signature (`WebWebhookVerifier`, see [Webhooks](security-pipeline.md#webhooks)). Its timestamp window
+  limits replays but does not make delivery exactly-once; de-duplicate event ids where that matters.
 
 ## Reporting a vulnerability
 

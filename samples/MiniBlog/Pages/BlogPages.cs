@@ -5,6 +5,7 @@ using CL.WebLogic.Results;
 using CL.WebLogic.Routing;
 using CL.WebLogic.Routing.Services;
 using CL.WebLogic.Runtime.Models;
+using CL.WebLogic.Runtime.Services;
 using MiniBlog.Configuration;
 using MiniBlog.Data.Posts;
 
@@ -42,20 +43,20 @@ public sealed class BlogPages : IWebContributor
 
     private async ValueTask<WebResult> ListAsync(WebRequestContext request, string? tag, CancellationToken cancellationToken)
     {
-        var page = int.TryParse(request.GetQuery("page"), NumberStyles.None, CultureInfo.InvariantCulture, out var p) ? Math.Clamp(p, 1, 10_000) : 1;
+        var page = Math.Min(WebPagination.ParsePage(request), 10_000);
         var result = await _posts.PublishedAsync(page, _config.PageSize, tag, cancellationToken).ConfigureAwait(false);
         if (tag is not null && result.TotalItems == 0)
             return WebResult.Status(404);
-        var basePath = tag is null ? "/" : "/tags/" + Uri.EscapeDataString(tag);
+        var pager = WebPageLinks.Build(request, WebPagination.Create(result.PageNumber, _config.PageSize, result.TotalItems, maxPageSize: 50));
         return WebResult.Page(tag is null ? "templates/home" : "templates/tag", new
         {
             _config.Tagline,
             Tag = tag,
             Posts = result.Items.Select(Card).ToList(),
-            Page = result.PageNumber,
-            result.TotalPages,
-            PreviousUrl = result.HasPreviousPage ? $"{basePath}?page={result.PageNumber - 1}" : null,
-            NextUrl = result.HasNextPage ? $"{basePath}?page={result.PageNumber + 1}" : null
+            pager.Page,
+            pager.TotalPages,
+            pager.PreviousUrl,
+            pager.NextUrl
         }, new WebPageMeta { Title = tag is null ? "Home" : "#" + tag, Description = _config.Tagline });
     }
 
