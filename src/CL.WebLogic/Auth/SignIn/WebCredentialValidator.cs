@@ -63,16 +63,19 @@ public sealed class WebCredentialValidator : IWebCredentialValidator
         if (user?.PasswordHash is null)
             verification = WebPasswordVerification.Failed;
 
-        // A lock is only revealed to someone who knows the password; a wrong password on a locked
-        // account looks like any other failure (and does not extend the lock).
+        // A locked account answers LockedOut whatever the password: answering differently for the
+        // right one would let guessing go on during the lock with a free "correct" signal. (Locking
+        // already shows the account exists.) A wrong password does not extend the lock.
         var remaining = TimeSpan.Zero;
         var locked = user is not null && _lockout.IsLockedOut(user, out remaining);
 
         if (verification == WebPasswordVerification.Failed)
         {
             await _throttle.RecordFailureAsync(login, security.ClientIp, cancellationToken).ConfigureAwait(false);
-            if (user is null || locked)
+            if (user is null)
                 return WebSignInResult.Of(WebSignInStatus.InvalidCredentials);
+            if (locked)
+                return WebSignInResult.Of(WebSignInStatus.LockedOut, retryAfter: remaining);
             var updated = await _lockout.RecordFailureAsync(user, cancellationToken).ConfigureAwait(false);
             return _lockout.IsLockedOut(updated, out var lockedFor)
                 ? new WebSignInResult { Status = WebSignInStatus.LockedOut, User = updated, RetryAfter = lockedFor, LockedNow = true }
