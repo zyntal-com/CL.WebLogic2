@@ -21,6 +21,7 @@ internal static class WebLogicFormsRegistration
         services.TryAddSingleton<WebFormDefinitionProvider>();
         services.TryAddSingleton<WebFormBinder>();
         services.TryAddSingleton<WebFieldValidator>();
+        services.TryAddSingleton<WebJsonValidator>();
         services.TryAddSingleton<WebUploadChecker>();
         services.TryAddSingleton<WebFormAntiBot>();
         services.TryAddSingleton<WebWizardState>();
