@@ -146,6 +146,22 @@ public sealed class RealtimePrimitivesTests
     }
 
     [Fact]
+    public void Regression_IPv6_clients_count_per_network_prefix()
+    {
+        // Security review: each address of one /64 got its own allowance.
+        var (hub, context, _) = CreateHub(c => c.MaxConnectionsPerClient = 2);
+        using (context)
+        using (hub)
+        {
+            Connect(hub, WebRealtimeIdentity.Anonymous, "2001:db8:1:1::1");
+            Connect(hub, WebRealtimeIdentity.Anonymous, "2001:db8:1:1::2");
+            Assert.Null(hub.Connect(WebRealtimeIdentity.Anonymous, new HashSet<string>(), WebRealtimeTransport.WebSocket, "2001:db8:1:1::3", out var rejection));
+            Assert.Equal("max-connections-per-client", rejection);
+            Assert.NotNull(hub.Connect(WebRealtimeIdentity.Anonymous, new HashSet<string>(), WebRealtimeTransport.WebSocket, "2001:db8:1:2::1", out _));
+        }
+    }
+
+    [Fact]
     public void Closing_a_user_closes_only_their_connections()
     {
         var (hub, context, _) = CreateHub();
