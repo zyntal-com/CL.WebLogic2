@@ -136,6 +136,27 @@ public sealed class SignInTests
     }
 
     [Fact]
+    public async Task Regression_With_a_pepper_recovery_codes_are_peppered_and_old_ones_still_work()
+    {
+        // Security review: codes were keyed only by the (public) user id, so a leaked table could be
+        // brute-forced offline.
+        await using var host = await AuthTestSite.StartAsync(c => c.Auth.Passwords.Pepper = "a-long-server-secret-pepper-value");
+        var (codes, _) = await EnrollAsync(host);
+        var user = (await host.Services.GetRequiredService<IWebUserStore>().FindByLoginAsync("alice", default))!;
+        var store = host.Services.GetRequiredService<CL.WebLogic.Auth.TwoFactor.IWebRecoveryCodeStore>();
+
+        Assert.False(await store.TryConsumeAsync(user.Id, WebRecoveryCodes.Hash(user.Id, codes[1]), default)); // not stored unpeppered
+        await AuthTestSite.LoginAsync(host.Client);
+        Assert.Equal("Succeeded", await AuthTestSite.PostAsync(host.Client, "/auth/recovery", new { code = codes[0] }));
+
+        // A code stored before the pepper was set.
+        await store.ReplaceAsync(user.Id, [WebRecoveryCodes.Hash(user.Id, "ABCDE-FGHJK")], default);
+        var other = host.CreateClient();
+        await AuthTestSite.LoginAsync(other);
+        Assert.Equal("Succeeded", await AuthTestSite.PostAsync(other, "/auth/recovery", new { code = "ABCDE-FGHJK" }));
+    }
+
+    [Fact]
     public async Task PendingSecondFactor_Expires()
     {
         var clock = new ManualTimeProvider(DateTimeOffset.UtcNow);

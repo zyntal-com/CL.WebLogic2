@@ -24,7 +24,16 @@ public static class WebRecoveryCodes
     public static string Normalize(string code) =>
         new((code ?? string.Empty).Where(char.IsAsciiLetterOrDigit).Select(char.ToUpperInvariant).ToArray());
 
-    /// <summary>The stored hash: HMAC-SHA256 keyed by the user id, over the normalized code.</summary>
-    public static string Hash(string userId, string code) =>
-        Convert.ToHexStringLower(HMACSHA256.HashData(Encoding.UTF8.GetBytes(userId), Encoding.UTF8.GetBytes(Normalize(code))));
+    /// <summary>The stored hash without a pepper: HMAC-SHA256 keyed by the user id, over the normalized code.</summary>
+    public static string Hash(string userId, string code) => Hash(userId, code, pepper: null);
+
+    /// <summary>
+    /// The stored hash: HMAC-SHA256 over the normalized code, keyed by the user id and, when set, the
+    /// password pepper. With a pepper a leaked code table cannot be brute-forced offline (the user id
+    /// alone is public and a code has only about 50 bits).
+    /// </summary>
+    public static string Hash(string userId, string code, string? pepper) =>
+        Convert.ToHexStringLower(HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(string.IsNullOrEmpty(pepper) ? userId : pepper + "\0" + userId),
+            Encoding.UTF8.GetBytes(Normalize(code))));
 }

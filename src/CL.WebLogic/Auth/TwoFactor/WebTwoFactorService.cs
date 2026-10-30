@@ -122,7 +122,8 @@ public sealed class WebTwoFactorService
     private async Task<IReadOnlyList<string>> ReplaceRecoveryCodesAsync(WebUser user, CancellationToken cancellationToken)
     {
         var codes = WebRecoveryCodes.Generate(_config.Current.Auth.TwoFactor.RecoveryCodeCount);
-        await _recoveryCodes.ReplaceAsync(user.Id, [.. codes.Select(c => WebRecoveryCodes.Hash(user.Id, c))], cancellationToken).ConfigureAwait(false);
+        var pepper = _config.Current.Auth.Passwords.Pepper;
+        await _recoveryCodes.ReplaceAsync(user.Id, [.. codes.Select(c => WebRecoveryCodes.Hash(user.Id, c, pepper))], cancellationToken).ConfigureAwait(false);
         return codes;
     }
 
@@ -130,8 +131,13 @@ public sealed class WebTwoFactorService
     public async Task<bool> RedeemRecoveryCodeAsync(WebUser user, string code, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (WebRecoveryCodes.Normalize(code).Length != 10
-            || !await _recoveryCodes.TryConsumeAsync(user.Id, WebRecoveryCodes.Hash(user.Id, code), cancellationToken).ConfigureAwait(false))
+        if (WebRecoveryCodes.Normalize(code).Length != 10)
+            return false;
+        // Codes issued before a pepper was configured are stored with the plain hash.
+        var pepper = _config.Current.Auth.Passwords.Pepper;
+        if (!await _recoveryCodes.TryConsumeAsync(user.Id, WebRecoveryCodes.Hash(user.Id, code, pepper), cancellationToken).ConfigureAwait(false)
+            && (string.IsNullOrEmpty(pepper)
+                || !await _recoveryCodes.TryConsumeAsync(user.Id, WebRecoveryCodes.Hash(user.Id, code), cancellationToken).ConfigureAwait(false)))
             return false;
 
         var remaining = await _recoveryCodes.CountAsync(user.Id, cancellationToken).ConfigureAwait(false);
