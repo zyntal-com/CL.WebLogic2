@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using CL.WebLogic.Auth.External;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Routing.Models;
 using CL.WebLogic.Security.Models;
@@ -26,12 +27,16 @@ public sealed class ResponseHardener
 
     private readonly ICspNonceProvider _nonce;
     private readonly IWebLogicContext _context;
+    private readonly string[] _loginOrigins;
+    private RoutePolicy? _sitePolicy;
 
     /// <summary>Creates the hardener.</summary>
-    public ResponseHardener(ICspNonceProvider nonce, IWebLogicContext context)
+    public ResponseHardener(ICspNonceProvider nonce, IWebLogicContext context, IEnumerable<IWebExternalLoginProvider>? loginProviders = null)
     {
         _nonce = nonce ?? throw new ArgumentNullException(nameof(nonce));
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _loginOrigins = (loginProviders ?? []).SelectMany(p => p.RedirectOrigins).Where(WebCspAdditions.IsValidSource)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     /// <summary>Registers the header callback for the request.</summary>
@@ -110,13 +115,37 @@ public sealed class ResponseHardener
     private string? PolicyFor(WebSecurityContext security)
     {
         var settings = security.Settings;
-        if (security.Route is not { CspAdditions.Count: > 0 } route || settings.ContentSecurityPolicy is null)
-            return settings.ContentSecurityPolicy;
+        if (settings.ContentSecurityPolicy is null)
+            return null;
+        var loginOrigins = settings.Config.Headers.ExternalLoginFormActions ? _loginOrigins : [];
+        if (security.Route is not { CspAdditions.Count: > 0 } route)
+        {
+            if (loginOrigins.Length == 0)
+                return settings.ContentSecurityPolicy;
+            var site = _sitePolicy;
+            if (site is not null && ReferenceEquals(site.Settings, settings))
+                return site.Policy;
+            var built = CspBuilder.Build(settings.Config.Headers, WithLoginOrigins(null, loginOrigins));
+            _sitePolicy = new RoutePolicy(settings, built);
+            return built;
+        }
         if (_routePolicies.TryGetValue(route, out var cached) && ReferenceEquals(cached.Settings, settings))
             return cached.Policy;
-        var policy = CspBuilder.Build(settings.Config.Headers, route.CspAdditions);
+        var policy = CspBuilder.Build(settings.Config.Headers, WithLoginOrigins(route.CspAdditions, loginOrigins));
         _routePolicies.AddOrUpdate(route, new RoutePolicy(settings, policy));
         return policy;
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<string>>? WithLoginOrigins(IReadOnlyDictionary<string, IReadOnlyList<string>>? additions,
+        string[] loginOrigins)
+    {
+        if (loginOrigins.Length == 0)
+            return additions;
+        var merged = additions is null
+            ? new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
+            : new Dictionary<string, IReadOnlyList<string>>(additions, StringComparer.Ordinal);
+        merged["form-action"] = merged.TryGetValue("form-action", out var existing) ? [.. existing, .. loginOrigins] : loginOrigins;
+        return merged;
     }
 
     private sealed record RoutePolicy(WebSecuritySettings Settings, string? Policy);

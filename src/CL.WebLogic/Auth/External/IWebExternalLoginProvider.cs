@@ -16,6 +16,13 @@ public interface IWebExternalLoginProvider
     /// <summary>Button text.</summary>
     string DisplayName { get; }
 
+    /// <summary>
+    /// Origins the challenge redirects the browser to (e.g. <c>https://steamcommunity.com</c>). They are added to the
+    /// site's <c>form-action</c>, because browsers apply it to the redirect that follows a form post: a sign-in or link
+    /// started with a POST form (the CSRF-safe way) is blocked otherwise. Empty by default.
+    /// </summary>
+    IReadOnlyList<string> RedirectOrigins => [];
+
     /// <summary>The provider URL to redirect the browser to.</summary>
     ValueTask<string> GetChallengeUrlAsync(WebExternalChallenge challenge, CancellationToken cancellationToken);
 

@@ -53,6 +53,11 @@ b.MapPage("/account/external/{provider}/callback", async (r, ct) =>
 `SignInExternalAsync` applies the account rules (disabled, locked, suspended, other tenant) and asks
 two-factor users for their code. The starter sample has the complete flow.
 
+The challenge route can be a GET link or a POST form. A POST form (with the CSRF token) stops other sites from
+starting a link for a signed-in user; browsers then apply the page's `form-action` to the redirect to the
+provider, so WebLogic adds each provider's `RedirectOrigins` to `form-action` on every page
+(`headers.externalLoginFormActions`, on by default). A custom provider lists the origins its challenge URL uses.
+
 ## Linking and unlinking
 
 `flow.LinkAsync(user, info)` links an identity to a signed-in user and `flow.UnlinkAsync(user, provider)`

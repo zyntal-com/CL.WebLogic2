@@ -60,6 +60,14 @@ public sealed class ResponseHeadersConfig
     [ConfigField(Label = "Form Actions", Group = "Headers", Order = 119, Collapsed = true)]
     public List<string> FormActions { get; set; } = [];
 
+    /// <summary>
+    /// Add the origins registered external login providers redirect to (Steam, OAuth/OIDC issuers) to <c>form-action</c>,
+    /// so a sign-in or account link started with a POST form is not blocked by the browser.
+    /// </summary>
+    [ConfigField(Label = "Allow External Login Redirects", Description = "Adds the redirect origins of registered external login providers to form-action.",
+        Group = "Headers", Order = 119, Collapsed = true)]
+    public bool ExternalLoginFormActions { get; set; } = true;
+
     /// <summary>Reporting API endpoint for CSP violations (<c>Reporting-Endpoints</c> + <c>report-to</c>).</summary>
     [ConfigField(Label = "CSP Report To", Description = "URL of a Reporting API endpoint; sent as Reporting-Endpoints and used by report-to.", Group = "Headers", Order = 120, Collapsed = true)]
     public string CspReportTo { get; set; } = "";

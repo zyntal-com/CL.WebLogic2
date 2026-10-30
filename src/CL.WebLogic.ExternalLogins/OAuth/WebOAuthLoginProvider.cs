@@ -40,6 +40,18 @@ public sealed partial class WebOAuthLoginProvider : IWebExternalLoginProvider
     public string DisplayName => _options.DisplayName ?? _options.Name;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// The origins of <see cref="WebOAuthOptions.AuthorizationEndpoint"/> and <see cref="WebOAuthOptions.Authority"/>. An
+    /// issuer whose discovered authorization endpoint is on another host needs <c>AuthorizationEndpoint</c> set (or the
+    /// host in <c>Headers.FormActions</c>) for POST-started sign-ins.
+    /// </remarks>
+    public IReadOnlyList<string> RedirectOrigins => _redirectOrigins ??= new[] { _options.AuthorizationEndpoint, _options.Authority }
+        .Select(u => Uri.TryCreate(u, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http" ? uri.GetLeftPart(UriPartial.Authority) : null)
+        .OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    private string[]? _redirectOrigins;
+
+    /// <inheritdoc/>
     public async ValueTask<string> GetChallengeUrlAsync(WebExternalChallenge challenge, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(challenge);
