@@ -11,7 +11,7 @@ namespace CL.WebLogic.MySql.Stores;
 /// <c>wl_user_logins</c>. User names and e-mail addresses are unique case-insensitively; failed
 /// sign-ins are counted with one atomic statement so concurrent attempts cannot undercount.
 /// </summary>
-public sealed partial class MySqlWebUserStore : IWebUserStore, IWebUserLockoutStore, IWebUserEmailStore, IWebUserExternalLoginStore
+public sealed partial class MySqlWebUserStore : IWebUserStore, IWebUserLockoutStore, IWebUserEmailStore, IWebUserExternalLoginStore, IWebUserDeletionStore
 {
     private readonly WebMySqlDatabase _db;
 

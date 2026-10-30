@@ -35,6 +35,7 @@ public sealed class RealtimeStartupService : IHostedService
     {
         _subscriptions.Add(_context.Events.Subscribe<UserSignedOutEvent>(e => _hub.CloseUser(e.UserId)));
         _subscriptions.Add(_context.Events.Subscribe<PasswordChangedEvent>(e => _hub.CloseUser(e.UserId)));
+        _subscriptions.Add(_context.Events.Subscribe<UserDeletedEvent>(e => _hub.CloseUser(e.UserId)));
         _subscriptions.Add(_context.Events.Subscribe<SessionEndedEvent>(e => _hub.CloseSession(e.IdHash)));
         _subscriptions.Add(_bridge.Register<WebLogicConfigAppliedEvent>("weblogic.config.applied", _ => WebRealtimeAudience.Internal, e => new { changed = e.ChangedProperties }));
         _subscriptions.Add(_bridge.Register<WebLogicRestartRequiredEvent>("weblogic.config.restart-required", _ => WebRealtimeAudience.Internal, e => new { changed = e.ChangedProperties }));

@@ -10,7 +10,7 @@ store contracts and WebLogic calls them.
 | Contract | Holds | Register with |
 |---|---|---|
 | `IWebUserStore` | Users (`WebUser`): name, e-mail, password hash, security stamp, groups, permissions, tenant, 2FA secret, lockout | `web.UseUserStore<T>()` |
-| `IWebUserLockoutStore`, `IWebUserEmailStore`, `IWebUserExternalLoginStore` | Optional capabilities on the same class: atomic failure counting, lookup by e-mail, linked external logins | (implement on the user store) |
+| `IWebUserLockoutStore`, `IWebUserEmailStore`, `IWebUserExternalLoginStore`, `IWebUserDeletionStore` | Optional capabilities on the same class: atomic failure counting, lookup by e-mail, linked external logins, deleting users | (implement on the user store) |
 | `IWebSessionStore` | Session records keyed by the SHA-256 of the session token | `web.UseSessionStore<T>()` |
 | `IWebApiKeyStore` | API keys (hash of the secret, scopes, expiry, networks) | `web.UseApiKeyStore<T>()` |
 | `IWebPasskeyStore` | Passkeys (public key, user handle, counter); see [Passkeys](passkeys.md) | `web.UsePasskeyStore<T>()` |
@@ -149,6 +149,24 @@ Set `WebUser.SuspendedUntil` (and `SuspensionReason`) to ban a user for a while,
   ProblemDetails (`suspendedUntil`) for API clients.
 
 Your user store persists the two fields like any other (the samples show JSON and MySQL).
+
+## Deleting accounts
+
+`WebAccountService.DeleteAccountAsync(userId, byUserId, ct)` deletes an account in one call: it ends the user's
+sessions, removes their passkeys and recovery codes, deletes the user through `IWebUserDeletionStore`, and ends
+sessions once more so a request that was running during the delete cannot leave one behind. It publishes
+`UserDeletedEvent(UserId, ByUserId)`: the audit log records `auth.account` / `deleted` (with `by` when an
+administrator deleted it) and realtime connections of the user close.
+
+```csharp
+var result = await accounts.DeleteAccountAsync(user.Id, byUserId: request.Identity.UserId, ct);
+if (!result.IsSuccess) return FormResult.Failure("delete", new WebFormErrors(), result.Error!.Message);
+```
+
+The user store's `DeleteAsync` removes the user, their external-login links and any app data that must go with
+the account (do it in one transaction). The in-memory and MySQL stores implement it. Without the capability the
+call fails with `weblogic.auth.delete_unsupported`; an unknown id fails with `weblogic.auth.user_not_found`. Pass
+the id exactly as `WebUser.Id`, since sessions, passkeys and recovery codes are keyed by it.
 
 ## Links by e-mail
 

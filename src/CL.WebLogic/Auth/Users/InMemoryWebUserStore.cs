@@ -5,7 +5,7 @@ using CodeLogic.Core.Results;
 namespace CL.WebLogic.Auth.Users;
 
 /// <summary>Development user store (process memory). Supports every optional capability.</summary>
-public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, IWebUserEmailStore, IWebUserExternalLoginStore, IWebDevelopmentStore
+public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, IWebUserEmailStore, IWebUserExternalLoginStore, IWebUserDeletionStore, IWebDevelopmentStore
 {
     private readonly ConcurrentDictionary<string, WebUser> _users = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _externalLogins = new(StringComparer.Ordinal);
@@ -45,6 +45,17 @@ public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, 
         ArgumentNullException.ThrowIfNull(user);
         _users[user.Id] = user;
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc/>
+    public Task<bool> DeleteAsync(string userId, CancellationToken cancellationToken)
+    {
+        foreach (var (key, owner) in _externalLogins)
+        {
+            if (owner == userId)
+                _externalLogins.TryRemove(key, out _);
+        }
+        return Task.FromResult(_users.TryRemove(userId, out _));
     }
 
     /// <inheritdoc/>

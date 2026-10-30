@@ -75,6 +75,21 @@ public sealed class AccountStoreTests(MySqlFixture fixture)
     }
 
     [MySqlFact]
+    public async Task Deleting_a_user_removes_the_row_and_its_external_logins()
+    {
+        var store = new MySqlWebUserStore(fixture.Db);
+        var user = User("gone" + Id());
+        await store.CreateAsync(user, default);
+        var steamId = "7656119" + Id();
+        await store.AddExternalLoginAsync(user.Id, "steam", steamId, default);
+
+        Assert.True(await store.DeleteAsync(user.Id, default));
+        Assert.Null(await store.FindByIdAsync(user.Id, default));
+        Assert.Null(await store.FindByExternalLoginAsync("steam", steamId, default));
+        Assert.False(await store.DeleteAsync(user.Id, default));
+    }
+
+    [MySqlFact]
     public async Task Sessions_round_trip_list_per_user_and_expire()
     {
         var store = new MySqlWebSessionStore(fixture.Db);
