@@ -36,6 +36,9 @@ client scripts.
 - **Forwarded headers are off** until you list your proxies.
 - **Production refuses in-memory security stores.**
 - **Realtime does not broadcast requests** unless `realtime.broadcastRequests` is on, and never with IPs.
+- **Compression is opt-in.** 0.x compressed every response (`security.enableCompression`, on by default).
+  In 4.9 it is `compression.enabled` (off), and signed-in, session, CSRF and cookie-setting responses
+  are never compressed (BREACH). See [Caching](caching.md).
 
 ## Configuration
 

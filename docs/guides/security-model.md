@@ -60,6 +60,9 @@ These are documented trade-offs, not open bugs:
 - **In-memory throttles are per node and bounded** (100,000 logins / addresses). A flood of distinct
   logins can evict an entry and reset its back-off; account lockout (in your user store) still applies.
   Use a shared `IWebLoginThrottle` for clusters or stricter guarantees.
+- **Compression and ETags** skip personal responses. `AllowPersonalCompression()` is an explicit BREACH
+  trade-off for that route. ETags hash the uncompressed body, so the same strong ETag is sent for the
+  Brotli, gzip and identity forms of a response (as ASP.NET Core's compression does).
 - **CSRF and `SameSite=Lax`.** The token is the protection; Lax cookies are defence in depth. Routes
   marked `AllowCrossSitePost()` (webhooks) must authenticate the sender themselves, for example with a
   signature.
