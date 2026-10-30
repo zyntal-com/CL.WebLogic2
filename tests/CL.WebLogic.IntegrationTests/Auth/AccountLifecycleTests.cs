@@ -32,6 +32,10 @@ public sealed class AccountLifecycleTests
         await AuthTestSite.CreateUserAsync(host);
 
         Assert.Equal("weblogic.auth.duplicate_user", (await accounts.RegisterAsync(new WebRegistration { UserName = "ALICE", Password = AuthTestSite.Password }, default)).Error!.Code);
+        // Security review: a user name equal to another account's e-mail (or the reverse) hijacked its logins.
+        Assert.Equal("weblogic.auth.duplicate_user", (await accounts.RegisterAsync(new WebRegistration { UserName = "Alice@example.test", Password = AuthTestSite.Password }, default)).Error!.Code);
+        Assert.True((await accounts.RegisterAsync(new WebRegistration { UserName = "bob@example.test", Password = AuthTestSite.Password }, default)).IsSuccess);
+        Assert.Equal("weblogic.auth.duplicate_user", (await accounts.RegisterAsync(new WebRegistration { UserName = "carol", Email = "bob@example.test", Password = AuthTestSite.Password }, default)).Error!.Code);
         Assert.Equal("weblogic.auth.invalid_email", (await accounts.RegisterAsync(new WebRegistration { UserName = "x", Email = "not-an-email", Password = AuthTestSite.Password }, default)).Error!.Code);
         Assert.Equal("weblogic.auth.password_policy", (await accounts.RegisterAsync(new WebRegistration { UserName = "y", Password = "password123" }, default)).Error!.Code);
         Assert.Equal("weblogic.auth.password_policy", (await accounts.RegisterAsync(new WebRegistration { UserName = "zelda", Password = "zelda-is-my-name" }, default)).Error!.Code);

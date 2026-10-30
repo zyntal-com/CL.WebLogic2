@@ -76,6 +76,12 @@ public sealed partial class WebAccountService
             user = user with { PasswordHash = _hasher.Hash(registration.Password) };
         }
 
+        // Sign-in looks a login up by user name or e-mail, so a user name equal to someone's e-mail
+        // (or the reverse) would let one account answer for the other. Stores only check each column.
+        if (await LoginTakenAsync(user.UserName, null, cancellationToken).ConfigureAwait(false)
+            || (email is not null && await LoginTakenAsync(email, null, cancellationToken).ConfigureAwait(false)))
+            return Result<WebUser>.Failure(Error.Conflict("weblogic.auth.duplicate_user", "The user name or e-mail address is already in use."));
+
         var created = await _users.CreateAsync(user, cancellationToken).ConfigureAwait(false);
         if (created.IsFailure)
             return Result<WebUser>.Failure(created.Error!);
@@ -131,7 +137,8 @@ public sealed partial class WebAccountService
             return Result<WebUser>.Failure(validated.Error!);
         var newEmail = validated.Value!.Data!;
         var old = validated.Value.User;
-        if (await FindByEmailAsync(newEmail, cancellationToken).ConfigureAwait(false) is { } existing && existing.Id != old.Id)
+        if ((await FindByEmailAsync(newEmail, cancellationToken).ConfigureAwait(false) is { } existing && existing.Id != old.Id)
+            || await LoginTakenAsync(newEmail, old.Id, cancellationToken).ConfigureAwait(false))
             return Fail<WebUser>("weblogic.auth.email_taken", "This e-mail address is already in use.");
 
         var user = old with { Email = newEmail, EmailConfirmed = true, SecurityStamp = WebUser.NewStamp() };
@@ -177,6 +184,9 @@ public sealed partial class WebAccountService
             : await _users.FindByLoginAsync(email, cancellationToken).ConfigureAwait(false) is { } user
               && string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase) ? user : null;
     }
+
+    private async Task<bool> LoginTakenAsync(string login, string? exceptUserId, CancellationToken cancellationToken) =>
+        await _users.FindByLoginAsync(login, cancellationToken).ConfigureAwait(false) is { } other && other.Id != exceptUserId;
 
     private static Result<T> Fail<T>(string code, string message) => Result<T>.Failure(Error.Validation(code, message));
 }
