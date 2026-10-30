@@ -10,7 +10,7 @@ namespace CL.WebLogic.Templates.Parsing;
 internal static class TemplateContextRules
 {
     /// <summary>Returns an error message when a value token is not allowed in <paramref name="context"/>, else null.</summary>
-    public static string? ValidateToken(TemplateEncodingContext context, IReadOnlyList<TemplateFilter> filters, bool raw, bool inScriptString = false)
+    public static string? ValidateToken(TemplateEncodingContext context, IReadOnlyList<TemplateFilter> filters, bool raw, bool inScriptString = false, bool inTemplateLiteral = false)
     {
         if (raw)
             return null;
@@ -24,6 +24,9 @@ internal static class TemplateContextRules
                 "Template values in attributes must be inside a quoted attribute value.",
             TemplateEncodingContext.EventHandler =>
                 "Template values cannot be written into inline event handlers (on*). Use data-* attributes and a script module.",
+            // Neither encoder makes ${…} inert inside a `…` template literal.
+            TemplateEncodingContext.Script when inTemplateLiteral =>
+                "Template values cannot be written inside a JavaScript template literal (`…`); use a '…' string with |js or a |json value.",
             TemplateEncodingContext.Script when !IsOneOf(last, "json", "js") =>
                 "Template values inside <script> must end with |json or |js.",
             // |js escapes for a string literal; outside quotes the value would be code.

@@ -37,6 +37,10 @@ public sealed class TemplateParserTests
     [InlineData("<p></{model:tag}></p>")]
     [InlineData("<iframe srcdoc=\"{model:html}\"></iframe>")] // security review: srcdoc is decoded and run as HTML
     [InlineData("<script>var n = {model:n|js};</script>")] // security review: |js outside quotes is code
+    [InlineData("<script>const hi = `Hello {model:name|js}`;</script>")] // security review: ${…} runs in a template literal
+    [InlineData("<script>const hi = `Hello {model:name|json}`;</script>")]
+    [InlineData("<script>// don't cache\nvar id = {model:id|js};</script>")] // security review: a quote in a comment is not a string
+    [InlineData("<script>/* it's */ var id = {model:id|js};</script>")]
     public void RejectsUnsafePositions(string source) =>
         Assert.Throws<TemplateParseException>(() => TemplateParser.Parse(source));
 
@@ -44,6 +48,7 @@ public sealed class TemplateParserTests
     [InlineData("<script>var n = '{model:n|js}';</script>")]
     [InlineData("<script>var n = \"a {model:n|js} b\"; var m = {model:m|json};</script>")]
     [InlineData("<script>var s = 'it\\'s'; var n = '{model:n|js}';</script>")]
+    [InlineData("<script>// a comment\nvar n = '{model:n|js}'; /* a / b */ var m = \"{model:m|js}\";</script>")]
     public void AllowsJsInsideQuotedStrings(string source) => TemplateParser.Parse(source);
 
         [Fact]
