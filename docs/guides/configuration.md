@@ -55,6 +55,7 @@ CodeLogic creates the file with every default on first run; you only keep the va
 | `client` | Client on/off, UI adapter (`plain`, `bootstrap5`), module or classic script, partial navigation |
 | `realtime` | On/off, anonymous access, WebSockets, replay, connection limits, allowed origins, tickets |
 | `cache` | Output cache on/off, default lifetimes, fragment cache size |
+| `localization` | Off by default. Default and supported cultures, sources (query, cookie, `Accept-Language`), cookie, switch path, theme text folder ([Localization](localization.md)) |
 | `explorer` | Explorer in Development / in production (with a permission) |
 | `cluster` | Cluster mode validation, contracts allowed to stay node-local |
 

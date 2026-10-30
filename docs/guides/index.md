@@ -14,6 +14,7 @@ application has to supply.
 | [MySQL stores (add-on)](mysql-stores.md) | Every store and the key ring on CL.MySQL2 |
 | [Forms](forms.md) | Form models, rendering, validation, options, uploads, wizards, anti-bot |
 | [Templates and themes](templates.md) | Syntax, encoding contexts, filters, layouts, Markdown, theme sources |
+| [Localization](localization.md) | Request cultures, texts per culture and their fallback, the culture switch, caching per culture |
 | [JavaScript client](client.md) | Modules, http, forms, navigation, commands, UI adapters |
 | [Widgets and dashboards](widgets-dashboards.md) | Widgets, areas, placements, settings, per-owner dashboards |
 | [Realtime](realtime.md) | SSE and WebSocket, audiences, tenants, backplanes, event bridges |
