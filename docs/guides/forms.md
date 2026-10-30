@@ -97,6 +97,38 @@ b.MapPage("/signup", async (r, ct) =>
   bind (`[WebIgnore]` properties never do), and a model whose fields differ only in case is refused
   when the form is registered.
 
+## Mapping to entities
+
+`WebFormMapper` (`request.Forms.Mapper`, or inject it) copies values between a form model and an
+entity, so a form does not have to be the entity:
+
+```csharp
+// Create: a new entity from the form's fields.
+var post = r.Forms.Mapper.ToEntity<PostForm, Post>(submission.Model);
+
+// Update: only the form's fields are written; everything else on the entity stays as loaded.
+r.Forms.Mapper.ToEntity(submission.Model, existingPost);
+
+// Edit form: fill the form from the entity, then prefill and render it.
+r.Forms.Prefill(r.Forms.Mapper.ToForm<Post, PostForm>(existingPost));
+```
+
+- Properties pair up by name (case-insensitive). `[WebFormMapFrom("Body")]` on a form property names
+  the entity property; on an entity property it names the form property.
+- **Form → entity writes only the form's fields** — what binding fills. `[WebIgnore]` properties,
+  properties that are not fields, uploads (`WebUploadedFile`; store them through `IWebUploadSink`),
+  read-only and `init`-only entity properties are never written.
+- Mark sensitive entity properties `[WebFormMapIgnore]` (owner id, roles, password hash, security
+  stamp): they are skipped in both directions, even when a form has a field of the same name.
+- Conversions are safe or skipped: nullable wrappers, enums by name (and defined numeric values),
+  numbers without overflow or a lost fraction, text to and from numbers, enums, `Guid`, `DateOnly`,
+  `DateTime` and the other date/time types in invariant culture (ISO 8601), `DateTime` ↔ `DateOnly`, and
+  collections of those (copied, never shared). A value that cannot be converted leaves the target
+  unchanged. Null or empty text clears a nullable target and leaves a non-nullable one alone.
+- Nested objects and repeaters are copied only when the types are assignable; map their entries
+  yourself when the shapes differ. Two form properties mapping to the same entity property throw.
+- Property maps are cached per type pair (weakly, so plugin types can unload).
+
 ## Options and lookups
 
 `IWebFormOptionsProvider` supplies values for selects, radios, checkbox lists and autocomplete

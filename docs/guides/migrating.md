@@ -22,6 +22,7 @@ client scripts.
 | `{{key}}` tokens | Still parsed (now encoded for their context); prefer `{model:key}` |
 | `WebFormFieldAttribute`, static `WebFormBinder`/`WebFormRenderer` | DataAnnotations + `[WebField]`, `request.Forms.BindAsync<T>()`, `{form:id}` |
 | `IWebFormSearchProvider` | `IWebFormOptionsProvider.SearchAsync` |
+| Static `WebFormMapper.Map<TSource,TTarget>`, `[WebFormMapFrom]` | Back as the injectable `WebFormMapper` (`request.Forms.Mapper`): `ToEntity` / `ToForm`, `[WebFormMapFrom]`, `[WebFormMapIgnore]`; form → entity writes only the form's fields ([Forms](forms.md#mapping-to-entities)) |
 | SignalR realtime (`SignalRWebLogicRealtimeBroadcaster`) | Own SSE/WebSocket hub `WebRealtimeHub`, audiences, `IWebRealtimeBackplane` |
 | jQuery-based client | Dependency-free ES modules (`window.WebLogic`), UI adapters |
 | SkiaSharp image checks | Own image header reader |

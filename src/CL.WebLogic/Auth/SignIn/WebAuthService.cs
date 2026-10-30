@@ -116,7 +116,7 @@ public sealed partial class WebAuthService
         session.Remove(PendingUntilKey);
         session.Remove(PendingPersistentKey);
 
-        _context.Events.Publish(new UserSignedInEvent(user.Id, security.Identity.Scheme, methods));
+        _context.Events.Publish(new UserSignedInEvent(user.Id, security.Identity.Scheme, methods) { IsRefresh = !fresh });
         _audit.Record(security, "auth.signin", "success", data: new Dictionary<string, string> { ["methods"] = string.Join(',', methods) });
     }
 
@@ -216,6 +216,7 @@ public sealed partial class WebAuthService
             session.SetString(PendingPersistentKey, "1");
         else
             session.Remove(PendingPersistentKey);
+        _context.Events.Publish(new SecondFactorRequiredEvent(user.Id, methods));
     }
 
     /// <summary>The token carries the methods used so far and "remember me": <c>pwd,otp|p</c>.</summary>

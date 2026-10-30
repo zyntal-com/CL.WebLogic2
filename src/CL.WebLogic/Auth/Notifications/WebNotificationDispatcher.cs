@@ -35,6 +35,9 @@ public sealed class WebNotificationDispatcher
 
     internal ChannelReader<WebSecurityNotification> Reader => _channel.Reader;
 
+    /// <summary>Notifications waiting to be sent (for the queue-length metric).</summary>
+    internal int QueueLength => _channel.Reader.Count;
+
     /// <summary>Queues a notification (requested link e-mails over the per-address limit are dropped).</summary>
     public void Enqueue(WebSecurityNotification notification)
     {

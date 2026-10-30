@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using CL.WebLogic.Diagnostics.Services;
 using CL.WebLogic.Results;
 using CL.WebLogic.Routing;
 using CL.WebLogic.Routing.Models;
@@ -11,13 +13,14 @@ internal static class WebRouteEndpointInvoker
 {
     /// <summary>
     /// Creates the delegate: build the request context, run route middleware (outermost first),
-    /// invoke the handler and execute the returned result.
+    /// invoke the handler and execute the returned result. With <paramref name="metrics"/>, the
+    /// request is counted and timed while a listener measures the route instruments.
     /// </summary>
-    public static RequestDelegate Create(WebRouteDefinition route)
+    public static RequestDelegate Create(WebRouteDefinition route, WebLogicMetrics? metrics = null)
     {
         var pipeline = BuildPipeline(route);
 
-        return async httpContext =>
+        async Task RunAsync(HttpContext httpContext)
         {
             var request = new WebRequestContext(httpContext, route.Metadata, route.JsonOptions);
             httpContext.Features.Set(request); // lets template-time features (widgets, forms) reach the route context
@@ -27,6 +30,36 @@ internal static class WebRouteEndpointInvoker
                 ?? throw new InvalidOperationException($"Route '{route.Metadata.Pattern}' returned no result.");
 
             await result.ExecuteAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (metrics is null)
+            return RunAsync;
+
+        return async httpContext =>
+        {
+            if (!metrics.RouteMetricsEnabled)
+            {
+                await RunAsync(httpContext).ConfigureAwait(false);
+                return;
+            }
+
+            var started = Stopwatch.GetTimestamp();
+            var failed = false;
+            try
+            {
+                await RunAsync(httpContext).ConfigureAwait(false);
+            }
+            catch
+            {
+                failed = true; // the exception boundary turns it into a 500
+                throw;
+            }
+            finally
+            {
+                metrics.RecordRequest(route.Metadata.Pattern, httpContext.Request.Method,
+                    failed ? StatusCodes.Status500InternalServerError : httpContext.Response.StatusCode,
+                    Stopwatch.GetElapsedTime(started));
+            }
         };
     }
 

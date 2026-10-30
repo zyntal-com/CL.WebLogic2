@@ -1,3 +1,4 @@
+using CL.WebLogic.Diagnostics.Services;
 using CL.WebLogic.Routing.Models;
 using CL.WebLogic.Routing.Services;
 using Microsoft.AspNetCore.Cors;
@@ -16,13 +17,23 @@ namespace CL.WebLogic.Hosting.Services;
 public sealed class WebLogicEndpointDataSource : EndpointDataSource
 {
     private readonly WebRouteRegistry _registry;
+    private readonly WebLogicMetrics? _metrics;
     private readonly object _lock = new();
     private IReadOnlyList<Endpoint> _endpoints = [];
     private long _builtVersion = -1;
 
     /// <summary>Creates the data source over the registry.</summary>
-    public WebLogicEndpointDataSource(WebRouteRegistry registry) =>
+    public WebLogicEndpointDataSource(WebRouteRegistry registry)
+        : this(registry, null)
+    {
+    }
+
+    /// <summary>Creates the data source over the registry; route requests are measured through <paramref name="metrics"/>.</summary>
+    public WebLogicEndpointDataSource(WebRouteRegistry registry, WebLogicMetrics? metrics)
+    {
         _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+        _metrics = metrics;
+    }
 
     /// <inheritdoc/>
     public override IReadOnlyList<Endpoint> Endpoints
@@ -48,11 +59,11 @@ public sealed class WebLogicEndpointDataSource : EndpointDataSource
     /// <inheritdoc/>
     public override IChangeToken GetChangeToken() => _registry.GetChangeToken();
 
-    private static Endpoint BuildEndpoint(WebRouteDefinition route)
+    private Endpoint BuildEndpoint(WebRouteDefinition route)
     {
         var meta = route.Metadata;
         var builder = new RouteEndpointBuilder(
-            WebRouteEndpointInvoker.Create(route),
+            WebRouteEndpointInvoker.Create(route, _metrics),
             RoutePatternFactory.Parse(meta.Pattern),
             route.Order)
         {
