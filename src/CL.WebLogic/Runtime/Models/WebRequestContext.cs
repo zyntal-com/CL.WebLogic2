@@ -80,6 +80,9 @@ public sealed class WebRequestContext
     /// <summary>Fragment cache scoped to the tenant, and tag eviction.</summary>
     public Caching.Services.WebRequestCache Cache => _cache ??= new Caching.Services.WebRequestCache(this, GetRequiredService<Caching.Services.IWebFragmentCache>(), GetRequiredService<Caching.Services.IWebCacheInvalidator>());
 
+    /// <summary>The culture resolved for this request, or null when localization is off.</summary>
+    public Localization.Models.WebRequestCulture? Culture => Localization.Models.WebRequestCulture.Get(HttpContext);
+
     /// <summary>The visitor's session (created and stored only when written).</summary>
     public IWebSession Session =>
         HttpContext.Features.Get<IWebSession>() ?? throw new InvalidOperationException("Sessions are not available: the WebLogic security pipeline did not run for this request.");

@@ -10,7 +10,8 @@ namespace CL.WebLogic.Caching.Services;
 /// GET/HEAD requests without credentials, a session cookie (a page may show anonymous session
 /// data such as a cart) or a waiting flash message; nothing is stored when the response sets cookies,
 /// issued a CSRF token, wrote the session, is not 200 or is marked private/no-store. Entries
-/// vary by host, tenant and whether the WebLogic client asked (JSON vs HTML answers).
+/// vary by host, tenant, request culture (when localization is enabled) and whether the WebLogic
+/// client asked (JSON vs HTML answers).
 /// </summary>
 public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
 {
@@ -37,6 +38,8 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
         context.CacheVaryByRules.VaryByHost = true;
         context.CacheVaryByRules.HeaderNames = new Microsoft.Extensions.Primitives.StringValues(["X-Requested-With", "Accept"]);
         context.CacheVaryByRules.VaryByValues["wl-tenant"] = security?.TenantId ?? "";
+        if (Localization.Models.WebRequestCulture.Get(http) is { } culture)
+            context.CacheVaryByRules.VaryByValues["wl-culture"] = culture.Name;
         return ValueTask.CompletedTask;
     }
 

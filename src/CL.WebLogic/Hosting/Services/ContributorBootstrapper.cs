@@ -75,6 +75,11 @@ public sealed class ContributorBootstrapper : IHostedService
             cancellationToken).ConfigureAwait(false);
 
         await _registrar.RegisterAsync(
+            _services.GetRequiredService<Localization.Services.LocalizationContributor>(),
+            Localization.Services.LocalizationContributor.Descriptor,
+            cancellationToken).ConfigureAwait(false);
+
+        await _registrar.RegisterAsync(
             _services.GetRequiredService<Explorer.Services.ExplorerContributor>(),
             Explorer.Services.ExplorerContributor.Descriptor,
             cancellationToken).ConfigureAwait(false);
