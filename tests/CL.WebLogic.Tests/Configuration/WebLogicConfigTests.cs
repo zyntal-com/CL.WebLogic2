@@ -18,6 +18,25 @@ public sealed class WebLogicConfigTests
         Assert.False(result.IsValid);
     }
 
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("https://cdn.example.com/theme/assets", true)]
+    [InlineData("http://localhost:9000/bucket/assets/", true)]
+    [InlineData("/assets", false)]
+    [InlineData("ftp://cdn.example.com/assets", false)]
+    [InlineData("https://cdn.example.com/assets?x=1", false)]
+    [InlineData("https://user:pw@cdn.example.com/assets", false)]
+    public void AssetsBaseUrl_MustBeAbsoluteHttpWithoutQuery(string value, bool valid) =>
+        Assert.Equal(valid, new WebLogicConfig { Theme = new ThemeConfig { AssetsBaseUrl = value } }.Validate().IsValid);
+
+    [Fact]
+    public void AssetsOrigin_IsSchemeHostAndPort()
+    {
+        Assert.Equal("https://cdn.example.com", ThemeConfig.AssetsOrigin("https://cdn.example.com/theme/assets"));
+        Assert.Equal("http://localhost:9000", ThemeConfig.AssetsOrigin("http://localhost:9000/b/assets"));
+        Assert.Null(ThemeConfig.AssetsOrigin(""));
+    }
+
     [Fact]
     public void SiteName_IsRequired() =>
         Assert.False(new WebLogicConfig { SiteName = " " }.Validate().IsValid);

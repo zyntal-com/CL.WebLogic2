@@ -129,13 +129,13 @@ public sealed class ResponseHardener
             var site = _sitePolicy;
             if (site is not null && ReferenceEquals(site.Settings, settings))
                 return site.Policy;
-            var built = CspBuilder.Build(settings.Config.Headers, WithLoginOrigins(null, loginOrigins));
+            var built = settings.BuildPolicy(WithLoginOrigins(null, loginOrigins));
             _sitePolicy = new RoutePolicy(settings, built);
             return built;
         }
         if (_routePolicies.TryGetValue(route, out var cached) && ReferenceEquals(cached.Settings, settings))
             return cached.Policy;
-        var policy = CspBuilder.Build(settings.Config.Headers, WithLoginOrigins(route.CspAdditions, loginOrigins));
+        var policy = settings.BuildPolicy(WithLoginOrigins(route.CspAdditions, loginOrigins));
         _routePolicies.AddOrUpdate(route, new RoutePolicy(settings, policy));
         return policy;
     }

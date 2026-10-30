@@ -82,6 +82,25 @@ public sealed class ThemeConfig
         Placeholder = "/assets", RequiresRestart = true, Group = "Theme", Order = 13)]
     public string AssetsUrlPrefix { get; set; } = "/assets";
 
+    /// <summary>
+    /// Absolute URL of a copy of the assets folder on a CDN or bucket (for example the theme CI's upload). When set,
+    /// <c>{asset:}</c> URLs point there (<c>{base}/{path}?v={fingerprint}</c>) and its origin is added to the CSP's
+    /// script, style, font and image sources; the site keeps serving the folder at <see cref="AssetsUrlPrefix"/>.
+    /// Scripts loaded as modules and fonts need CORS on that origin. Empty = assets are served by the site.
+    /// </summary>
+    [ConfigField(Label = "Assets Base URL", Description = "Absolute URL where a copy of the assets folder is served (CDN, bucket). {asset:} links point there; empty = served by the site.",
+        Placeholder = "https://cdn.example.com/theme/assets", Group = "Theme", Order = 13, Collapsed = true)]
+    public string AssetsBaseUrl { get; set; } = "";
+
+    /// <summary>The origin (<c>scheme://host[:port]</c>) of a valid <paramref name="assetsBaseUrl"/>, else null.</summary>
+    public static string? AssetsOrigin(string? assetsBaseUrl) =>
+        !string.IsNullOrWhiteSpace(assetsBaseUrl)
+        && Uri.TryCreate(assetsBaseUrl.Trim(), UriKind.Absolute, out var uri)
+        && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+        && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment) && string.IsNullOrEmpty(uri.UserInfo)
+            ? uri.GetLeftPart(UriPartial.Authority)
+            : null;
+
     /// <summary>Browser cache lifetime for un-fingerprinted assets, in seconds.</summary>
     [ConfigField(Label = "Asset Cache (s)", Description = "Cache-Control max-age for assets without a ?v= fingerprint. Fingerprinted assets are cached for a year.",
         Min = 0, Max = 31536000, Group = "Theme", Order = 14, Collapsed = true)]

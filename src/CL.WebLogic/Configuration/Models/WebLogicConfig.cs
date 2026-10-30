@@ -81,6 +81,9 @@ public sealed class WebLogicConfig : ConfigModelBase
         if (string.IsNullOrWhiteSpace(Theme.AssetsUrlPrefix) || !Theme.AssetsUrlPrefix.StartsWith('/'))
             errors.Add("Theme.AssetsUrlPrefix must start with '/'");
 
+        if (!string.IsNullOrWhiteSpace(Theme.AssetsBaseUrl) && ThemeConfig.AssetsOrigin(Theme.AssetsBaseUrl) is null)
+            errors.Add("Theme.AssetsBaseUrl must be an absolute http(s) URL without query or fragment");
+
         if (Theme.Source == ThemeSourceKind.Git)
         {
             if (string.IsNullOrWhiteSpace(Theme.RepositoryUrl))

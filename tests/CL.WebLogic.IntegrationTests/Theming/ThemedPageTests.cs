@@ -1,19 +1,21 @@
 using System.Net;
 using CL.WebLogic.Configuration.Models;
+using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Results;
 using CL.WebLogic.Routing.Services;
 using CL.WebLogic.Runtime.Models;
 using CL.WebLogic.Testing.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CL.WebLogic.IntegrationTests.Theming;
 
 public sealed class ThemedPageTests
 {
-    private static async Task<WebLogicTestHost> StartAsync(TemplateEngineKind engine = TemplateEngineKind.Closure)
+    private static async Task<WebLogicTestHost> StartAsync(TemplateEngineKind engine = TemplateEngineKind.Closure, string assetsBaseUrl = "")
     {
         var host = await WebLogicTestHost.StartAsync(new WebLogicTestHostOptions
         {
-            Config = new WebLogicConfig { SiteName = "Demo", Theme = new ThemeConfig { TemplateEngine = engine } },
+            Config = new WebLogicConfig { SiteName = "Demo", Theme = new ThemeConfig { TemplateEngine = engine, AssetsBaseUrl = assetsBaseUrl } },
             ConfigureWebLogic = web => web.AddContributor(new DelegateContributor(b =>
             {
                 b.MapPage("/", (request, _) => ValueTask.FromResult<WebResult>(WebResult.Page(
@@ -48,6 +50,38 @@ public sealed class ThemedPageTests
         Assert.Matches("href=\"/assets/site.css\\?v=[0-9a-f]+\"", html);
         Assert.Matches("<script nonce=\"[A-Za-z0-9_-]+\" src=\"/assets/app.js\\?v=[0-9a-f]+\">", html);
         Assert.Contains("<h1>Demo: hello &lt;script&gt;</h1>", html);
+    }
+
+    [Fact]
+    public async Task AssetsBaseUrl_PointsAssetsAtTheCopy_AndAllowsItsOrigin()
+    {
+        await using var host = await StartAsync(assetsBaseUrl: "https://cdn.example.test/theme/assets/");
+
+        var response = await host.Client.GetAsync("/");
+        var html = await response.Content.ReadAsStringAsync();
+
+        Assert.Matches("href=\"https://cdn.example.test/theme/assets/site.css\\?v=[0-9a-f]+\"", html);
+        Assert.Matches("src=\"https://cdn.example.test/theme/assets/app.js\\?v=[0-9a-f]+\"", html);
+        var csp = string.Join(' ', response.Headers.GetValues("Content-Security-Policy"));
+        foreach (var directive in new[] { "script-src", "style-src", "font-src", "img-src" })
+            Assert.Matches(directive + " [^;]*https://cdn.example.test(?:[ ;]|$)", csp);
+        Assert.DoesNotContain("connect-src 'self' https://cdn.example.test", csp);
+        // The site still serves the folder (hard-coded links, fallback).
+        Assert.Equal(HttpStatusCode.OK, (await host.Client.GetAsync("/assets/site.css")).StatusCode);
+    }
+
+    [Fact]
+    public async Task AssetsBaseUrl_FollowsLiveConfigChanges()
+    {
+        await using var host = await StartAsync();
+        Assert.Matches("href=\"/assets/site.css\\?v=", await host.Client.GetStringAsync("/"));
+
+        var holder = host.Services.GetRequiredService<WebLogicConfigHolder>();
+        holder.Swap(new WebLogicConfig { SiteName = "Demo", Theme = new ThemeConfig { AssetsBaseUrl = "https://cdn.example.test/a" } });
+
+        var response = await host.Client.GetAsync("/");
+        Assert.Contains("href=\"https://cdn.example.test/a/site.css?v=", await response.Content.ReadAsStringAsync());
+        Assert.Contains("https://cdn.example.test", string.Join(' ', response.Headers.GetValues("Content-Security-Policy")));
     }
 
     [Fact]

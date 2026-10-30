@@ -21,7 +21,8 @@ theme/
 
 Templates, layouts, partials and dotfiles are never served as assets; requests that escape the theme
 folder get a 404. `{asset:site.css}` writes a fingerprinted URL served with an immutable cache header;
-`{asset:plugin-name:css/admin.css}` points at a plugin's embedded file ([Plugins](plugins.md)).
+`{asset:plugin-name:css/admin.css}` points at a plugin's embedded file ([Plugins](plugins.md)). With
+`theme.assetsBaseUrl` set, theme assets point at a copy on a CDN ([Caching](caching.md#static-files)).
 
 A page template picks its layout with `{layout:...}`. Pages without one get their route group's
 default layout, if it has one: `b.MapGroup("/admin").WithLayout("admin/layout")`.

@@ -87,3 +87,10 @@ var report = await request.Cache.GetOrAddAsync("sales:daily", async ct =>
 
 Theme assets get an ETag and `Cache-Control: max-age` (`theme.assetCacheSeconds`); fingerprinted
 `{asset:}` URLs and the client bundle are immutable. Small files are kept in memory.
+
+To serve theme assets from a CDN or bucket instead, upload the assets folder there (for example from the theme's CI)
+and set `theme.assetsBaseUrl` to its absolute URL. `{asset:}` then writes `{assetsBaseUrl}/{path}?v={fingerprint}`,
+and the origin is added to the CSP's `script-src`, `style-src`, `font-src` and `img-src`. The site keeps serving the
+folder at `theme.assetsUrlPrefix`, so hard-coded `/assets/…` links and plugin assets still work. Give the uploaded
+files a long `Cache-Control` (the `?v=` changes with each file), and allow your site's origin in the bucket's CORS
+rules: browsers fetch module scripts and fonts with CORS.
