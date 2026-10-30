@@ -199,10 +199,11 @@ public sealed class RealtimePrimitivesTests
     {
         var clock = new ManualTimeProvider(DateTimeOffset.UtcNow);
         var tickets = new WebRealtimeTickets(new EphemeralDataProtectionProvider(), new WebLogicConfigHolder(new WebLogicConfig()), clock);
-        var (ticket, expires) = tickets.Issue(Ada);
+        var (ticket, expires) = tickets.Issue(Ada with { ApiKeyId = "k1" });
 
         var read = tickets.Read(ticket);
         Assert.Equal("ada", read!.UserId);
+        Assert.Equal("k1", read.ApiKeyId); // a ticket minted from a key closes with it
         Assert.Equal(["posts.*"], read.Permissions);
         Assert.Equal(clock.GetUtcNow().AddSeconds(60).ToUnixTimeSeconds(), expires.ToUnixTimeSeconds());
         Assert.Null(tickets.Read(ticket + "x"));

@@ -146,6 +146,18 @@ public sealed partial class WebRealtimeHub : IDisposable
         return closed;
     }
 
+    /// <summary>Closes every connection opened with the API key <paramref name="keyId"/> (revocation).</summary>
+    public int CloseApiKey(string keyId)
+    {
+        var closed = 0;
+        foreach (var connection in _connections.Values.Where(c => string.Equals(c.Identity.ApiKeyId, keyId, StringComparison.Ordinal)))
+        {
+            Disconnect(connection);
+            closed++;
+        }
+        return closed;
+    }
+
     /// <summary>Closes every connection (shutdown); clients reconnect elsewhere or later.</summary>
     public void CloseAll()
     {

@@ -31,6 +31,7 @@ public sealed class WebRealtimeIdentityFactory
         {
             UserId = identity.UserId,
             SessionId = SessionIdHash(security),
+            ApiKeyId = identity.Scheme == WebAuthenticationSchemes.ApiKey && identity.Claims.TryGetValue(WebIdentityClaims.KeyId, out var keyId) ? keyId : null,
             TenantId = identity.TenantId ?? security.TenantId,
             Groups = identity.Groups,
             Permissions = permissions,
