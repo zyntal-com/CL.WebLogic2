@@ -65,13 +65,19 @@ public sealed partial class WebPasskeyService
         return _store.RenameAsync(user.Id, credentialId ?? "", CleanName(name), cancellationToken);
     }
 
-    /// <summary>Removes one of the user's passkeys; the user is notified.</summary>
+    /// <summary>
+    /// Removes one of the user's passkeys; the user is notified. The security stamp changes, so
+    /// sessions signed in with the removed (perhaps lost) passkey end at their next check; keep the
+    /// current one with <c>request.Auth.RefreshAsync</c> (<c>request.Auth.DeletePasskeyAsync</c> does).
+    /// </summary>
     public async Task<bool> DeleteAsync(WebSecurityContext security, WebUser user, string credentialId, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(user);
         var passkey = await _store.FindAsync(credentialId ?? "", cancellationToken).ConfigureAwait(false);
         if (passkey is null || passkey.UserId != user.Id || !await _store.DeleteAsync(user.Id, passkey.CredentialId, cancellationToken).ConfigureAwait(false))
             return false;
+        if (await _users.FindByIdAsync(user.Id, cancellationToken).ConfigureAwait(false) is { } current)
+            await _users.UpdateAsync(current with { SecurityStamp = WebUser.NewStamp() }, cancellationToken).ConfigureAwait(false);
         _context.Events.Publish(new PasskeyChangedEvent(user.Id, passkey.CredentialId, Added: false));
         _notifications.Enqueue(user, WebSecurityNotificationKind.PasskeyRemoved, values: new Dictionary<string, string> { ["name"] = passkey.Name });
         _audit.Record(security, "auth.passkey", "removed", data: new Dictionary<string, string> { ["user"] = user.Id });
