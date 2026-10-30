@@ -61,6 +61,9 @@ On a route or a group:
 | `WithRateLimit(policy)` | A named rate-limit policy from `security.rateLimits.policies` |
 | `WithBodyLimit(bytes)` | Request body limit for this route |
 | `WithOutputCache(policy)` | Output cache policy (anonymous GET only; see [Caching](caching.md)) |
+| `WithETag()` / `WithoutETag()` | Computed ETag and 304 for non-personal GET responses; overrides `cache.eTags` ([Caching](caching.md)) |
+| `WithoutCompression()` | Never compress this route's responses |
+| `AllowPersonalCompression()` | Compress even personal responses when `compression.enabled` is on (BREACH: only for content with no reflected input next to a secret) |
 | `WithCors(policy)` | An ASP.NET CORS policy |
 | `AllowCrossSitePost()` | Webhooks: skip CSRF origin checks (the route should verify a signature) |
 | `WithMiddleware(middleware)` | Per-route `IWebMiddleware` |

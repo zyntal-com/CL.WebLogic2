@@ -33,6 +33,9 @@ numbers, which is the point of the limit.
 - `theme.templateChangeCheckSeconds: 0` for immutable themes.
 - Use the output cache for anonymous pages and the fragment cache for expensive parts of personalized
   pages.
+- `compression.enabled: true` compresses anonymous, non-personal responses with Brotli/gzip when no
+  proxy does it for you; `cache.eTags` (or `WithETag()` per route) adds ETags and 304s for pages and
+  JSON. Both are off by default and skip personal responses ([Caching](caching.md)).
 - Keep `security.audit.recordAllRequests` off unless you need it; the sink runs in the background but
   every request still allocates an entry.
 - Turn `security.reputation` to background mode (default) so DNS lookups never block requests.

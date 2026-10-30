@@ -1,8 +1,10 @@
+using CL.WebLogic.Caching.Services;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Realtime.Services;
 using CL.WebLogic.Security.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.ResponseCompression;
 
 namespace CL.WebLogic.Hosting.Services;
 
@@ -13,7 +15,8 @@ public static class WebLogicApplicationBuilderExtensions
     /// Adds, in order: the exception boundary, the realtime request broadcaster, WebSockets, the
     /// pre-routing security stages (network, host, transport, throttling, authentication), routing,
     /// CORS, the endpoint security stages (limits, route throttling, authorization, CSRF), ASP.NET
-    /// authorization for minimal APIs and the output cache. Call before <c>MapCodeLogicWebLogic()</c>.
+    /// authorization for minimal APIs, response compression and page ETags (both off by default)
+    /// and the output cache. Call before <c>MapCodeLogicWebLogic()</c>.
     /// </summary>
     public static IApplicationBuilder UseCodeLogicWebLogic(this IApplicationBuilder app)
     {
@@ -28,6 +31,10 @@ public static class WebLogicApplicationBuilderExtensions
         app.UseCors();
         app.UseMiddleware<WebEndpointSecurityMiddleware>();
         app.UseAuthorization();
+        // Pass-throughs unless Compression.Enabled / ETags are on (read per request). Outside the
+        // output cache, so cached entries stay uncompressed and still get ETags.
+        app.UseMiddleware<ResponseCompressionMiddleware>(app.ApplicationServices.GetRequiredService<WebCompressionProvider>());
+        app.UseMiddleware<WebETagMiddleware>();
         // After endpoint security, so a cache hit can never skip authorization.
         if (config.Cache.OutputCache)
             app.UseOutputCache();
