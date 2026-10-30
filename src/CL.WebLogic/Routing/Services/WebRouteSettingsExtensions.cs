@@ -93,6 +93,42 @@ public static class WebRouteSettingsExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a strong ETag (SHA-256 of the body) to non-personal 200 GET/HEAD responses and answers a
+    /// matching <c>If-None-Match</c> with 304. Overrides <c>Cache.ETags</c>.
+    /// </summary>
+    public static T WithETag<T>(this T builder) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.ETag = true;
+        return builder;
+    }
+
+    /// <summary>No computed ETag for these routes, even when <c>Cache.ETags</c> is on (e.g. streaming or large responses).</summary>
+    public static T WithoutETag<T>(this T builder) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.ETag = false;
+        return builder;
+    }
+
+    /// <summary>Never compresses responses of these routes, even when <c>Compression.Enabled</c> is on.</summary>
+    public static T WithoutCompression<T>(this T builder) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.Compression = false;
+        return builder;
+    }
+
+    /// <summary>
+    /// Compresses these routes even when the response is personal (signed in, session, CSRF token,
+    /// cookies). Only when <c>Compression.Enabled</c> is on. Use it only for responses where no
+    /// attacker-controlled input is reflected next to a secret: compressed sizes can reveal secrets
+    /// (BREACH).
+    /// </summary>
+    public static T AllowPersonalCompression<T>(this T builder) where T : IWebRouteSettingsBuilder
+    {
+        builder.Settings.Compression = true;
+        return builder;
+    }
+
     /// <summary>Accepts unsafe methods from cross-site origins (e.g. a public webhook). CSRF tokens still apply to cookie sessions.</summary>
     public static T AllowCrossSitePost<T>(this T builder) where T : IWebRouteSettingsBuilder
     {

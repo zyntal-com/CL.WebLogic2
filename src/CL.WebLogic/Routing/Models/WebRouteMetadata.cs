@@ -51,6 +51,12 @@ public sealed class WebRouteMetadata
     /// <summary>Named output-cache policy, or null.</summary>
     public string? OutputCachePolicy { get; init; }
 
+    /// <summary>Compression override: null = site rule, false = never, true = also personal responses.</summary>
+    public bool? Compression { get; init; }
+
+    /// <summary>ETag override: null = <c>Cache.ETags</c>, true = on, false = off.</summary>
+    public bool? ETag { get; init; }
+
     /// <summary>Unsafe methods may come from cross-site origins.</summary>
     public bool AllowCrossSitePost { get; init; }
 
@@ -92,6 +98,8 @@ public sealed class WebRouteMetadata
         RateLimitPolicy = settings.RateLimitPolicy,
         MaxBodyBytes = settings.MaxBodyBytes,
         OutputCachePolicy = settings.OutputCachePolicy,
+        Compression = settings.Compression,
+        ETag = settings.ETag,
         AllowCrossSitePost = settings.AllowCrossSitePost,
         LoginPath = settings.LoginPath,
         Layout = settings.Layout,

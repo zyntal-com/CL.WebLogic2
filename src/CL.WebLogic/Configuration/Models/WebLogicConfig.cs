@@ -49,6 +49,9 @@ public sealed class WebLogicConfig : ConfigModelBase
     /// <summary>Output and fragment caching.</summary>
     public CacheConfig Cache { get; set; } = new();
 
+    /// <summary>Response compression (off by default).</summary>
+    public CompressionConfig Compression { get; set; } = new();
+
     /// <summary>API explorer.</summary>
     public ExplorerConfig Explorer { get; set; } = new();
 
@@ -142,6 +145,12 @@ public sealed class WebLogicConfig : ConfigModelBase
 
         if (Security.Hosts.RedirectToCanonical && string.IsNullOrWhiteSpace(PublicBaseUrl))
             errors.Add("Security.Hosts.RedirectToCanonical requires PublicBaseUrl");
+
+        foreach (var mimeType in Compression.MimeTypes)
+        {
+            if (string.IsNullOrWhiteSpace(mimeType) || mimeType.Count(c => c == '/') != 1 || mimeType.Any(char.IsWhiteSpace))
+                errors.Add($"Compression.MimeTypes: '{mimeType}' must be a content type such as application/manifest+json");
+        }
 
         if (Theme.Source == ThemeSourceKind.Storage && string.IsNullOrWhiteSpace(Theme.StorageConnectionId))
             errors.Add("Theme.StorageConnectionId is required when Theme.Source is Storage");

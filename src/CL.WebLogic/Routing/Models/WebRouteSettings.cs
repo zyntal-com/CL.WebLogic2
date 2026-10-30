@@ -43,6 +43,16 @@ public sealed class WebRouteSettings
     /// <summary>Named output-cache policy, or null for no output caching.</summary>
     public string? OutputCachePolicy { get; set; }
 
+    /// <summary>
+    /// Response compression: <c>null</c> = the site rule (compress when <c>Compression.Enabled</c>
+    /// and nothing personal is in the response), <c>false</c> = never, <c>true</c> = also compress
+    /// personal responses (only for content no attacker can reflect input into).
+    /// </summary>
+    public bool? Compression { get; set; }
+
+    /// <summary>Page/API ETags: <c>null</c> = <c>Cache.ETags</c>, <c>true</c> = on, <c>false</c> = off.</summary>
+    public bool? ETag { get; set; }
+
     /// <summary>Allow unsafe methods from cross-site origins (skips the Origin / Sec-Fetch-Site check).</summary>
     public bool AllowCrossSitePost { get; set; }
 
@@ -79,6 +89,8 @@ public sealed class WebRouteSettings
         RateLimitPolicy ??= source.RateLimitPolicy;
         MaxBodyBytes ??= source.MaxBodyBytes;
         OutputCachePolicy ??= source.OutputCachePolicy;
+        Compression ??= source.Compression;
+        ETag ??= source.ETag;
         AllowCrossSitePost |= source.AllowCrossSitePost;
         Tags.InsertRange(0, source.Tags.Except(Tags, StringComparer.OrdinalIgnoreCase));
         RequiredGroups.InsertRange(0, source.RequiredGroups.Except(RequiredGroups, StringComparer.OrdinalIgnoreCase));
