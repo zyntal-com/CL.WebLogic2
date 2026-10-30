@@ -53,7 +53,9 @@ public sealed class AntiBotAndWizardTests
         Assert.Equal("x,y", state.Value.Values["Tags"].ToString());
 
         Assert.Null(wizard.Read("other", token));
-        Assert.Null(wizard.Read("signup", token[..^2] + "zz"));
+        // Change a character in the middle: the last ones may only carry padding bits (or already be "zz").
+        var middle = token.Length / 2;
+        Assert.Null(wizard.Read("signup", token[..middle] + (token[middle] == 'A' ? 'B' : 'A') + token[(middle + 1)..]));
         Assert.Null(wizard.Read("signup", null));
         clock.Advance(TimeSpan.FromHours(9));
         Assert.Null(wizard.Read("signup", token));
