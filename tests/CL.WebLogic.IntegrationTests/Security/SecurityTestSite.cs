@@ -39,6 +39,11 @@ internal static class SecurityTestSite
         b.MapApi("/perm", (_, _) => Text("perm")).RequirePermissions("posts.edit");
         b.MapApi("/policy", (_, _) => Text("policy")).RequirePolicy("editors");
         b.MapApi("/bad-policy", (_, _) => Text("bad")).RequirePolicy("does-not-exist");
+        b.MapPage("/cached-form", (r, _) =>
+        {
+            r.GetRequiredService<CL.WebLogic.Security.Antiforgery.WebCsrfTokens>().GetToken(r.HttpContext);
+            return ValueTask.FromResult(WebResult.Text("form").WithHeader("Cache-Control", "public, max-age=600"));
+        }).AllowAnonymous();
         b.MapGroup("/open").AllowAnonymous().MapApi("/policy", (_, _) => Text("open-policy")).RequirePolicy("editors");
 
         b.MapPage("/signin", async (r, ct) =>

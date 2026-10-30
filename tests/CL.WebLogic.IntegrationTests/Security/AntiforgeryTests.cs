@@ -126,4 +126,15 @@ public sealed class AntiforgeryTests
 
         Assert.Contains("no-store", response.Headers.CacheControl?.ToString());
     }
+
+    [Fact]
+    public async Task Regression_A_page_with_a_csrf_token_is_no_store_even_if_the_handler_asked_for_caching()
+    {
+        // Security review: a handler's Cache-Control won, so a CDN could share one visitor's token.
+        await using var host = await SecurityTestSite.StartAsync();
+
+        var response = await host.Client.GetAsync("/cached-form");
+
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+    }
 }
