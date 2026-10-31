@@ -17,12 +17,12 @@
     <PackageReference Include="CodeLogic.WebLogic" Condition="'$(WebLogicAsHostShared)' == 'true'" ExcludeAssets="runtime" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- UsesWebLogicMySql=true: the CodeLogic.WebLogic.MySql add-on, by project or by package like CL.WebLogic. -->
-  <ItemGroup Condition="'$(UsesWebLogicMySql)' == 'true' and '$(WebLogicFromPackage)' != 'true'">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj" />
+  <!-- UsesWebLogicData=true: the CodeLogic.WebLogic.Data add-on, by project or by package like CL.WebLogic. -->
+  <ItemGroup Condition="'$(UsesWebLogicData)' == 'true' and '$(WebLogicFromPackage)' != 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/CL.WebLogic.Data/CL.WebLogic.Data.csproj" />
   </ItemGroup>
-  <ItemGroup Condition="'$(UsesWebLogicMySql)' == 'true' and '$(WebLogicFromPackage)' == 'true'">
-    <PackageReference Include="CodeLogic.WebLogic.MySql" />
+  <ItemGroup Condition="'$(UsesWebLogicData)' == 'true' and '$(WebLogicFromPackage)' == 'true'">
+    <PackageReference Include="CodeLogic.WebLogic.Data" />
   </ItemGroup>
 
   <!-- UsesWebLogicExternalLogins=true: the CodeLogic.WebLogic.ExternalLogins add-on. -->

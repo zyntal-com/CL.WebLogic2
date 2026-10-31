@@ -1,5 +1,5 @@
 using System.Text.Json;
-using CL.MySQL2.Models;
+using CL.Data.Query;
 using MiniBlog.Data.Entities;
 
 namespace MiniBlog.Data.Stores;
@@ -16,7 +16,7 @@ public sealed class DocumentStore
     /// <summary>The document and its version, or (default, 0).</summary>
     public async Task<(T? Value, long Version)> GetAsync<T>(string collection, string key, CancellationToken cancellationToken)
     {
-        var row = await _db.MySql.GetRepository<DocumentEntity>(_db.ConnectionId).GetByIdAsync(Id(collection, key), cancellationToken).ConfigureAwait(false);
+        var row = await _db.Db.Repository<DocumentEntity>().GetByIdAsync(Id(collection, key), cancellationToken).ConfigureAwait(false);
         if (row.IsFailure)
             throw new InvalidOperationException(row.Error!.Message);
         return row.Value is null ? (default, 0) : (JsonSerializer.Deserialize<T>(row.Value.Json, Json), row.Value.Version);
@@ -26,7 +26,7 @@ public sealed class DocumentStore
     public async Task SetAsync<T>(string collection, string key, T value, CancellationToken cancellationToken)
     {
         var entity = new DocumentEntity { Id = Id(collection, key), Collection = collection, Json = JsonSerializer.Serialize(value, Json), Version = 1, UpdatedUtc = DateTime.UtcNow };
-        var saved = await _db.MySql.GetRepository<DocumentEntity>(_db.ConnectionId).UpsertAsync(entity, cancellationToken).ConfigureAwait(false);
+        var saved = await _db.Db.Repository<DocumentEntity>().UpsertAsync(entity, ct: cancellationToken).ConfigureAwait(false);
         if (saved.IsFailure)
             throw new InvalidOperationException(saved.Error!.Message);
     }
@@ -41,7 +41,7 @@ public sealed class DocumentStore
         var json = JsonSerializer.Serialize(value, Json);
         if (expectedVersion == 0)
         {
-            var inserted = await _db.MySql.GetRepository<DocumentEntity>(_db.ConnectionId)
+            var inserted = await _db.Db.Repository<DocumentEntity>()
                 .InsertIgnoreAsync(new DocumentEntity { Id = id, Collection = collection, Json = json, Version = 1, UpdatedUtc = DateTime.UtcNow }, cancellationToken).ConfigureAwait(false);
             if (inserted.IsFailure)
                 throw new InvalidOperationException(inserted.Error!.Message);
@@ -50,7 +50,7 @@ public sealed class DocumentStore
 
         var next = expectedVersion + 1;
         var now = DateTime.UtcNow;
-        var updated = await _db.MySql.Query<DocumentEntity>(_db.ConnectionId)
+        var updated = await _db.Db.Query<DocumentEntity>()
             .Where(d => d.Id == id && d.Version == expectedVersion)
             .UpdateAsync(d => new DocumentEntity { Json = json, Version = next, UpdatedUtc = now }, cancellationToken)
             .ConfigureAwait(false);

@@ -1,29 +1,40 @@
-using CL.MySQL2;
+using CL.Data.Execution;
+using CL.Data.Hosting;
+using CL.Data.Mapping;
 using CodeLogic;
+using MiniBlog.Data.Entities;
 
 namespace MiniBlog.Data;
 
-/// <summary>Access to the CL.MySQL2 library and the connection MiniBlog uses.</summary>
+/// <summary>Access to the CL.Data connection MiniBlog uses.</summary>
 public sealed class BlogDatabase
 {
-    private MySQL2Library? _mysql;
+    /// <summary>Uses the named CL.Data connection.</summary>
+    public BlogDatabase(string connectionName = "Default") => ConnectionName = connectionName;
 
-    /// <summary>Uses the named CL.MySQL2 connection.</summary>
-    public BlogDatabase(string connectionId = "Default") => ConnectionId = connectionId;
+    /// <summary>The CL.Data connection name (config.data.json → connections).</summary>
+    public string ConnectionName { get; }
 
-    /// <summary>The CL.MySQL2 connection id (config.mysql.json → databases).</summary>
-    public string ConnectionId { get; }
+    /// <summary>The connection.</summary>
+    public Database Db
+    {
+        get
+        {
+            var data = Libraries.Get<DataLibrary>() ?? throw new InvalidOperationException("CL.Data is not loaded.");
+            var db = data.Db(ConnectionName);
+            return db.IsSuccess ? db.Value! : throw new InvalidOperationException("MiniBlog database: " + db.Error!.Message);
+        }
+    }
 
-    /// <summary>The loaded library.</summary>
-    public MySQL2Library MySql => _mysql ??= Libraries.Get<MySQL2Library>()
-        ?? throw new InvalidOperationException("CL.MySQL2 is not loaded.");
-
-    /// <summary>Creates or updates every MiniBlog table (additive; CL.MySQL2 skips unchanged tables).</summary>
+    /// <summary>Creates or updates every MiniBlog table (CL.Data schema sync; unchanged tables are skipped).</summary>
     public async Task SyncSchemaAsync(CancellationToken cancellationToken)
     {
-        var result = await MySql.SyncSchemaAsync(
-            [typeof(Entities.PostEntity), typeof(Entities.DocumentEntity)],
-            false, ConnectionId, cancellationToken).ConfigureAwait(false);
+        IReadOnlyList<EntityMap> maps =
+        [
+            EntityAccessorRegistry.Get<PostEntity>().ValueOrThrow().Map,
+            EntityAccessorRegistry.Get<DocumentEntity>().ValueOrThrow().Map,
+        ];
+        var result = await Db.Schema.SyncAsync(maps, ct: cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
             throw new InvalidOperationException("MiniBlog schema sync failed: " + result.Error!.Message);
     }

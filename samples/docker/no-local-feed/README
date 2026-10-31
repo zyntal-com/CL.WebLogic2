@@ -1,0 +1,2 @@
+Empty on purpose: the default "codelogic-local" build context, so images build against nuget.org.
+See samples/docker/Dockerfile.

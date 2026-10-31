@@ -63,11 +63,12 @@ Use this principle:
 - sample/reference apps = concrete persistence choices
 - optional provider layers are acceptable only when they stay clearly outside the core toolkit
 
-`MiniBlog` is allowed to use `CL.MySQL2` heavily because it is a sample application.
+`MiniBlog` is allowed to use `CL.Data` heavily (on MySQL) because it is a sample application.
 `StarterWebsite` should stay lighter and demonstrate app-owned/local persistence where that makes sense.
 
-In v2 the MySQL code lives in `samples/MiniBlog.Data` (`MiniBlog.Shared` is a VB keyword, so CA1716
-flags it), and the admin area is `samples/Plugins/MiniBlog.Admin.Plugin`.
+In v2 the blog's data code lives in `samples/MiniBlog.Data` (`MiniBlog.Shared` is a VB keyword, so CA1716
+flags it), and the admin area is `samples/Plugins/MiniBlog.Admin.Plugin`. Only the MiniBlog host references
+the MySQL provider (`CodeLogic.Data.MySql`).
 
 ## Dashboard Rule
 
@@ -139,7 +140,7 @@ When adding new features, ask:
 # CL.WebLogic2 Rules
 
 Everything above still applies. The sections below are specific to the v2 rebuild
-(package `CodeLogic.WebLogic`, CodeLogic 4.9 line). The approved roadmap is milestone
+(package `CodeLogic.WebLogic`, CodeLogic 5.0 line: .NET 11, C# 15). The approved roadmap is milestone
 based (M0–M9): hosting, templates, security pipeline, auth flows, client, forms,
 widgets/realtime, samples, hardening.
 
@@ -179,13 +180,24 @@ widgets/realtime, samples, hardening.
   C# tool.
 - Security code (hashing, tokens, CSRF, rate limiting, sanitizing, sessions, API keys) is
   written in-house on `System.Security.Cryptography` / DataProtection.
-- `CodeLogic.MySQL2` is never referenced from the core (`src/CL.WebLogic`). The one exception is
-  the optional provider layer `src/CL.WebLogic.MySql` (package `CodeLogic.WebLogic.MySql`), which
-  the Database Rule allows because it stays outside the core. The release pre-flight fails if any
-  other package depends on it, or if a package depends on anything that is not a `CodeLogic*` package.
-- Add-on packages (`CL.WebLogic.MySql`, `CL.WebLogic.ExternalLogins`) follow the same rules as the
+- `CodeLogic.Data` is never referenced from the core (`src/CL.WebLogic`). The one exception is the
+  optional provider layer `src/CL.WebLogic.Data` (package `CodeLogic.WebLogic.Data`), which the
+  Database Rule allows because it stays outside the core. It references the provider-neutral core
+  only: no package references a database provider (`CodeLogic.Data.MySql`, `.PostgreSql`, ...);
+  the app picks one, and samples and tests may reference them. The release pre-flight fails if any
+  other package depends on `CodeLogic.Data`, if any package depends on a provider, or if a package
+  depends on anything that is not a `CodeLogic*` package.
+- Stores in `CL.WebLogic.Data` must behave the same on every provider: no reliance on MySQL's
+  left-to-right `SET` or changed-rows counts, keys compare case-sensitively (binary collations), and
+  security state is read from the primary, never from the CL.Data entity cache. The store tests run
+  on SQLite always and on MySQL, PostgreSQL and SQL Server in CI.
+- Every assembly is strong-named with the shared CodeLogic key (`build/StrongName.*`); releases are
+  fully signed from `CL_STRONG_NAME_KEY` and verified before anything is pushed.
+- Add-on packages (`CL.WebLogic.Data`, `CL.WebLogic.ExternalLogins`) follow the same rules as the
   core: in-house security code, `CodeLogic*` dependencies only, same code style. They implement core
   contracts; the core never references them.
+- Development only: `build/pack-local-codelogic.ps1` and `-p:CodeLogicLocal=true` build against the
+  sibling `CodeLogic` / `CodeLogic.Libs` working trees. Never release or merge a build that needs it.
 
 ## Code Style
 
@@ -203,7 +215,10 @@ Mirror CodeLogic (`CodeLogic/src`) and CodeLogic.Libs (`CL.TwoFactorAuth`, `CL.M
    `[ConfigField(Label, Description, Group, Order, Min, Max, Collapsed, Secret, RequiresRestart)]`,
    a `Validate()` override, one section per file. Secrets are marked `Secret = true`.
 7. Fallible operations return `Result` / `Result<T>` / `Error` (`CodeLogic.Core.Results`) with
-   codes like `weblogic.auth.locked_out`. Exceptions are for programmer and startup errors.
+   codes like `weblogic.auth.locked_out`. Exceptions are for programmer and startup errors. Pick the
+   `Error` factory by kind (it decides the HTTP status through `WebErrorStatus`), publish codes apps
+   compare against as constants (`WebAuthErrorCodes`), and switch over `Error` subtypes exhaustively
+   (CS8509 is an error).
 8. Events are `record XxxEvent(...) : IEvent` in an `Events/` folder, published on the
    CodeLogic `IEventBus`.
 9. Library code uses `ConfigureAwait(false)`. Regexes are `[GeneratedRegex]` or have a timeout.
