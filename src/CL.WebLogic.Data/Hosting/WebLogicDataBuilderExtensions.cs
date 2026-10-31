@@ -45,26 +45,26 @@ public static class WebLogicDataBuilderExtensions
         services.TryAddSingleton<WebDataDatabase>();
 
         List<Func<Result<EntityMap>>> tables = [];
-        void Use<TContract, TStore>(WebDataStores flag, params Func<Result<EntityMap>>[] rows) where TContract : class where TStore : class, TContract
+        void Use<TContract, TStore>(WebDataStores flag) where TContract : class where TStore : class, TContract
         {
             if (!options.Stores.HasFlag(flag))
                 return;
             services.TryAddSingleton<TStore>();
             services.Replace(ServiceDescriptor.Singleton<TContract>(sp => sp.GetRequiredService<TStore>()));
-            tables.AddRange(rows);
+            tables.AddRange(WebDataTables.StoreTables.First(t => t.Flag == flag).Rows);   // the same lists as WebDataTables.For
         }
 
-        Use<IWebUserStore, DataWebUserStore>(WebDataStores.Users, WebDataTables.Map<UserRow>, WebDataTables.Map<UserLoginRow>);
-        Use<IWebSessionStore, DataWebSessionStore>(WebDataStores.Sessions, WebDataTables.Map<SessionRow>);
-        Use<IWebApiKeyStore, DataWebApiKeyStore>(WebDataStores.ApiKeys, WebDataTables.Map<ApiKeyRow>);
-        Use<IWebRecoveryCodeStore, DataWebRecoveryCodeStore>(WebDataStores.RecoveryCodes, WebDataTables.Map<RecoveryCodeRow>);
-        Use<IWebOneTimeUseStore, DataWebOneTimeUseStore>(WebDataStores.OneTimeUse, WebDataTables.Map<OneTimeUseRow>);
-        Use<IWebLoginThrottle, DataWebLoginThrottle>(WebDataStores.LoginThrottle, WebDataTables.Map<LoginThrottleRow>);
-        Use<IWebRateLimitStore, DataWebRateLimitStore>(WebDataStores.RateLimits, WebDataTables.Map<RateLimitRow>);
-        Use<IWebAuditSink, DataWebAuditSink>(WebDataStores.Audit, WebDataTables.Map<AuditRow>);
-        Use<IWebWidgetSettingsStore, DataWebWidgetSettingsStore>(WebDataStores.WidgetSettings, WebDataTables.Map<WidgetSettingsRow>);
-        Use<IWebDashboardLayoutStore, DataWebDashboardLayoutStore>(WebDataStores.Dashboards, WebDataTables.Map<DashboardRow>);
-        Use<IWebPasskeyStore, DataWebPasskeyStore>(WebDataStores.Passkeys, WebDataTables.Map<PasskeyRow>);
+        Use<IWebUserStore, DataWebUserStore>(WebDataStores.Users);
+        Use<IWebSessionStore, DataWebSessionStore>(WebDataStores.Sessions);
+        Use<IWebApiKeyStore, DataWebApiKeyStore>(WebDataStores.ApiKeys);
+        Use<IWebRecoveryCodeStore, DataWebRecoveryCodeStore>(WebDataStores.RecoveryCodes);
+        Use<IWebOneTimeUseStore, DataWebOneTimeUseStore>(WebDataStores.OneTimeUse);
+        Use<IWebLoginThrottle, DataWebLoginThrottle>(WebDataStores.LoginThrottle);
+        Use<IWebRateLimitStore, DataWebRateLimitStore>(WebDataStores.RateLimits);
+        Use<IWebAuditSink, DataWebAuditSink>(WebDataStores.Audit);
+        Use<IWebWidgetSettingsStore, DataWebWidgetSettingsStore>(WebDataStores.WidgetSettings);
+        Use<IWebDashboardLayoutStore, DataWebDashboardLayoutStore>(WebDataStores.Dashboards);
+        Use<IWebPasskeyStore, DataWebPasskeyStore>(WebDataStores.Passkeys);
 
         if (options.SyncSchemaOnStart && tables.Count > 0)
             AddTables(services, new WebDataTables(connectionName, () => [.. tables.Select(t => t())]));
