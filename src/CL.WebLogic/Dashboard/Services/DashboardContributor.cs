@@ -62,13 +62,13 @@ public sealed class DashboardContributor : IWebContributor
             var zones = request.GetQueryValues("zone");
             var probe = await _dashboards.GetAsync(request.HttpContext, key, cancellationToken).ConfigureAwait(false);
             if (probe.IsFailure)
-                return Problem(probe.Error!);
+                return WebResult.Problem(probe.Error!);
             return WebResult.Html(await _dashboards.RenderAsync(request.HttpContext, key, zones, cancellationToken).ConfigureAwait(false)).WithHeader("X-WebLogic-Fragment", "1");
         }
 
         var result = await _dashboards.GetAsync(request.HttpContext, key, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
-            return Problem(result.Error!);
+            return WebResult.Problem(result.Error!);
         var available = await _dashboards.AvailableWidgetsAsync(request.HttpContext, cancellationToken).ConfigureAwait(false);
         return WebResult.Json(new
         {
@@ -96,16 +96,8 @@ public sealed class DashboardContributor : IWebContributor
         var result = await _dashboards.SaveAsync(request.HttpContext, request.GetRouteValue("key") ?? "", body.Items, body.Version, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess
             ? WebResult.Json(new { key = result.Value!.DashboardKey, version = result.Value.Version, items = result.Value.Items })
-            : Problem(result.Error!);
+            : WebResult.Problem(result.Error!);
     }
-
-    private static ProblemResult Problem(Error error) => WebResult.Problem(error.Code switch
-    {
-        WebDashboardErrors.NoOwnerCode => StatusCodes.Status401Unauthorized,
-        WebDashboardErrors.ConflictCode => StatusCodes.Status409Conflict,
-        WebDashboardErrors.FullCode => StatusCodes.Status503ServiceUnavailable,
-        _ => StatusCodes.Status400BadRequest
-    }, error.Message);
 
     private sealed class SaveRequest
     {

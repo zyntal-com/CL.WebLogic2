@@ -7,6 +7,7 @@ using CL.WebLogic.Auth.Passkeys.Cbor;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Security.Pipeline;
 using CodeLogic.Core.Results;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.Passkeys;
 
@@ -26,7 +27,7 @@ public sealed partial class WebPasskeyService
         if (purpose != WebPasskeyPurpose.SignIn)
         {
             if (user is null)
-                return Result<WebPasskeyChallenge>.Failure(Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
+                return Result<WebPasskeyChallenge>.Failure(Error.Unauthorized(WebAuthErrorCodes.NotSignedIn, "Sign in first."));
             passkeys = await _store.ListAsync(user.Id, cancellationToken).ConfigureAwait(false);
             if (passkeys.Count == 0)
                 return Result<WebPasskeyChallenge>.Failure(Error.Validation("weblogic.passkeys.none", "There are no passkeys on this account."));

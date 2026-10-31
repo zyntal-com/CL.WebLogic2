@@ -53,10 +53,10 @@ public sealed partial class WebAccountService
         ArgumentNullException.ThrowIfNull(registration);
         var userName = registration.UserName?.Trim();
         if (!WebAccountValidation.IsValidUserName(userName))
-            return Fail<WebUser>("weblogic.auth.invalid_user_name", "Choose a user name of 1 to 64 characters.");
+            return Fail<WebUser>(WebAuthErrorCodes.InvalidUserName, "Choose a user name of 1 to 64 characters.");
         var email = registration.Email?.Trim();
         if (email is not null && !WebAccountValidation.IsValidEmail(email))
-            return Fail<WebUser>("weblogic.auth.invalid_email", "Enter a valid e-mail address.");
+            return Fail<WebUser>(WebAuthErrorCodes.InvalidEmail, "Enter a valid e-mail address.");
 
         var user = new WebUser
         {
@@ -80,7 +80,7 @@ public sealed partial class WebAccountService
         // (or the reverse) would let one account answer for the other. Stores only check each column.
         if (await LoginTakenAsync(user.UserName, null, cancellationToken).ConfigureAwait(false)
             || (email is not null && await LoginTakenAsync(email, null, cancellationToken).ConfigureAwait(false)))
-            return Result<WebUser>.Failure(Error.Conflict("weblogic.auth.duplicate_user", "The user name or e-mail address is already in use."));
+            return Result<WebUser>.Failure(Error.Conflict(WebAuthErrorCodes.DuplicateUser, "The user name or e-mail address is already in use."));
 
         var created = await _users.CreateAsync(user, cancellationToken).ConfigureAwait(false);
         if (created.IsFailure)
@@ -119,7 +119,7 @@ public sealed partial class WebAccountService
         ArgumentNullException.ThrowIfNull(user);
         newEmail = newEmail?.Trim() ?? string.Empty;
         if (!WebAccountValidation.IsValidEmail(newEmail))
-            return Result.Failure(Error.Validation("weblogic.auth.invalid_email", "Enter a valid e-mail address."));
+            return Result.Failure(Error.Validation(WebAuthErrorCodes.InvalidEmail, "Enter a valid e-mail address."));
         if (await FindByEmailAsync(newEmail, cancellationToken).ConfigureAwait(false) is { } existing && existing.Id != user.Id)
             return Result.Success(); // do not reveal that the address is taken; the confirmation will fail
 
@@ -139,7 +139,7 @@ public sealed partial class WebAccountService
         var old = validated.Value.User;
         if ((await FindByEmailAsync(newEmail, cancellationToken).ConfigureAwait(false) is { } existing && existing.Id != old.Id)
             || await LoginTakenAsync(newEmail, old.Id, cancellationToken).ConfigureAwait(false))
-            return Fail<WebUser>("weblogic.auth.email_taken", "This e-mail address is already in use.");
+            return Fail<WebUser>(WebAuthErrorCodes.EmailTaken, "This e-mail address is already in use.");
 
         var user = old with { Email = newEmail, EmailConfirmed = true, SecurityStamp = WebUser.NewStamp() };
         await _users.UpdateAsync(user, cancellationToken).ConfigureAwait(false);

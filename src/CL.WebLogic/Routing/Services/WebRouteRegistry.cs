@@ -12,7 +12,7 @@ namespace CL.WebLogic.Routing.Services;
 /// </summary>
 public sealed partial class WebRouteRegistry : IDisposable
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private ImmutableDictionary<string, ImmutableArray<WebRouteDefinition>> _byContributor =
         ImmutableDictionary.Create<string, ImmutableArray<WebRouteDefinition>>(StringComparer.Ordinal);
     private ImmutableArray<WebRouteDefinition> _routes = [];

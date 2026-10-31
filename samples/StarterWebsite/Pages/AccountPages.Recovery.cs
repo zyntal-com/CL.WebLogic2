@@ -1,3 +1,4 @@
+using CL.WebLogic.Auth.Accounts;
 using CL.WebLogic.Results;
 using CL.WebLogic.Runtime.Models;
 using StarterWebsite.Forms;
@@ -39,7 +40,7 @@ public sealed partial class AccountPages
         var reset = await _accounts.ResetPasswordAsync(submission.Model.Token!, submission.Model.NewPassword!, cancellationToken).ConfigureAwait(false);
         if (reset.IsFailure)
         {
-            var message = reset.Error!.Code.Contains("password", StringComparison.OrdinalIgnoreCase) ? reset.Error.Message : "This link is invalid, expired or already used. Request a new one.";
+            var message = reset.Error!.Code == WebAuthErrorCodes.PasswordPolicy ? reset.Error.Message : "This link is invalid, expired or already used. Request a new one.";
             return submission.AddError(string.Empty, message).Invalid(message, ResetTemplate);
         }
         return FormResult.Success("Your password was changed. Sign in with the new one.", "/account/login?reset=1");

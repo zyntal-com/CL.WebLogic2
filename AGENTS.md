@@ -194,7 +194,7 @@ Mirror CodeLogic (`CodeLogic/src`) and CodeLogic.Libs (`CL.TwoFactorAuth`, `CL.M
 1. `src/CL.WebLogic/WebLogicLibrary.cs` at the project root; domain folders use `Models/`,
    `Services/`, `Events/` as needed. Folder path = namespace (file-scoped).
 2. One public type per file. Aim for 40–250 lines; 400 is the hard ceiling.
-3. `sealed` by default, records for data, `_camelCase` fields, `private readonly object _lock = new();`,
+3. `sealed` by default, records for data, `_camelCase` fields, `private readonly Lock _lock = new();` (`System.Threading.Lock`, never `object`),
    `[]` collection expressions.
 4. XML docs on every public member; `<inheritdoc/>` on implementations.
 5. The library class uses `// ── Phase N: Name ───` banners (Configure, Initialize, Start,

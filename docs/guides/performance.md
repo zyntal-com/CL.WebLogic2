@@ -44,7 +44,7 @@ numbers, which is the point of the limit.
 
 ```bash
 dotnet build tools/CL.WebLogic.LoadTest -c Release
-dotnet tools/CL.WebLogic.LoadTest/bin/Release/net10.0/CL.WebLogic.LoadTest.dll \
+dotnet tools/CL.WebLogic.LoadTest/bin/Release/net11.0/CL.WebLogic.LoadTest.dll \
     --duration 10 --concurrency 32 --header "Cookie: wl_pre=..." http://127.0.0.1:5000/ http://127.0.0.1:5000/forms
 ```
 

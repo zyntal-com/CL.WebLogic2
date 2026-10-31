@@ -59,7 +59,7 @@ account.MapApi("/passkeys/register/finish", async (r, ct) =>
     return WebResult.Json(new { ok = added.IsSuccess, message = added.IsSuccess ? "Passkey added." : added.Error!.Message, redirect = added.IsSuccess ? "/account" : null });
 }, "POST");
 
-static WebResult Json(Result<WebPasskeyChallenge> c) => c.IsSuccess ? WebResult.Json(c.Value!) : WebResult.Problem(400, c.Error!.Message);
+static WebResult Json(Result<WebPasskeyChallenge> c) => c.IsSuccess ? WebResult.Json(c.Value!) : WebResult.Problem(c.Error);
 ```
 
 Begin endpoints return `{ options, state }`. Finish endpoints receive a `WebPasskeyRequest`

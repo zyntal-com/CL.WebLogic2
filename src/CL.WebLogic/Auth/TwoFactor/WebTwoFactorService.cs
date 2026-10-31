@@ -5,7 +5,8 @@ using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Hosting.Services;
 using CodeLogic.Core.Results;
-using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.TwoFactor;
 
@@ -71,12 +72,12 @@ public sealed class WebTwoFactorService
         ArgumentNullException.ThrowIfNull(user);
         var token = await _tokens.ValidateAsync(WebTokenPurposes.TwoFactorEnrollment, enrollmentToken, consume: false, cancellationToken).ConfigureAwait(false);
         if (token.IsFailure || token.Value!.User.Id != user.Id || token.Value.Data is null)
-            return Result<IReadOnlyList<string>>.Failure(Error.Validation("weblogic.auth.enrollment_invalid", "The enrollment expired; start again."));
+            return Result<IReadOnlyList<string>>.Failure(Error.Validation(WebAuthErrorCodes.EnrollmentInvalid, "The enrollment expired; start again."));
 
         var secret = _secrets.Unprotect(token.Value.Data);
         var step = _totp.Validate(code, secret);
         if (step is null || !await UseStepAsync(user.Id, step.Value, cancellationToken).ConfigureAwait(false))
-            return Result<IReadOnlyList<string>>.Failure(Error.Validation("weblogic.auth.code_invalid", "The code is not valid."));
+            return Result<IReadOnlyList<string>>.Failure(Error.Validation(WebAuthErrorCodes.CodeInvalid, "The code is not valid."));
 
         await _tokens.ValidateAsync(WebTokenPurposes.TwoFactorEnrollment, enrollmentToken, consume: true, cancellationToken).ConfigureAwait(false);
         var updated = token.Value.User with { TwoFactorSecret = token.Value.Data, SecurityStamp = WebUser.NewStamp() };

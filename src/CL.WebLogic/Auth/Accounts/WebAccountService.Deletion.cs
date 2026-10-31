@@ -21,16 +21,16 @@ public sealed partial class WebAccountService
     {
         ArgumentException.ThrowIfNullOrEmpty(userId);
         if (_users is not IWebUserDeletionStore deletion)
-            return Result.Failure(Error.Validation("weblogic.auth.delete_unsupported", "The user store cannot delete accounts."));
+            return Result.Failure(Error.Validation(WebAuthErrorCodes.DeleteUnsupported, "The user store cannot delete accounts."));
         if (await _users.FindByIdAsync(userId, cancellationToken).ConfigureAwait(false) is null)
-            return Result.Failure(Error.NotFound("weblogic.auth.user_not_found", "The account does not exist."));
+            return Result.Failure(Error.NotFound(WebAuthErrorCodes.UserNotFound, "The account does not exist."));
 
         await _sessions.DeleteForUserAsync(userId, cancellationToken).ConfigureAwait(false);
         foreach (var passkey in await _passkeys.ListAsync(userId, cancellationToken).ConfigureAwait(false))
             await _passkeys.DeleteAsync(userId, passkey.CredentialId, cancellationToken).ConfigureAwait(false);
         await _recoveryCodes.ReplaceAsync(userId, [], cancellationToken).ConfigureAwait(false);
         if (!await deletion.DeleteAsync(userId, cancellationToken).ConfigureAwait(false))
-            return Result.Failure(Error.NotFound("weblogic.auth.user_not_found", "The account does not exist."));
+            return Result.Failure(Error.NotFound(WebAuthErrorCodes.UserNotFound, "The account does not exist."));
         await _sessions.DeleteForUserAsync(userId, cancellationToken).ConfigureAwait(false);
 
         _context.Events.Publish(new UserDeletedEvent(userId, byUserId));

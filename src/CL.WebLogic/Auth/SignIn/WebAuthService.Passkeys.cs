@@ -4,7 +4,8 @@ using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Security.Identity;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.Sessions;
-using CodeLogic.Core.Results;
+using CodeLogic.Core.Results;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.SignIn;
 
@@ -59,7 +60,7 @@ public sealed partial class WebAuthService
             ? await _users.FindByIdAsync(id, cancellationToken).ConfigureAwait(false)
             : null;
         return user is null
-            ? Result<WebPasskeyChallenge>.Failure(Error.Unauthorized("weblogic.auth.no_pending_sign_in", "Sign in with your password first."))
+            ? Result<WebPasskeyChallenge>.Failure(Error.Unauthorized(WebAuthErrorCodes.NoPendingSignIn, "Sign in with your password first."))
             : await Passkeys.BeginAssertionAsync(security, WebPasskeyPurpose.SecondFactor, user, cancellationToken).ConfigureAwait(false);
     }
 
@@ -107,13 +108,13 @@ public sealed partial class WebAuthService
     public async Task<Result<WebPasskeyChallenge>> BeginPasskeyRegistrationAsync(WebSecurityContext security, CancellationToken cancellationToken) =>
         await SessionUserAsync(security, cancellationToken).ConfigureAwait(false) is { } user
             ? await Passkeys.BeginRegistrationAsync(security, user, cancellationToken).ConfigureAwait(false)
-            : Result<WebPasskeyChallenge>.Failure(Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
+            : Result<WebPasskeyChallenge>.Failure(Error.Unauthorized(WebAuthErrorCodes.NotSignedIn, "Sign in first."));
 
     /// <summary>Finishes registering a passkey for the signed-in user.</summary>
     public async Task<Result<WebPasskey>> CompletePasskeyRegistrationAsync(WebSecurityContext security, WebPasskeyRequest request, CancellationToken cancellationToken) =>
         await SessionUserAsync(security, cancellationToken).ConfigureAwait(false) is { } user
             ? await Passkeys.CompleteRegistrationAsync(security, user, request, cancellationToken).ConfigureAwait(false)
-            : Result<WebPasskey>.Failure(Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
+            : Result<WebPasskey>.Failure(Error.Unauthorized(WebAuthErrorCodes.NotSignedIn, "Sign in first."));
 
     /// <summary>The signed-in user's passkeys (empty when not signed in with a session).</summary>
     public async Task<IReadOnlyList<WebPasskey>> ListPasskeysAsync(WebSecurityContext security, CancellationToken cancellationToken) =>

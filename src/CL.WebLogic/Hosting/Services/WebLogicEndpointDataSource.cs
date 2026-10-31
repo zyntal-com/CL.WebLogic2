@@ -18,7 +18,7 @@ public sealed class WebLogicEndpointDataSource : EndpointDataSource
 {
     private readonly WebRouteRegistry _registry;
     private readonly WebLogicMetrics? _metrics;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private IReadOnlyList<Endpoint> _endpoints = [];
     private long _builtVersion = -1;
 

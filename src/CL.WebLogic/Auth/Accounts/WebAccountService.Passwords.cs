@@ -49,7 +49,7 @@ public sealed partial class WebAccountService
     {
         ArgumentNullException.ThrowIfNull(user);
         if (user.PasswordHash is null || _hasher.Verify(user.PasswordHash, currentPassword ?? string.Empty) == WebPasswordVerification.Failed)
-            return Fail<WebUser>("weblogic.auth.wrong_password", "The current password is not correct.");
+            return Fail<WebUser>(WebAuthErrorCodes.WrongPassword, "The current password is not correct.");
         return await SetPasswordAsync(user, newPassword, viaReset: false, cancellationToken).ConfigureAwait(false);
     }
 

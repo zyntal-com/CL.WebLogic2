@@ -1,6 +1,7 @@
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Configuration.Services;
 using CodeLogic.Core.Results;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.Passwords;
 
@@ -42,5 +43,5 @@ public sealed class WebPasswordPolicy : IWebPasswordPolicy
     private static bool Contains(string password, string? part) =>
         part is { Length: >= 3 } && password.Contains(part, StringComparison.OrdinalIgnoreCase);
 
-    private static Result Fail(string message) => Result.Failure(Error.Validation("weblogic.auth.password_policy", message));
+    private static Result Fail(string message) => Result.Failure(Error.Validation(WebAuthErrorCodes.PasswordPolicy, message));
 }

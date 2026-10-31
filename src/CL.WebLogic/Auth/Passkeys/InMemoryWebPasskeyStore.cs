@@ -7,7 +7,7 @@ namespace CL.WebLogic.Auth.Passkeys;
 public sealed class InMemoryWebPasskeyStore : IWebPasskeyStore, IWebDevelopmentStore
 {
     private readonly ConcurrentDictionary<string, WebPasskey> _passkeys = new(StringComparer.Ordinal);
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <inheritdoc/>
     public Task<IReadOnlyList<WebPasskey>> ListAsync(string userId, CancellationToken cancellationToken) =>

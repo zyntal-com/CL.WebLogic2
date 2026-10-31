@@ -11,7 +11,7 @@ public sealed class InMemoryLoginThrottle : IWebLoginThrottle, Security.Services
     private readonly BoundedTtlCache<int> _ips;
     private readonly WebLogicConfigHolder _config;
     private readonly TimeProvider _time;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>Creates the throttle.</summary>
     public InMemoryLoginThrottle(WebLogicConfigHolder config, TimeProvider? time = null)

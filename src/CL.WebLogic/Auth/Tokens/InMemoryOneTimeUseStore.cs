@@ -7,7 +7,7 @@ public sealed class InMemoryOneTimeUseStore : IWebOneTimeUseStore, Security.Serv
 {
     private readonly BoundedTtlCache<byte> _used;
     private readonly TimeProvider _time;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>Creates the store.</summary>
     public InMemoryOneTimeUseStore(TimeProvider? time = null)

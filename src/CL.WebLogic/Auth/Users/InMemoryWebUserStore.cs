@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using CL.WebLogic.Security.Services;
 using CodeLogic.Core.Results;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.Users;
 
@@ -9,7 +10,7 @@ public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, 
 {
     private readonly ConcurrentDictionary<string, WebUser> _users = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, string> _externalLogins = new(StringComparer.Ordinal);
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <inheritdoc/>
     public Task<WebUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) =>
@@ -34,7 +35,7 @@ public sealed class InMemoryWebUserStore : IWebUserStore, IWebUserLockoutStore, 
             var taken = _users.Values.Any(u => string.Equals(u.UserName, user.UserName, StringComparison.OrdinalIgnoreCase)
                 || (user.Email is not null && string.Equals(u.Email, user.Email, StringComparison.OrdinalIgnoreCase)));
             if (taken || !_users.TryAdd(user.Id, user))
-                return Task.FromResult(Result.Failure(Error.Conflict("weblogic.auth.duplicate_user", "The user name or e-mail address is already in use.")));
+                return Task.FromResult(Result.Failure(Error.Conflict(WebAuthErrorCodes.DuplicateUser, "The user name or e-mail address is already in use.")));
         }
         return Task.FromResult(Result.Success());
     }
