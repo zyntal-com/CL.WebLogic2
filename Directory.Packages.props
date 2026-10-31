@@ -11,23 +11,38 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <CodeLogicVersion>5.0.32-preview</CodeLogicVersion>
+    <CodeLogicLibsVersion>5.0.113-preview</CodeLogicLibsVersion>
+  </PropertyGroup>
+
+  <!--
+    Development only: -p:CodeLogicLocal=true (or the environment variable CodeLogicLocal=true) builds
+    against the sibling CodeLogic / CodeLogic.Libs working trees, packed into a local feed by
+    build/pack-local-codelogic.ps1. Release builds never set it.
+  -->
+  <PropertyGroup Condition="'$(CodeLogicLocal)' == 'true'">
+    <CodeLogicLocalFeed Condition="'$(CodeLogicLocalFeed)' == ''">$(MSBuildThisFileDirectory)artifacts/codelogic-local</CodeLogicLocalFeed>
+    <_CodeLogicLocalVersionFile>$(CodeLogicLocalFeed)/version.txt</_CodeLogicLocalVersionFile>
+    <CodeLogicVersion Condition="Exists('$(_CodeLogicLocalVersionFile)')">$([System.IO.File]::ReadAllText('$(_CodeLogicLocalVersionFile)').Trim())</CodeLogicVersion>
+    <CodeLogicLibsVersion>$(CodeLogicVersion)</CodeLogicLibsVersion>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(CodeLogicLocalFeed)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <ItemGroup Label="CodeLogic">
-    <PackageVersion Include="CodeLogic" Version="5.0.32-preview" />
-    <PackageVersion Include="CodeLogic.GitHelper" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.NetUtils" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Storage" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Mail" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Data" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic" Version="$(CodeLogicVersion)" />
+    <PackageVersion Include="CodeLogic.GitHelper" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.NetUtils" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Storage" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Mail" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data" Version="$(CodeLogicLibsVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Database providers (samples and tests only)">
-    <PackageVersion Include="CodeLogic.Data.MySql" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Data.PostgreSql" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Data.SqlServer" Version="5.0.113-preview" />
-    <PackageVersion Include="CodeLogic.Data.Sqlite" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Data.MySql" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.PostgreSql" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.SqlServer" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.Sqlite" Version="$(CodeLogicLibsVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Samples only">

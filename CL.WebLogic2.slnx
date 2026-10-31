@@ -2,7 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/CL.WebLogic.Testing/CL.WebLogic.Testing.csproj" />
     <Project Path="src/CL.WebLogic/CL.WebLogic.csproj" />
-    <Project Path="src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj" />
+    <Project Path="src/CL.WebLogic.Data/CL.WebLogic.Data.csproj" />
     <Project Path="src/CL.WebLogic.ExternalLogins/CL.WebLogic.ExternalLogins.csproj" />
   </Folder>
   <Folder Name="/tools/">
@@ -20,7 +20,7 @@
     <Project Path="tests/CL.WebLogic.ClientBundler.Tests/CL.WebLogic.ClientBundler.Tests.csproj" />
     <Project Path="tests/CL.WebLogic.IntegrationTests/CL.WebLogic.IntegrationTests.csproj" />
     <Project Path="tests/CL.WebLogic.Tests/CL.WebLogic.Tests.csproj" />
-    <Project Path="tests/CL.WebLogic.MySql.Tests/CL.WebLogic.MySql.Tests.csproj" />
+    <Project Path="tests/CL.WebLogic.Data.Tests/CL.WebLogic.Data.Tests.csproj" />
     <Project Path="tests/CL.WebLogic.ExternalLogins.Tests/CL.WebLogic.ExternalLogins.Tests.csproj" />
   </Folder>
 </Solution>

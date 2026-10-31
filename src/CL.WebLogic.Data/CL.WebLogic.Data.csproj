@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Optional provider layer (AGENTS.md database rule): database-backed stores for every WebLogic
+    security contract, built on the provider-neutral CodeLogic.Data core. The app loads the database
+    provider it wants (CodeLogic.Data.MySql, .PostgreSql, .SqlServer or .Sqlite); this package never
+    references one, and the core package never references this one.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.Data</RootNamespace>
+    <AssemblyName>CL.WebLogic.Data</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>CodeLogic.WebLogic.Data</PackageId>
+    <Description>Database stores for CodeLogic.WebLogic on CodeLogic.Data (MySQL, PostgreSQL, SQL Server or SQLite): users, sessions, API keys, recovery codes, one-time use, login throttle, rate limits, audit, widget settings, dashboards, passkeys and the DataProtection key ring — with schema sync and expiry sweeps.</Description>
+    <PackageTags>codelogic;web;database;mysql;postgresql;sqlserver;sqlite;sessions;authentication</PackageTags>
+    <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.nuget.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="..\CL.WebLogic\CL.WebLogic.csproj" />
+    <PackageReference Include="CodeLogic.Data" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CL.WebLogic.Data.Tests" />
+  </ItemGroup>
+</Project>
