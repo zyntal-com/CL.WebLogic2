@@ -98,7 +98,7 @@ To try the samples against the sibling `CodeLogic` and `CodeLogic.Libs` working 
 
 ```bash
 pwsh build/pack-local-codelogic.ps1                       # writes artifacts/codelogic-local
-dotnet run --project samples/MiniBlog -p:CodeLogicLocal=true
+dotnet run --project samples/MiniBlog                   # uses the local feed while it exists
 CODELOGIC_LOCAL_FEED=../../artifacts/codelogic-local docker compose -f samples/docker/compose.yaml build
 ```
 

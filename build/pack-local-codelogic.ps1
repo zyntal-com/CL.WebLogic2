@@ -5,13 +5,13 @@
 
 .DESCRIPTION
     Every run uses a fresh version (5.0.0-local.<timestamp>) so the NuGet cache never serves a stale
-    copy, and records it in <feed>/version.txt. Build WebLogic against it with
-    -p:CodeLogicLocal=true (or the environment variable CodeLogicLocal=true); see Directory.Packages.props.
+    copy, and records it in <feed>/version.txt. WebLogic builds use the feed while it exists
+    (-p:CodeLogicLocal=false forces nuget.org); delete artifacts/codelogic-local to go back.
     The feed lives under artifacts/ (git-ignored). Development only: never release against it.
 
 .EXAMPLE
     ./build/pack-local-codelogic.ps1
-    dotnet test -p:CodeLogicLocal=true
+    dotnet test
 #>
 param(
     [string]$CodeLogicPath = (Join-Path $PSScriptRoot '../../CodeLogic'),
@@ -48,4 +48,4 @@ foreach ($project in $libs) {
 }
 
 Set-Content -Path (Join-Path $Feed 'version.txt') -Value $version -Encoding ascii
-Write-Host "Local feed ready: $Feed ($version). Build with -p:CodeLogicLocal=true."
+Write-Host "Local feed ready: $Feed ($version). Builds use it by default; -p:CodeLogicLocal=false forces nuget.org."

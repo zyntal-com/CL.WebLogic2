@@ -16,12 +16,16 @@
   </PropertyGroup>
 
   <!--
-    Development only: -p:CodeLogicLocal=true (or the environment variable CodeLogicLocal=true) builds
-    against the sibling CodeLogic / CodeLogic.Libs working trees, packed into a local feed by
-    build/pack-local-codelogic.ps1. Release builds never set it.
+    Development only: build against the sibling CodeLogic / CodeLogic.Libs working trees, packed into
+    a local feed by build/pack-local-codelogic.ps1. On by default when that feed exists (artifacts/ is
+    git- and docker-ignored, so CI, Docker and release builds never see it); -p:CodeLogicLocal=false
+    forces nuget.org.
   -->
-  <PropertyGroup Condition="'$(CodeLogicLocal)' == 'true'">
+  <PropertyGroup>
     <CodeLogicLocalFeed Condition="'$(CodeLogicLocalFeed)' == ''">$(MSBuildThisFileDirectory)artifacts/codelogic-local</CodeLogicLocalFeed>
+    <CodeLogicLocal Condition="'$(CodeLogicLocal)' == '' And Exists('$(CodeLogicLocalFeed)/version.txt')">true</CodeLogicLocal>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(CodeLogicLocal)' == 'true'">
     <_CodeLogicLocalVersionFile>$(CodeLogicLocalFeed)/version.txt</_CodeLogicLocalVersionFile>
     <CodeLogicVersion Condition="Exists('$(_CodeLogicLocalVersionFile)')">$([System.IO.File]::ReadAllText('$(_CodeLogicLocalVersionFile)').Trim())</CodeLogicVersion>
     <CodeLogicLibsVersion>$(CodeLogicVersion)</CodeLogicLibsVersion>

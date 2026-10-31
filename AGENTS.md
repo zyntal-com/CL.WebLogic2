@@ -196,8 +196,9 @@ widgets/realtime, samples, hardening.
 - Add-on packages (`CL.WebLogic.Data`, `CL.WebLogic.ExternalLogins`) follow the same rules as the
   core: in-house security code, `CodeLogic*` dependencies only, same code style. They implement core
   contracts; the core never references them.
-- Development only: `build/pack-local-codelogic.ps1` and `-p:CodeLogicLocal=true` build against the
-  sibling `CodeLogic` / `CodeLogic.Libs` working trees. Never release or merge a build that needs it.
+- Development only: `build/pack-local-codelogic.ps1` packs the sibling `CodeLogic` / `CodeLogic.Libs`
+  working trees into `artifacts/codelogic-local`; while that feed exists, builds use it
+  (`-p:CodeLogicLocal=false` forces nuget.org). Never release or merge a build that needs it.
 
 ## Code Style
 

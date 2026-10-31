@@ -85,7 +85,7 @@ jobs:
             dotnet pack "$proj" --configuration Release --output artifacts \
               -p:ContinuousIntegrationBuild=true \
               -p:PackageVersion="$v" -p:Version="$v" -p:InformationalVersion="$v" \
-              -p:CLStrongNameKeyFile="$CL_STRONG_NAME_KEY_FILE"
+              -p:CLStrongNameKeyFile="$CL_STRONG_NAME_KEY_FILE" -p:CodeLogicLocal=false
           done
 
       - name: Verify strong-name signatures
