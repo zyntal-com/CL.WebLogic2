@@ -4,6 +4,8 @@ WebLogic 4.9 (`CodeLogic.WebLogic`) is a rewrite. Concepts carry over, but the A
 treat a migration as a port. The usual order: hosting, stores, routes, templates, forms, then the
 client scripts.
 
+This page maps 0.x to 4.9. Porting to 5.0, also apply [Upgrading to 5.0](upgrading-to-5.md).
+
 ## Concept map
 
 | 0.x | 4.9 |

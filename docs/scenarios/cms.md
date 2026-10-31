@@ -6,7 +6,7 @@ Markdown posts, tag-evicted page cache, RSS and sitemap, and an admin area shipp
 ## Content storage is yours
 
 WebLogic has no content model. Define your own (`Post`, `Page`, `Category`) and store it wherever you
-like. MiniBlog uses CL.MySQL2 in `samples/MiniBlog.Data`; a file-based CMS could read Markdown files
+like. MiniBlog uses CL.Data (on MySQL) in `samples/MiniBlog.Data`; a file-based CMS could read Markdown files
 from the theme or a CL.Storage bucket.
 
 ## Rendering content

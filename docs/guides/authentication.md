@@ -25,7 +25,7 @@ inject its store by type (for its extra methods) and gets the instance WebLogic 
 `web.UseInMemoryAccounts()` registers in-memory users, sessions, keys and codes for development and
 tests. Outside Development the app refuses to start while any of them is still in memory. The
 samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructure`; MiniBlog uses
-the [`CodeLogic.WebLogic.MySql`](mysql-stores.md) add-on.
+the [`CodeLogic.WebLogic.Data`](data-stores.md) add-on (on MySQL).
 
 ## Signing in
 

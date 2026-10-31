@@ -17,12 +17,12 @@ One passkey covers three uses:
 
 ```csharp
 builder.AddCodeLogicWebLogic(web => web
-    .UsePasskeyStore<MyPasskeyStore>());     // or UseMySqlStores(...) (CodeLogic.WebLogic.MySql), or UseInMemoryAccounts() in development
+    .UsePasskeyStore<MyPasskeyStore>());     // or UseDataStores(...) (CodeLogic.WebLogic.Data), or UseInMemoryAccounts() in development
 ```
 
 `IWebPasskeyStore` has six methods. Credential ids are unique across users, and `TryRecordUseAsync`
-must be a compare-and-swap on the signature counter. The in-memory, MySQL and Starter (JSON file)
-stores show how.
+must be a compare-and-swap on the signature counter. The in-memory, database
+([`CodeLogic.WebLogic.Data`](data-stores.md)) and Starter (JSON file) stores show how.
 
 Configuration (`Auth.Passkeys`):
 
