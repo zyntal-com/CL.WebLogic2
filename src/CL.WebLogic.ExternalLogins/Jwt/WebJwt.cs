@@ -50,8 +50,8 @@ public sealed class WebJwt
             return false;
         try
         {
-            var header = JsonDocument.Parse(Base64Url.DecodeFromChars(parts[0])).RootElement.Clone();
-            var payload = JsonDocument.Parse(Base64Url.DecodeFromChars(parts[1])).RootElement.Clone();
+            var header = JsonElement.Parse(Base64Url.DecodeFromChars(parts[0]));
+            var payload = JsonElement.Parse(Base64Url.DecodeFromChars(parts[1]));
             if (header.ValueKind != JsonValueKind.Object || payload.ValueKind != JsonValueKind.Object)
                 return false;
             jwt = new WebJwt(header, payload, Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]), Base64Url.DecodeFromChars(parts[2]));

@@ -53,9 +53,8 @@ public sealed class CodeLogicTotpProvider : IWebTotpProvider
         if (!result.IsValid)
             return null;
 
-        // CL.TwoFactorAuth reports the matched step; tolerate a relative offset as well.
-        var matched = result.MatchedWindow ?? 0;
-        return Math.Abs(matched) < 1000 ? authenticator.GetCurrentTimeWindow() + matched : matched;
+        // CL.TwoFactorAuth 5 reports the absolute time step that matched (what single-use tracking needs).
+        return result.MatchedWindow ?? authenticator.GetCurrentTimeWindow() + (result.WindowOffset ?? 0);
     }
 
     private (TwoFactorAuthenticator Authenticator, QrCodeGenerator QrCode) Services()

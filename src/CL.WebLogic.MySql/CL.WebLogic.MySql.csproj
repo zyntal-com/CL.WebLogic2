@@ -5,7 +5,7 @@
     want another database implement the same contracts.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>CL.WebLogic.MySql</RootNamespace>
     <AssemblyName>CL.WebLogic.MySql</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

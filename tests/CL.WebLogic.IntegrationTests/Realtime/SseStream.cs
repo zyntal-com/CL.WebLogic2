@@ -44,7 +44,7 @@ internal sealed class SseStream : IAsyncDisposable
                 if (line.Length == 0)
                 {
                     if (data is not null)
-                        return (id, JsonDocument.Parse(data).RootElement.Clone());
+                        return (id, JsonElement.Parse(data));
                     continue;
                 }
                 if (line.StartsWith(':'))

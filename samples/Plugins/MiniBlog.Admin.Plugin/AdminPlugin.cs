@@ -34,7 +34,7 @@ public sealed class AdminPlugin : IPlugin, IWebContributor
     {
         Id = "miniblog.admin",
         Name = "MiniBlog Admin",
-        Version = "4.9.0",
+        Version = "5.0.0",
         Description = "Post management for MiniBlog",
         Author = "Zyntal.com"
     };

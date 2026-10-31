@@ -18,7 +18,7 @@ public sealed class StarterApplication : IApplication
     {
         Id = "StarterWebsite",
         Name = "WebLogic Starter Website",
-        Version = "4.9.0",
+        Version = "5.0.0",
         Description = "Reference website for CL.WebLogic"
     };
 

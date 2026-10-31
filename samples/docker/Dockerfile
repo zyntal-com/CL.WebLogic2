@@ -4,7 +4,7 @@
 # The toolkit is packed into a local NuGet feed first and the sample is published against that
 # package, so the image proves the package works the way an app consumes it.
 
-ARG DOTNET_VERSION=10.0
+ARG DOTNET_VERSION=11.0
 
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 ARG SAMPLE=StarterWebsite
@@ -12,7 +12,7 @@ WORKDIR /src
 COPY . .
 # A unique version per build, so the cached NuGet folder can never serve an older pack.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
-    VERSION="4.9.0-docker.$(date +%s)" \
+    VERSION="5.0.0-docker.$(date +%s)" \
  && dotnet pack src/CL.WebLogic/CL.WebLogic.csproj -c Release -o /feed -p:Version=$VERSION \
  && dotnet pack src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj -c Release -o /feed -p:Version=$VERSION \
  && dotnet pack src/CL.WebLogic.ExternalLogins/CL.WebLogic.ExternalLogins.csproj -c Release -o /feed -p:Version=$VERSION \

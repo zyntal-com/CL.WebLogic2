@@ -11,7 +11,7 @@ public sealed class JwtValidatorTests : IDisposable
     private readonly TestSigner _signer = new();
 
     private IReadOnlyList<WebJsonWebKey> Keys() =>
-        [.. JsonDocument.Parse(_signer.Jwks()).RootElement.GetProperty("keys").EnumerateArray().Select(WebJsonWebKey.FromJson).OfType<WebJsonWebKey>()];
+        [.. JsonElement.Parse(_signer.Jwks()).GetProperty("keys").EnumerateArray().Select(WebJsonWebKey.FromJson).OfType<WebJsonWebKey>()];
 
     private static WebJwtValidationParameters Parameters(string issuer = "https://idp.test", string? nonce = "n-1") =>
         new() { Issuer = issuer, Audience = "client-1", Nonce = nonce, Now = Now };
@@ -97,13 +97,13 @@ public sealed class JwtValidatorTests : IDisposable
     public void Weak_and_unusable_keys_are_ignored()
     {
         using var weak = new TestSigner("weak", rsaBits: 1024);
-        var keys = JsonDocument.Parse(weak.Jwks()).RootElement.GetProperty("keys").EnumerateArray().Select(WebJsonWebKey.FromJson).OfType<WebJsonWebKey>().ToList();
+        var keys = JsonElement.Parse(weak.Jwks()).GetProperty("keys").EnumerateArray().Select(WebJsonWebKey.FromJson).OfType<WebJsonWebKey>().ToList();
         Assert.DoesNotContain(keys, k => k.KeyId == "weak");
-        Assert.Null(WebJsonWebKey.FromJson(JsonDocument.Parse("""{"kty":"oct","k":"c2VjcmV0"}""").RootElement));
-        Assert.Null(WebJsonWebKey.FromJson(JsonDocument.Parse("""{"kty":"RSA","use":"enc","n":"AQAB","e":"AQAB"}""").RootElement));
+        Assert.Null(WebJsonWebKey.FromJson(JsonElement.Parse("""{"kty":"oct","k":"c2VjcmV0"}""")));
+        Assert.Null(WebJsonWebKey.FromJson(JsonElement.Parse("""{"kty":"RSA","use":"enc","n":"AQAB","e":"AQAB"}""")));
 
-        var restricted = WebJsonWebKey.FromJson(JsonDocument.Parse(
-            $$"""{"kty":"RSA","kid":"{{_signer.Kid}}","alg":"PS256","n":"{{TestSigner.B64(_signer.Rsa.ExportParameters(false).Modulus!)}}","e":"AQAB"}""").RootElement)!;
+        var restricted = WebJsonWebKey.FromJson(JsonElement.Parse(
+            $$"""{"kty":"RSA","kid":"{{_signer.Kid}}","alg":"PS256","n":"{{TestSigner.B64(_signer.Rsa.ExportParameters(false).Modulus!)}}","e":"AQAB"}"""))!;
         Assert.NotNull(WebJwtValidator.Validate(_signer.Sign(Claims(), "RS256"), [restricted], Parameters()).Error);
         Assert.Null(WebJwtValidator.Validate(_signer.Sign(Claims(), "PS256"), [restricted], Parameters()).Error);
     }

@@ -36,10 +36,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref_name }}
 
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       # ── Composed version: {major.minor from version.txt}.{run_number}[+sha] ──
       # Nothing is written back to the repo; the version is composed at pack time.
@@ -58,6 +58,22 @@ jobs:
           echo "Composed version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # Strong-name signing (build/StrongName.props): releases are fully signed with the private key from the
+      # repository secret CL_STRONG_NAME_KEY (base64 of the .snk), the same key as CodeLogic and CodeLogic.Libs.
+      # No secret, no release. The key only exists in the runner's temp directory.
+      - name: Strong-name key
+        shell: pwsh
+        env:
+          CL_STRONG_NAME_KEY: ${{ secrets.CL_STRONG_NAME_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CL_STRONG_NAME_KEY)) {
+            Write-Host "::error::secret CL_STRONG_NAME_KEY is not set - refusing to release unsigned packages"
+            exit 1
+          }
+          $path = Join-Path $env:RUNNER_TEMP 'codelogic.snk'
+          [System.IO.File]::WriteAllBytes($path, [Convert]::FromBase64String($env:CL_STRONG_NAME_KEY.Trim()))
+          "CL_STRONG_NAME_KEY_FILE=$path" >> $env:GITHUB_ENV
+
       - name: Pack
         shell: bash
         run: |
@@ -68,16 +84,26 @@ jobs:
                       src/CL.WebLogic.MySql/CL.WebLogic.MySql.csproj src/CL.WebLogic.ExternalLogins/CL.WebLogic.ExternalLogins.csproj; do
             dotnet pack "$proj" --configuration Release --output artifacts \
               -p:ContinuousIntegrationBuild=true \
-              -p:PackageVersion="$v" -p:Version="$v" -p:InformationalVersion="$v"
+              -p:PackageVersion="$v" -p:Version="$v" -p:InformationalVersion="$v" \
+              -p:CLStrongNameKeyFile="$CL_STRONG_NAME_KEY_FILE"
           done
+
+      - name: Verify strong-name signatures
+        shell: pwsh
+        run: ./build/verify-strong-name.ps1 -Packages (Get-ChildItem artifacts -Filter '*.nupkg').FullName
+
+      - name: Remove strong-name key
+        if: always()
+        shell: pwsh
+        run: if ($env:CL_STRONG_NAME_KEY_FILE) { Remove-Item $env:CL_STRONG_NAME_KEY_FILE -Force -ErrorAction SilentlyContinue }
 
       # NuGet normalizes the CodeLogic PackageReference range to the restored version as
       # its lower bound. Rewrite it to the literal supported range so WebLogic keeps
-      # accepting every CodeLogic 4.9.x+ (4.9 is the floor: IConfigReloadable).
+      # accepting every CodeLogic 5.x (previews included while the 5.0 line is in preview).
       - name: Rewrite CodeLogic dependency range
         shell: pwsh
         run: |
-          $targetRange = '[4.9.0, 5.0.0)'
+          $targetRange = '[5.0.0-preview, 6.0.0)'
           foreach ($nupkg in Get-ChildItem artifacts -Filter '*.nupkg') {
             $tmp = "$env:RUNNER_TEMP/nupkg-$([Guid]::NewGuid())"
             New-Item -ItemType Directory -Force -Path $tmp | Out-Null
@@ -114,9 +140,13 @@ jobs:
               echo "::error::$name: nuspec has no <id>"; fail=1
             fi
             # Database rule (AGENTS.md): the toolkit never depends on a specific database. Only the
-            # optional add-on CodeLogic.WebLogic.MySql may reference CodeLogic.MySQL2.
-            if [ "${name#CodeLogic.WebLogic.MySql.[0-9]}" = "$name" ] && printf '%s' "$nuspec" | grep -qi '<dependency id="CodeLogic\.MySQL2"'; then
-              echo "::error::$name: depends on CodeLogic.MySQL2 - only the CodeLogic.WebLogic.MySql add-on may"; fail=1
+            # optional add-on CodeLogic.WebLogic.Data may reference the provider-neutral CodeLogic.Data
+            # core, and no package may reference a database provider (the app picks and loads it).
+            if [ "${name#CodeLogic.WebLogic.Data.[0-9]}" = "$name" ] && printf '%s' "$nuspec" | grep -qi '<dependency id="CodeLogic\.Data"'; then
+              echo "::error::$name: depends on CodeLogic.Data - only the CodeLogic.WebLogic.Data add-on may"; fail=1
+            fi
+            if printf '%s' "$nuspec" | grep -qiE '<dependency id="CodeLogic\.(Data\.[^"]+|MySQL2)"'; then
+              echo "::error::$name: depends on a database provider - the app chooses and loads it"; fail=1
             fi
             # Dependency rule (AGENTS.md): packages depend on CodeLogic* only (plus each other).
             for dep in $(printf '%s' "$nuspec" | grep -o '<dependency id="[^"]*"' | sed 's/<dependency id="//; s/"$//' | sort -u); do
@@ -131,7 +161,7 @@ jobs:
             fi
             # The core package must carry the embedded client runtime.
             if [ "${name#CodeLogic.WebLogic.[0-9]}" != "$name" ]; then
-              if ! unzip -p "$pkg" 'lib/net10.0/CL.WebLogic.dll' | grep -aq 'CL.WebLogic.Client.weblogic.esm.js'; then
+              if ! unzip -p "$pkg" 'lib/net11.0/CL.WebLogic.dll' | grep -aq 'CL.WebLogic.Client.weblogic.esm.js'; then
                 echo "::error::$name: the client runtime is not embedded in CL.WebLogic.dll"; fail=1
               fi
             fi

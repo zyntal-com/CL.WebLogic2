@@ -35,10 +35,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       # WebLogic references CodeLogic and CodeLogic.* from nuget.org only - no sibling
       # source clones are needed, so this repository builds on its own.

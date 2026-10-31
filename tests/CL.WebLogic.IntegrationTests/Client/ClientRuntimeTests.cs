@@ -47,7 +47,7 @@ public sealed partial class ClientRuntimeTests
         Assert.Matches("<link rel=\"stylesheet\" href=\"/_weblogic/client/weblogic\\.[0-9a-f]{12}\\.css\" integrity=\"sha384-", html);
 
         var configJson = Regex.Match(html, "<script type=\"application/json\" id=\"wl-config\">(?<json>.*?)</script>").Groups["json"].Value;
-        var config = JsonDocument.Parse(configJson).RootElement;
+        var config = JsonElement.Parse(configJson);
         Assert.Equal("X-CSRF-Token", config.GetProperty("csrfHeader").GetString());
         Assert.True(config.GetProperty("debug").GetBoolean());
         Assert.False(config.TryGetProperty("csrfToken", out _)); // pages stay cacheable

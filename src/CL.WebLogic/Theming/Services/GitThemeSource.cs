@@ -51,17 +51,18 @@ public sealed class GitThemeSource : IWebThemeSource
 
         var repository = await git.GetRepositoryAsync(config.RepositoryId).ConfigureAwait(false);
         var result = await repository.EnsureUpToDateAsync(config.Branch, cancellationToken: cancellationToken).ConfigureAwait(false);
-        if (!result.IsSuccess || result.Value is null)
+        if (result.IsFailure || result.Value is not { } info)
         {
+            var reason = result.Error?.Message ?? "no repository information";
             if (Directory.Exists(Path.Combine(localPath, ".git")))
             {
-                _context.Logger.Warning($"Theme repository '{config.RepositoryId}' could not be updated ({result.ErrorMessage}); serving the last synchronized copy.");
+                _context.Logger.Warning($"Theme repository '{config.RepositoryId}' could not be updated ({reason}); serving the last synchronized copy.");
                 return Combine(localPath, config.ThemeSubPath);
             }
-            throw new InvalidOperationException($"Theme repository '{config.RepositoryId}' could not be cloned: {result.ErrorMessage}");
+            throw new InvalidOperationException($"Theme repository '{config.RepositoryId}' could not be cloned: {reason}");
         }
 
-        return Combine(result.Value.LocalPath, config.ThemeSubPath);
+        return Combine(info.LocalPath, config.ThemeSubPath);
     }
 
     /// <summary>Applies the credentials from <paramref name="config"/>; never logs them.</summary>

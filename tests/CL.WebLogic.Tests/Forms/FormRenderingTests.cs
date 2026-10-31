@@ -35,7 +35,7 @@ public sealed partial class FormRenderingTests
         Assert.Contains("name=\"__wl_ts\"", html);
         Assert.DoesNotContain("enctype", html);
 
-        var schema = JsonDocument.Parse(SchemaJson().Match(html).Groups[1].Value).RootElement;
+        var schema = JsonElement.Parse(SchemaJson().Match(html).Groups[1].Value);
         Assert.Equal("contact", schema.GetProperty("formId").GetString());
         var name = schema.GetProperty("fields").EnumerateArray().First(f => f.GetProperty("name").GetString() == "Name");
         Assert.True(name.GetProperty("required").GetBoolean());

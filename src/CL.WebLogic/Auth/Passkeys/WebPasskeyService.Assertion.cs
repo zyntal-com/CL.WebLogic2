@@ -43,7 +43,7 @@ public sealed partial class WebPasskeyService
             ["userVerification"] = requireVerification ? "required" : "preferred",
             ["allowCredentials"] = Descriptors(passkeys)
         };
-        return Result<WebPasskeyChallenge>.Success(new WebPasskeyChallenge(JsonDocument.Parse(options.ToJsonString()).RootElement.Clone(), state));
+        return Result<WebPasskeyChallenge>.Success(new WebPasskeyChallenge(JsonElement.Parse(options.ToJsonString()), state));
     }
 
     /// <summary>

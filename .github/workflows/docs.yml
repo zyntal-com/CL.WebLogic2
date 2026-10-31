@@ -27,10 +27,10 @@ jobs:
       - name: Checkout CL.WebLogic2
         uses: actions/checkout@v7
 
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Install DocFX
         run: dotnet tool install -g docfx

@@ -2,10 +2,11 @@
   <!--
     Central package management. Dependency rule (see AGENTS.md):
       - runtime: CodeLogic and CodeLogic.* packages only, plus the ASP.NET shared framework
-      - build-time only: Microsoft.CodeAnalysis.CSharp for the template source generator (never shipped)
       - tests only: xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk (same as CodeLogic)
-    CodeLogic.MySQL2 is referenced only by the optional add-on src/CL.WebLogic.MySql (its own
-    package) and the MiniBlog sample — never by the core CL.WebLogic package.
+    CodeLogic.Data (the provider-neutral core) is referenced only by the optional add-on
+    src/CL.WebLogic.Data (its own package). Database providers (CodeLogic.Data.MySql, ...) are
+    referenced only by samples and tests: the app chooses and loads its provider.
+    CodeLogic 5.0 is in preview, so WebLogic 5.0 ships -preview packages until it is stable.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -13,25 +14,27 @@
   </PropertyGroup>
 
   <ItemGroup Label="CodeLogic">
-    <PackageVersion Include="CodeLogic" Version="4.9.24" />
-    <PackageVersion Include="CodeLogic.Common" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.GitHelper" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.NetUtils" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.Storage" Version="4.9.99" />
-    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.Mail" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.MySQL2" Version="4.9.101" />
+    <PackageVersion Include="CodeLogic" Version="5.0.32-preview" />
+    <PackageVersion Include="CodeLogic.GitHelper" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.NetUtils" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Storage" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Mail" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Data" Version="5.0.113-preview" />
+  </ItemGroup>
+
+  <ItemGroup Label="Database providers (samples and tests only)">
+    <PackageVersion Include="CodeLogic.Data.MySql" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Data.PostgreSql" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Data.SqlServer" Version="5.0.113-preview" />
+    <PackageVersion Include="CodeLogic.Data.Sqlite" Version="5.0.113-preview" />
   </ItemGroup>
 
   <ItemGroup Label="Samples only">
     <!-- Used when a sample builds with -p:WebLogicFromPackage=true (CI, Docker). -->
     <PackageVersion Include="CodeLogic.WebLogic" Version="$(WebLogicPackageVersion)" />
-    <PackageVersion Include="CodeLogic.WebLogic.MySql" Version="$(WebLogicPackageVersion)" />
+    <PackageVersion Include="CodeLogic.WebLogic.Data" Version="$(WebLogicPackageVersion)" />
     <PackageVersion Include="CodeLogic.WebLogic.ExternalLogins" Version="$(WebLogicPackageVersion)" />
-  </ItemGroup>
-
-  <ItemGroup Label="Build-time only">
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
   </ItemGroup>
 
   <ItemGroup Label="Tests only">

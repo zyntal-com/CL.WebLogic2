@@ -37,7 +37,7 @@ public sealed class ApiAuthenticationTests
         foreach (var header in new[] { ("X-Api-Key", key), ("Authorization", "Bearer " + key), ("Authorization", "ApiKey " + key) })
         {
             var response = await SendAsync(host.CreateClient(), HttpMethod.Get, "/me", header);
-            var me = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+            var me = JsonElement.Parse(await response.Content.ReadAsStringAsync());
             Assert.Equal("apikey", me.GetProperty("scheme").GetString());
             Assert.Equal("orders:read", me.GetProperty("scopes").GetString());
         }
@@ -147,7 +147,7 @@ public sealed class ApiAuthenticationTests
         await using var host = await AuthTestSite.StartAsync(web: w => w.AddBearerTokens<TestTokenValidator>());
 
         var ok = await SendAsync(host.Client, HttpMethod.Get, "/me", ("Authorization", "Bearer good-token"));
-        Assert.Equal("bearer", JsonDocument.Parse(await ok.Content.ReadAsStringAsync()).RootElement.GetProperty("scheme").GetString());
+        Assert.Equal("bearer", JsonElement.Parse(await ok.Content.ReadAsStringAsync()).GetProperty("scheme").GetString());
 
         var bad = await SendAsync(host.Client, HttpMethod.Get, "/me", ("Authorization", "Bearer bad-token"));
         Assert.Equal(HttpStatusCode.Unauthorized, bad.StatusCode);
@@ -168,7 +168,7 @@ public sealed class ApiAuthenticationTests
         await using (var host = await AuthTestSite.StartAsync(c => Trusted(c, true)))
         {
             var ok = await SendAsync(host.Client, HttpMethod.Get, "/me", ("X-Forwarded-User", "u-42"), ("X-Forwarded-Groups", "staff, ops"), ("X-Proxy-Secret", "proxy-secret"));
-            var me = JsonDocument.Parse(await ok.Content.ReadAsStringAsync()).RootElement;
+            var me = JsonElement.Parse(await ok.Content.ReadAsStringAsync());
             Assert.Equal("u-42", me.GetProperty("user").GetString());
             Assert.Equal("staff,ops", me.GetProperty("groups").GetString());
 
