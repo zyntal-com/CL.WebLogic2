@@ -24,7 +24,7 @@ public sealed class PasskeyTests
         Assert.Equal("passkey", me.GetProperty("methods").GetString());
         Assert.NotEqual(JsonValueKind.Null, me.GetProperty("authenticatedAt").ValueKind);
 
-        var list = JsonDocument.Parse(await host.Client.GetStringAsync("/pk/list")).RootElement;
+        var list = JsonElement.Parse(await host.Client.GetStringAsync("/pk/list"));
         Assert.Equal("Laptop", list[0].GetProperty("name").GetString());
         await AuthTestSite.WaitForMailAsync(host, WebSecurityNotificationKind.PasskeyAdded);
     }
@@ -288,10 +288,10 @@ public sealed class PasskeyTests
     {
         await using var host = await StartAsync();
         using var authenticator = await EnrolAsync(host, signOut: false);
-        var id = JsonDocument.Parse(await host.Client.GetStringAsync("/pk/list")).RootElement[0].GetProperty("credentialId").GetString();
+        var id = JsonElement.Parse(await host.Client.GetStringAsync("/pk/list"))[0].GetProperty("credentialId").GetString();
 
         Assert.Equal("True", await AuthTestSite.PostAsync(host.Client, "/pk/rename", new { state = id, name = "  Phone\u0007 " }));
-        Assert.Equal("Phone", JsonDocument.Parse(await host.Client.GetStringAsync("/pk/list")).RootElement[0].GetProperty("name").GetString());
+        Assert.Equal("Phone", JsonElement.Parse(await host.Client.GetStringAsync("/pk/list"))[0].GetProperty("name").GetString());
         Assert.Equal("False", await AuthTestSite.PostAsync(host.Client, "/pk/delete", new { state = "not-mine" }));
         var users = host.Services.GetRequiredService<IWebUserStore>();
         var stamp = (await users.FindByLoginAsync("alice", default))!.SecurityStamp;

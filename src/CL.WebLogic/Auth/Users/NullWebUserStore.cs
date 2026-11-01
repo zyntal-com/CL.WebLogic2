@@ -1,4 +1,5 @@
 using CodeLogic.Core.Results;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.Users;
 
@@ -13,7 +14,7 @@ public sealed class NullWebUserStore : IWebUserStore
 
     /// <inheritdoc/>
     public Task<Result> CreateAsync(WebUser user, CancellationToken cancellationToken) =>
-        Task.FromResult(Result.Failure(Error.Unavailable("weblogic.auth.no_user_store", "No user store is registered. Call web.UseUserStore<T>().")));
+        Task.FromResult(Result.Failure(Error.Unavailable(WebAuthErrorCodes.NoUserStore, "No user store is registered. Call web.UseUserStore<T>().")));
 
     /// <inheritdoc/>
     public Task UpdateAsync(WebUser user, CancellationToken cancellationToken) => Task.CompletedTask;

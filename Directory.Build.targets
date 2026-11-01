@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="build/StrongName.targets" />
+
   <!--
     Derive AssemblyVersion from $(Version) — strip any -prerelease suffix AND
     any +build-metadata (e.g. 4.9.142-preview+a1b2c3d → 4.9.142) so the value

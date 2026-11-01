@@ -4,7 +4,8 @@ using System.Text.Json;
 using CL.WebLogic.Auth.Users;
 using CL.WebLogic.Hosting.Services;
 using CodeLogic.Core.Results;
-using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.Tokens;
 
@@ -90,7 +91,7 @@ public sealed class WebSecurityTokenService : IWebSecurityTokenService
     private Result<WebSecurityToken> Invalid(string reason)
     {
         _context.Logger.Debug($"Account token rejected: {reason}");
-        return Result<WebSecurityToken>.Failure(Error.Validation("weblogic.auth.token_invalid", "The link is invalid or has expired."));
+        return Result<WebSecurityToken>.Failure(Error.Validation(WebAuthErrorCodes.TokenInvalid, "The link is invalid or has expired."));
     }
 
     private sealed class TokenPayload

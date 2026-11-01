@@ -17,12 +17,12 @@ One passkey covers three uses:
 
 ```csharp
 builder.AddCodeLogicWebLogic(web => web
-    .UsePasskeyStore<MyPasskeyStore>());     // or UseMySqlStores(...) (CodeLogic.WebLogic.MySql), or UseInMemoryAccounts() in development
+    .UsePasskeyStore<MyPasskeyStore>());     // or UseDataStores(...) (CodeLogic.WebLogic.Data), or UseInMemoryAccounts() in development
 ```
 
 `IWebPasskeyStore` has six methods. Credential ids are unique across users, and `TryRecordUseAsync`
-must be a compare-and-swap on the signature counter. The in-memory, MySQL and Starter (JSON file)
-stores show how.
+must be a compare-and-swap on the signature counter. The in-memory, database
+([`CodeLogic.WebLogic.Data`](data-stores.md)) and Starter (JSON file) stores show how.
 
 Configuration (`Auth.Passkeys`):
 
@@ -59,7 +59,7 @@ account.MapApi("/passkeys/register/finish", async (r, ct) =>
     return WebResult.Json(new { ok = added.IsSuccess, message = added.IsSuccess ? "Passkey added." : added.Error!.Message, redirect = added.IsSuccess ? "/account" : null });
 }, "POST");
 
-static WebResult Json(Result<WebPasskeyChallenge> c) => c.IsSuccess ? WebResult.Json(c.Value!) : WebResult.Problem(400, c.Error!.Message);
+static WebResult Json(Result<WebPasskeyChallenge> c) => c.IsSuccess ? WebResult.Json(c.Value!) : WebResult.Problem(c.Error);
 ```
 
 Begin endpoints return `{ options, state }`. Finish endpoints receive a `WebPasskeyRequest`

@@ -2,36 +2,58 @@
   <!--
     Central package management. Dependency rule (see AGENTS.md):
       - runtime: CodeLogic and CodeLogic.* packages only, plus the ASP.NET shared framework
-      - build-time only: Microsoft.CodeAnalysis.CSharp for the template source generator (never shipped)
       - tests only: xunit, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk (same as CodeLogic)
-    CodeLogic.MySQL2 is referenced only by the optional add-on src/CL.WebLogic.MySql (its own
-    package) and the MiniBlog sample — never by the core CL.WebLogic package.
+    CodeLogic.Data (the provider-neutral core) is referenced only by the optional add-on
+    src/CL.WebLogic.Data (its own package). Database providers (CodeLogic.Data.MySql, ...) are
+    referenced only by samples and tests: the app chooses and loads its provider.
+    CodeLogic 5.0 is in preview, so WebLogic 5.0 ships -preview packages until it is stable.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <CodeLogicVersion>5.0.33-preview</CodeLogicVersion>
+    <CodeLogicLibsVersion>5.0.115-preview</CodeLogicLibsVersion>
+  </PropertyGroup>
+
+  <!--
+    Development only: build against the sibling CodeLogic / CodeLogic.Libs working trees, packed into
+    a local feed by build/pack-local-codelogic.ps1. On by default when that feed exists (artifacts/ is
+    git- and docker-ignored, so CI, Docker and release builds never see it); -p:CodeLogicLocal=false
+    forces nuget.org.
+  -->
+  <PropertyGroup>
+    <CodeLogicLocalFeed Condition="'$(CodeLogicLocalFeed)' == ''">$(MSBuildThisFileDirectory)artifacts/codelogic-local</CodeLogicLocalFeed>
+    <CodeLogicLocal Condition="'$(CodeLogicLocal)' == '' And Exists('$(CodeLogicLocalFeed)/version.txt')">true</CodeLogicLocal>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(CodeLogicLocal)' == 'true'">
+    <_CodeLogicLocalVersionFile>$(CodeLogicLocalFeed)/version.txt</_CodeLogicLocalVersionFile>
+    <CodeLogicVersion Condition="Exists('$(_CodeLogicLocalVersionFile)')">$([System.IO.File]::ReadAllText('$(_CodeLogicLocalVersionFile)').Trim())</CodeLogicVersion>
+    <CodeLogicLibsVersion>$(CodeLogicVersion)</CodeLogicLibsVersion>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(CodeLogicLocalFeed)</RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <ItemGroup Label="CodeLogic">
-    <PackageVersion Include="CodeLogic" Version="4.9.24" />
-    <PackageVersion Include="CodeLogic.Common" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.GitHelper" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.NetUtils" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.Storage" Version="4.9.99" />
-    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.Mail" Version="4.9.98" />
-    <PackageVersion Include="CodeLogic.MySQL2" Version="4.9.101" />
+    <PackageVersion Include="CodeLogic" Version="$(CodeLogicVersion)" />
+    <PackageVersion Include="CodeLogic.GitHelper" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.NetUtils" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Storage" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.TwoFactorAuth" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Mail" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data" Version="$(CodeLogicLibsVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Database providers (samples and tests only)">
+    <PackageVersion Include="CodeLogic.Data.MySql" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.PostgreSql" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.SqlServer" Version="$(CodeLogicLibsVersion)" />
+    <PackageVersion Include="CodeLogic.Data.Sqlite" Version="$(CodeLogicLibsVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Samples only">
     <!-- Used when a sample builds with -p:WebLogicFromPackage=true (CI, Docker). -->
     <PackageVersion Include="CodeLogic.WebLogic" Version="$(WebLogicPackageVersion)" />
-    <PackageVersion Include="CodeLogic.WebLogic.MySql" Version="$(WebLogicPackageVersion)" />
+    <PackageVersion Include="CodeLogic.WebLogic.Data" Version="$(WebLogicPackageVersion)" />
     <PackageVersion Include="CodeLogic.WebLogic.ExternalLogins" Version="$(WebLogicPackageVersion)" />
-  </ItemGroup>
-
-  <ItemGroup Label="Build-time only">
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
   </ItemGroup>
 
   <ItemGroup Label="Tests only">

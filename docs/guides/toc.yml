@@ -32,13 +32,15 @@
   href: testing.md
 - name: Deployment
   href: deployment.md
-- name: MySQL stores (add-on)
-  href: mysql-stores.md
+- name: Database stores (add-on)
+  href: data-stores.md
 - name: Security model
   href: security-model.md
 - name: Performance
   href: performance.md
 - name: Observability
   href: observability.md
+- name: Upgrading to 5.0
+  href: upgrading-to-5.md
 - name: Migrating from 0.x
   href: migrating.md

@@ -34,7 +34,7 @@ public sealed class JsonBindingTests
     private static async Task<JsonElement> ProblemAsync(HttpResponseMessage response)
     {
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
-        return JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        return JsonElement.Parse(await response.Content.ReadAsStringAsync());
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public sealed class JsonBindingTests
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
-        Assert.True(JsonDocument.Parse(body).RootElement.GetProperty("errors").TryGetProperty("items[0].quantity", out _));
+        Assert.True(JsonElement.Parse(body).GetProperty("errors").TryGetProperty("items[0].quantity", out _));
         Assert.DoesNotContain("System.Int32", body);
     }
 

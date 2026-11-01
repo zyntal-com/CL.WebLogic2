@@ -52,15 +52,15 @@ public sealed class MailSecurityNotifier : IWebSecurityNotifier
         var result = await mail.SendTemplatedAsync(templateId, variables,
             b => b.From(settings.FromAddress, fromName).To(notification.ToAddress), cancellationToken).ConfigureAwait(false);
 
-        if (!result.IsSuccess && result.Error == MailError.TemplateNotFound)
+        if (result.IsFailure && result.Error!.Code == MailErrorCodes.TemplateNotFound)
         {
             var (subject, text, html) = SecurityNotificationText.Render(notification, config.SiteName);
             var message = mail.CreateMessage().From(settings.FromAddress, fromName).To(notification.ToAddress).Subject(subject).Body(text, html).Build();
             result = await mail.Smtp.SendAsync(message, cancellationToken).ConfigureAwait(false);
         }
 
-        if (!result.IsSuccess)
-            _context.Logger.Error($"Sending the {notification.Kind} e-mail for user {notification.UserId} failed: {result.Error} {result.ErrorMessage}");
+        if (result.IsFailure)
+            _context.Logger.Error($"Sending the {notification.Kind} e-mail for user {notification.UserId} failed: {result.Error!.Code} {result.Error.Message}");
     }
 
     private static string KebabCase(string value) =>

@@ -5,7 +5,7 @@ Two sample sites built on CL.WebLogic, ready to run locally or deploy to a serve
 | Service | What it shows | Local URL |
 |---|---|---|
 | `starter` | The reference site: accounts (verification, password reset, passkeys, TOTP two-factor with recovery codes, API keys, optional Steam, Google, Microsoft, GitHub and Discord sign-in), forms gallery and wizard, per-user dashboards, live wall over SSE, output and fragment caching, the API explorer. Persistence: JSON files on its volume. | http://localhost:5080 |
-| `miniblog` | A blog on MySQL (CL.MySQL2): cached public pages, RSS and sitemap, MySQL-backed accounts and sessions, and an admin area that is a **plugin** loaded at startup. | http://localhost:5081 |
+| `miniblog` | A blog on MySQL (CL.Data): cached public pages, RSS and sitemap, database-backed accounts and sessions, and an admin area that is a **plugin** loaded at startup. | http://localhost:5081 |
 | `mysql` | MySQL 8.4 for MiniBlog. | 127.0.0.1:3307 (local dev only) |
 | `mailpit` | Catches every security e-mail (verification, reset links). | http://localhost:8025 |
 | `proxy` (optional) | Caddy with automatic HTTPS in front of both sites. | https://`$STARTER_DOMAIN`, https://`$BLOG_DOMAIN` |
@@ -91,3 +91,15 @@ dotnet run --project samples/MiniBlog                # http://localhost:5081 (My
 ```
 
 Under `dotnet run`, the samples reference `src/CL.WebLogic` directly, so you can edit the toolkit and a sample together. Build with `-p:WebLogicFromPackage=true` to use the package instead.
+
+## Unreleased CodeLogic (development only)
+
+To try the samples against the sibling `CodeLogic` and `CodeLogic.Libs` working trees instead of nuget.org, pack them into a local feed and point the build at it:
+
+```bash
+pwsh build/pack-local-codelogic.ps1                       # writes artifacts/codelogic-local
+dotnet run --project samples/MiniBlog                   # uses the local feed while it exists
+CODELOGIC_LOCAL_FEED=../../artifacts/codelogic-local docker compose -f samples/docker/compose.yaml build
+```
+
+Never release an image or package built this way.

@@ -107,6 +107,6 @@ internal static class PasskeyTestSite
     {
         var node = System.Text.Json.Nodes.JsonNode.Parse(element.GetRawText())!.AsObject();
         change(node);
-        return JsonDocument.Parse(node.ToJsonString()).RootElement.Clone();
+        return JsonElement.Parse(node.ToJsonString());
     }
 }

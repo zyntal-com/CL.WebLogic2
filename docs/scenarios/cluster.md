@@ -30,15 +30,17 @@ Advised (warnings): widget settings, dashboards, the fragment cache and the outp
 
 The toolkit has no Redis or database dependency; implement these contracts on whatever your cluster
 already runs (Redis, SQL, a document store). Each is small: the session store is five methods, the
-backplane two. On MySQL, the [`CodeLogic.WebLogic.MySql`](../guides/mysql-stores.md) add-on implements
-every store above plus the key ring (`UseMySqlStores`, `PersistKeysToMySql`); MiniBlog runs on it.
+backplane two. On MySQL, PostgreSQL, SQL Server or SQLite, the
+[`CodeLogic.WebLogic.Data`](../guides/data-stores.md) add-on implements every store above except the
+backplane and the notifier, plus the key ring (`UseDataStores`, `PersistKeysToDatabase`); MiniBlog
+runs on it with MySQL.
 
 ## DataProtection
 
 ```csharp
 builder.Services.AddDataProtection()
     .SetApplicationName("my-site")                 // the same on every node
-    .PersistKeysToCodeLogicStorage("shared")       // CL.Storage; or PersistKeysToMySql(...) with the MySQL add-on
+    .PersistKeysToCodeLogicStorage("shared")       // CL.Storage; or PersistKeysToDatabase(...) with the data add-on
     .ProtectKeysWithSecret("KEYRING_SECRET");     // encrypted at rest
 ```
 

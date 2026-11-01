@@ -17,7 +17,7 @@ var init = await CodeLogic.CodeLogic.InitializeAsync(o =>
 {
     o.FrameworkRootPath = paths.FrameworkRoot;
     o.ApplicationRootPath = paths.ApplicationRoot;
-    o.AppVersion = "4.9.0";
+    o.AppVersion = "5.0.0";
     o.HandleShutdownSignals = false; // ASP.NET Core owns Ctrl+C / SIGTERM
 });
 if (!init.Success || init.ShouldExit)

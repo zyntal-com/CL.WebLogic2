@@ -1,4 +1,4 @@
-# WebLogic sample sites: StarterWebsite (JSON-file persistence) and MiniBlog (MySQL), with Mailpit
+# WebLogic sample sites: StarterWebsite (JSON-file persistence) and MiniBlog (MySQL through CL.Data), with Mailpit
 # catching the security e-mails. Optional Caddy reverse proxy with automatic HTTPS:
 #
 #   docker compose up -d --build                 # http://localhost:5080, :5081, mail UI :8025
@@ -22,6 +22,7 @@ services:
       context: ../..
       dockerfile: samples/docker/Dockerfile
       args: { SAMPLE: StarterWebsite }
+      additional_contexts: { codelogic-local: "${CODELOGIC_LOCAL_FEED:-./no-local-feed}" }
     image: weblogic-demo/starter:latest
     environment:
       DEMO_SITE_NAME: WebLogic Starter
@@ -45,6 +46,7 @@ services:
       context: ../..
       dockerfile: samples/docker/Dockerfile
       args: { SAMPLE: MiniBlog }
+      additional_contexts: { codelogic-local: "${CODELOGIC_LOCAL_FEED:-./no-local-feed}" }
     image: weblogic-demo/miniblog:latest
     environment:
       DEMO_SITE_NAME: Northwind Journal

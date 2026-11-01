@@ -171,15 +171,15 @@ public sealed partial class WebAuthService
         var session = await _sessions.GetAsync(security, cancellationToken).ConfigureAwait(false);
         if (security.Identity.Scheme != WebAuthenticationSchemes.Session || session.AuthStage != WebSessionAuthStage.Authenticated
             || !string.Equals(session.UserId, security.Identity.UserId, StringComparison.Ordinal))
-            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized(WebAuthErrorCodes.NotSignedIn, "Sign in first."));
         var user = await GetCurrentUserAsync(security, cancellationToken).ConfigureAwait(false);
         if (user is null)
-            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized("weblogic.auth.not_signed_in", "Sign in first."));
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Unauthorized(WebAuthErrorCodes.NotSignedIn, "Sign in first."));
 
         // The current password goes through the sign-in checks (throttle, lockout), so a stolen
         // session cannot guess it without limit.
         if (user.PasswordHash is null)
-            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Validation("weblogic.auth.wrong_password", "The current password is not correct."));
+            return CodeLogic.Core.Results.Result.Failure(CodeLogic.Core.Results.Error.Validation(WebAuthErrorCodes.WrongPassword, "The current password is not correct."));
         var checkedPassword = await _validator.ValidateAsync(user.UserName, currentPassword ?? string.Empty, security, cancellationToken).ConfigureAwait(false);
         if (checkedPassword.Status is not (WebSignInStatus.Succeeded or WebSignInStatus.RequiresTwoFactor or WebSignInStatus.RequiresPasswordChange)
             || checkedPassword.User?.Id != user.Id)
@@ -187,9 +187,9 @@ public sealed partial class WebAuthService
             Failed(security, checkedPassword);
             return CodeLogic.Core.Results.Result.Failure(checkedPassword.Status switch
             {
-                WebSignInStatus.Throttled => CodeLogic.Core.Results.Error.Validation("weblogic.auth.throttled", "Too many attempts. Try again shortly."),
-                WebSignInStatus.LockedOut => CodeLogic.Core.Results.Error.Validation("weblogic.auth.locked_out", "The account is locked. Try again later."),
-                _ => CodeLogic.Core.Results.Error.Validation("weblogic.auth.wrong_password", "The current password is not correct.")
+                WebSignInStatus.Throttled => CodeLogic.Core.Results.Error.Validation(WebAuthErrorCodes.Throttled, "Too many attempts. Try again shortly."),
+                WebSignInStatus.LockedOut => CodeLogic.Core.Results.Error.Validation(WebAuthErrorCodes.LockedOut, "The account is locked. Try again later."),
+                _ => CodeLogic.Core.Results.Error.Validation(WebAuthErrorCodes.WrongPassword, "The current password is not correct.")
             });
         }
 

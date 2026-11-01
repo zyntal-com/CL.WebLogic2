@@ -1,7 +1,7 @@
 using CL.WebLogic.Auth.ApiKeys;
 using CL.WebLogic.Hosting.Services;
-using CL.WebLogic.MySql.Hosting;
-using CL.WebLogic.MySql.Models;
+using CL.WebLogic.Data.Hosting;
+using CL.WebLogic.Data.Models;
 using CL.WebLogic.Routing.Models;
 using MiniBlog.Configuration;
 using MiniBlog.Data;
@@ -13,7 +13,7 @@ using Samples.Hosting;
 
 namespace MiniBlog.Application;
 
-/// <summary>Config files from the environment, MySQL stores, forms and the public pages.</summary>
+/// <summary>Config files from the environment, database stores, forms and the public pages.</summary>
 public static class MiniBlogSetup
 {
     /// <summary>
@@ -30,14 +30,16 @@ public static class MiniBlogSetup
             .Save();
         SampleConfig.Mail(paths).Save();
         var host = DemoEnvironment.Text("MINIBLOG_MYSQL_HOST");
-        ConfigFilePatch.Open(paths.LibraryConfig("CL.MySQL2", "mysql"))
-            .Set("databases.Default.host", host)
-            .Set("databases.Default.port", DemoEnvironment.Number("MINIBLOG_MYSQL_PORT"))
-            .Set("databases.Default.database", DemoEnvironment.Text("MINIBLOG_MYSQL_DATABASE"))
-            .Set("databases.Default.username", DemoEnvironment.Text("MINIBLOG_MYSQL_USERNAME"))
-            .Set("databases.Default.password", DemoEnvironment.Text("MINIBLOG_MYSQL_PASSWORD"))
+        ConfigFilePatch.Open(paths.LibraryConfig("CL.Data", "data"))
+            .Default("connections.Default.provider", "mysql")
+            .Default("connections.Default.syncMode", "developer")
+            .Set("connections.Default.host", host)
+            .Set("connections.Default.port", DemoEnvironment.Number("MINIBLOG_MYSQL_PORT"))
+            .Set("connections.Default.database", DemoEnvironment.Text("MINIBLOG_MYSQL_DATABASE"))
+            .Set("connections.Default.username", DemoEnvironment.Text("MINIBLOG_MYSQL_USERNAME"))
+            .Set("connections.Default.password", DemoEnvironment.Text("MINIBLOG_MYSQL_PASSWORD"))
             // MySQL 8 hands out its RSA key for caching_sha2_password over the private network.
-            .Set("databases.Default.allowPublicKeyRetrieval", host is null ? null : true)
+            .Set("connections.Default.mySql.allowPublicKeyRetrieval", host is null ? null : true)
             .Save();
         foreach (var (library, section) in new[] { ("CL.Storage", "storage"), ("CL.GitHelper", "githelper"), ("CL.NetUtils", "netutils") })
             SampleConfig.DisableUnlessConfigured(paths, library, section);
@@ -51,15 +53,15 @@ public static class MiniBlogSetup
 
         web.StopCodeLogicOnShutdown();
         web.Services.AddSingleton(config);
-        web.Services.AddSingleton(new BlogDatabase(config.ConnectionId));
+        web.Services.AddSingleton(new BlogDatabase(config.ConnectionName));
         web.Services.AddSingleton<DocumentStore>();
         web.Services.AddSingleton<BlogPostService>();
 
-        // Every WebLogic store on MySQL (CodeLogic.WebLogic.MySql), so several instances can share
-        // the database. The blog has no API, so API keys stay switched off.
-        web.UseMySqlStores(config.ConnectionId, o => o.Stores = WebMySqlStores.All & ~WebMySqlStores.ApiKeys)
+        // Every WebLogic store in the database (CodeLogic.WebLogic.Data), so several instances can share
+        // it. The blog has no API, so API keys stay switched off.
+        web.UseDataStores(config.ConnectionName, o => o.Stores = WebDataStores.All & ~WebDataStores.ApiKeys)
            .UseApiKeyStore<NullWebApiKeyStore>();
-        // After UseMySqlStores: hosted services start in order, and the seeder needs the wl_* tables.
+        // After UseDataStores: hosted services start in order, and the seeder needs the wl_* tables.
         web.Services.AddHostedService<BlogSeeder>();
         if (SampleConfig.HasSmtp)
             web.UseMailNotifications();

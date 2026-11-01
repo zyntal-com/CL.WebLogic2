@@ -10,14 +10,14 @@ namespace CL.WebLogic.Tests.Auth.Passkeys;
 /// <summary>Authenticator data and attestation statements, built by <see cref="WebTestAuthenticator"/>.</summary>
 public sealed class AttestationTests
 {
-    private static readonly JsonElement Options = JsonDocument.Parse("""
+    private static readonly JsonElement Options = JsonElement.Parse("""
         {
           "challenge": "Y2hhbGxlbmdlLWJ5dGVzLTAxMjM0NTY3ODk",
           "rp": { "id": "site.test", "name": "Site" },
           "user": { "id": "dXNlci1oYW5kbGU", "name": "ada", "displayName": "Ada" },
           "pubKeyCredParams": [ { "type": "public-key", "alg": -7 }, { "type": "public-key", "alg": -257 }, { "type": "public-key", "alg": -37 } ]
         }
-        """).RootElement;
+        """);
 
     private sealed record Parsed(string Format, WebCborValue Statement, WebAuthenticatorData Data, byte[] ClientDataHash, WebCoseKey Key);
 

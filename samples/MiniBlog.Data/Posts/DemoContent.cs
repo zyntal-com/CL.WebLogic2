@@ -11,7 +11,7 @@ public static class DemoContent
     [
         new("Welcome to the Northwind Journal",
             """
-            This blog is the **MiniBlog** sample for CL.WebLogic. Posts live in MySQL through `CL.MySQL2`;
+            This blog is the **MiniBlog** sample for CL.WebLogic. Posts live in MySQL through `CL.Data`;
             WebLogic renders them with the theme and encodes everything on the way out.
 
             - Pages are served from the output cache until a post changes.

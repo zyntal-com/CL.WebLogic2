@@ -14,8 +14,8 @@ public sealed class MiniBlogApplication : IApplication
     {
         Id = "MiniBlog",
         Name = "MiniBlog",
-        Version = "4.9.0",
-        Description = "Blog sample for CL.WebLogic on CL.MySQL2"
+        Version = "5.0.0",
+        Description = "Blog sample for CL.WebLogic on CL.Data (MySQL)"
     };
 
     /// <summary>The loaded config (after Initialize).</summary>

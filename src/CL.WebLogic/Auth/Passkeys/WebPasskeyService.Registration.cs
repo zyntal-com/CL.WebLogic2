@@ -44,7 +44,7 @@ public sealed partial class WebPasskeyService
             ["attestation"] = Settings.RequestAttestation ? "direct" : "none",
             ["extensions"] = new JsonObject { ["credProps"] = true }
         };
-        return Result<WebPasskeyChallenge>.Success(new WebPasskeyChallenge(JsonDocument.Parse(options.ToJsonString()).RootElement.Clone(), state));
+        return Result<WebPasskeyChallenge>.Success(new WebPasskeyChallenge(JsonElement.Parse(options.ToJsonString()), state));
     }
 
     /// <summary>Verifies the browser's answer and stores the passkey; the user is notified.</summary>

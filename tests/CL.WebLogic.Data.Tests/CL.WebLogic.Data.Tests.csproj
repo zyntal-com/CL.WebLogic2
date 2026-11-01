@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Every store test runs on SQLite; also on MySQL, PostgreSQL and SQL Server when WEBLOGIC_TEST_MYSQL_CS,
+       WEBLOGIC_TEST_PG_CS and WEBLOGIC_TEST_MSSQL_CS hold connection strings (see DataFixture). -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <RootNamespace>CL.WebLogic.Data.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="CodeLogic.Data.Sqlite" />
+    <PackageReference Include="CodeLogic.Data.MySql" />
+    <PackageReference Include="CodeLogic.Data.PostgreSql" />
+    <PackageReference Include="CodeLogic.Data.SqlServer" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CL.WebLogic.Data\CL.WebLogic.Data.csproj" />
+    <ProjectReference Include="..\..\src\CL.WebLogic.Testing\CL.WebLogic.Testing.csproj" />
+  </ItemGroup>
+</Project>

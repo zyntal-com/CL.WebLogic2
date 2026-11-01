@@ -151,6 +151,7 @@ b.MapApi("/api/orders", async (request, ct) =>
 | `WebResult.Html`, `Fragment`, `Text`, `Json`, `Bytes`, `File` (ranges, ETag) | Raw responses |
 | `WebResult.Redirect(url)` | Local URLs only; `ExternalRedirect` for an explicit absolute URL |
 | `WebResult.Status`, `NoContent`, `Problem`, `ValidationProblem` | Status codes and RFC 7807 ProblemDetails |
+| `WebResult.Problem(result.Error)` | A failed CodeLogic `Result`: the status follows the error's kind (`WebErrorStatus`); internal error messages are never sent |
 | `WebResult.Sse(IAsyncEnumerable<...>)` | A server-sent event stream |
 | `WebResult.Commands(...)` | Client commands (toast, replace, redirect, ...) |
 | `FormResult.Success(message, redirect, data, commands)` | Form posts: JSON for the client, `303` for plain posts |

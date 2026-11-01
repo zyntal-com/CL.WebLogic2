@@ -1,4 +1,5 @@
 using System.Text.Encodings.Web;
+using CL.WebLogic.Auth.Accounts;
 using CL.WebLogic.Auth.ApiKeys;
 using CL.WebLogic.Results;
 using CL.WebLogic.Runtime.Models;
@@ -55,7 +56,8 @@ public sealed partial class AccountPages
             var changed = await request.Auth.ChangePasswordAsync(submission.Model.CurrentPassword!, submission.Model.NewPassword!, cancellationToken).ConfigureAwait(false);
             if (changed.IsSuccess)
                 return FormResult.Success("Password changed; your other sessions were signed out.", "/account?changed=1");
-            submission.AddError(changed.Error!.Code.Contains("current", StringComparison.OrdinalIgnoreCase) ? nameof(ChangePasswordForm.CurrentPassword) : nameof(ChangePasswordForm.NewPassword), changed.Error.Message);
+            var field = changed.Error!.Code == WebAuthErrorCodes.PasswordPolicy ? nameof(ChangePasswordForm.NewPassword) : nameof(ChangePasswordForm.CurrentPassword);
+            submission.AddError(field, changed.Error.Message);
         }
         return submission.Invalid(fallbackTemplate: ProfileTemplate, fallbackModel: await ProfileModelAsync(request, cancellationToken).ConfigureAwait(false));
     }

@@ -92,6 +92,14 @@ public abstract class WebResult
     public static ProblemResult Problem(int statusCode, string? title = null, string? detail = null, string? type = null) =>
         new(statusCode, title, detail, type);
 
+    /// <summary>
+    /// An RFC 7807 problem for a failed <c>Result</c>: the status comes from the error's kind
+    /// (<see cref="WebErrorStatus.For"/>) and the title is its message, except for internal errors,
+    /// whose message is never sent.
+    /// </summary>
+    public static ProblemResult Problem(CodeLogic.Core.Results.Error? error) =>
+        new(WebErrorStatus.For(error), WebErrorStatus.Detail(error), null, null);
+
     /// <summary>An RFC 7807 validation problem (400) carrying per-field errors.</summary>
     public static ProblemResult ValidationProblem(IReadOnlyDictionary<string, string[]> errors, string? title = null) =>
         ProblemResult.Validation(errors, title);

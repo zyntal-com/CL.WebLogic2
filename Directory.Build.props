@@ -1,4 +1,7 @@
 <Project>
+  <!-- Strong-name signing for every project in the repo (same key as CodeLogic); see build/StrongName.props. -->
+  <Import Project="build/StrongName.props" />
+
   <!-- Shared NuGet metadata for every CodeLogic.WebLogic* package -->
   <PropertyGroup>
     <Authors>Zyntal.com</Authors>
@@ -9,9 +12,11 @@
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
-  <!-- Language and analysis defaults (same as CodeLogic) -->
+  <!-- Language and analysis defaults (same as CodeLogic 5) -->
   <PropertyGroup>
-    <LangVersion>13</LangVersion>
+    <LangVersion>15</LangVersion>
+    <!-- A switch over Result / Error / FrameworkEvent (closed unions) that misses a case is an error. -->
+    <WarningsAsErrors>$(WarningsAsErrors);CS8509</WarningsAsErrors>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AnalysisLevel>latest-recommended</AnalysisLevel>

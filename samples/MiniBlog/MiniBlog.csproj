@@ -1,17 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <!--
-    A small blog on CL.WebLogic + CL.MySQL2: public pages from the output cache, MySQL-backed
+    A small blog on CL.WebLogic + CL.Data (MySQL): public pages from the output cache, database-backed
     accounts and sessions, and an admin area that is a CodeLogic plugin loaded at startup.
   -->
   <PropertyGroup>
     <RootNamespace>MiniBlog</RootNamespace>
     <UsesWebLogic>true</UsesWebLogic>
-    <UsesWebLogicMySql>true</UsesWebLogicMySql>
+    <UsesWebLogicData>true</UsesWebLogicData>
     <UsesSampleHosting>true</UsesSampleHosting>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CodeLogic" />
+    <!-- The database this sample runs on; the WebLogic stores and MiniBlog.Data only use the CL.Data core. -->
+    <PackageReference Include="CodeLogic.Data.MySql" />
     <ProjectReference Include="..\MiniBlog.Data\MiniBlog.Data.csproj" />
     <!-- Built with the host but not referenced: it is loaded from plugins/ at runtime. -->
     <ProjectReference Include="..\Plugins\MiniBlog.Admin.Plugin\MiniBlog.Admin.Plugin.csproj" ReferenceOutputAssembly="false" Private="false" />

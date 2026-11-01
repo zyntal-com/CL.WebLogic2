@@ -25,7 +25,7 @@ inject its store by type (for its extra methods) and gets the instance WebLogic 
 `web.UseInMemoryAccounts()` registers in-memory users, sessions, keys and codes for development and
 tests. Outside Development the app refuses to start while any of them is still in memory. The
 samples have complete stores: JSON files in `samples/StarterWebsite/Infrastructure`; MiniBlog uses
-the [`CodeLogic.WebLogic.MySql`](mysql-stores.md) add-on.
+the [`CodeLogic.WebLogic.Data`](data-stores.md) add-on (on MySQL).
 
 ## Signing in
 
@@ -219,6 +219,26 @@ sign-in. (`SignInAsync` would skip the second factor.)
 Ready-made providers (Steam, Google, Microsoft, GitHub, Discord and any OpenID Connect issuer, with
 PKCE and in-house ID token validation) are in the
 [`CodeLogic.WebLogic.ExternalLogins`](external-logins.md) add-on; the starter sample uses it.
+
+## Handling failures
+
+Account and sign-in operations return a CodeLogic `Result`. The error's **kind** says what happened
+(`ValidationError`, `ConflictError`, `UnauthorizedError`, `NotFoundError`…), and its **code** says which rule
+failed. Compare codes against the `WebAuthErrorCodes` constants (namespace `CL.WebLogic.Auth.Accounts`), never
+against the code text, to put the message on the right form field:
+
+```csharp
+var changed = await request.Auth.ChangePasswordAsync(current, next, ct);
+if (changed.IsFailure)
+{
+    var field = changed.Error!.Code == WebAuthErrorCodes.PasswordPolicy ? "NewPassword" : "CurrentPassword";
+    submission.AddError(field, changed.Error.Message);
+}
+```
+
+For an API, `WebResult.Problem(result.Error)` answers with the status that matches the kind (400, 401, 404, 409,
+503, 504, 500). The message of an internal error is never sent; the client gets a generic text instead. App
+stores only need to pick the right factory, for example `Error.Conflict(...)` for a duplicate user.
 
 ## Tenants
 

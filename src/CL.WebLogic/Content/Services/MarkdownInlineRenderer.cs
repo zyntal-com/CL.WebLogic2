@@ -132,7 +132,7 @@ internal sealed partial class MarkdownInlineRenderer
 
         // No matching closer: the whole backtick run is literal.
         flush();
-        output.Append(new string('`', run));
+        output.Append('`', run);
         return run;
     }
 
@@ -157,7 +157,7 @@ internal sealed partial class MarkdownInlineRenderer
 
             flush();
             if (run > width)
-                output.Append(new string(c, run - width)); // surplus delimiters are literal
+                output.Append(c, run - width); // surplus delimiters are literal
             var (open, end) = width switch
             {
                 3 => ("<em><strong>", "</strong></em>"),

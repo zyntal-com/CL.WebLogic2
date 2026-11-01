@@ -157,5 +157,5 @@ public sealed partial class WebTestAuthenticator : IDisposable
         return [.. SHA256.HashData(Encoding.UTF8.GetBytes(rpId)), (byte)flags, .. counter, .. attested];
     }
 
-    private static JsonElement Json(JsonObject value) => JsonDocument.Parse(value.ToJsonString()).RootElement.Clone();
+    private static JsonElement Json(JsonObject value) => JsonElement.Parse(value.ToJsonString());
 }

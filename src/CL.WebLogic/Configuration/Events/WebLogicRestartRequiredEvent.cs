@@ -7,4 +7,4 @@ namespace CL.WebLogic.Configuration.Events;
 /// The change is stored but only takes full effect after the host restarts.
 /// </summary>
 /// <param name="ChangedProperties">Dotted paths of the restart-only properties that changed.</param>
-public record WebLogicRestartRequiredEvent(IReadOnlyList<string> ChangedProperties) : IEvent;
+public sealed record WebLogicRestartRequiredEvent(IReadOnlyList<string> ChangedProperties) : IEvent;

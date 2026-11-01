@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    MiniBlog's data layer on CL.MySQL2: posts and app documents. The WebLogic stores (users,
-    sessions, recovery codes, ...) come from the CodeLogic.WebLogic.MySql add-on. Shared by the
-    host and the admin plugin. CL.MySQL2 lives here and in the add-on — never in the core toolkit.
+    MiniBlog's data layer on CL.Data: posts and app documents. The WebLogic stores (users,
+    sessions, recovery codes, ...) come from the CodeLogic.WebLogic.Data add-on. Shared by the
+    host and the admin plugin. The host picks the database (MySQL) — never the core toolkit.
   -->
   <PropertyGroup>
     <RootNamespace>MiniBlog.Data</RootNamespace>
@@ -12,6 +12,6 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="CodeLogic" />
-    <PackageReference Include="CodeLogic.MySQL2" />
+    <PackageReference Include="CodeLogic.Data" />
   </ItemGroup>
 </Project>

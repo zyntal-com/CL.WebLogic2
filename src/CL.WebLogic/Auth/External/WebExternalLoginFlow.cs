@@ -10,7 +10,8 @@ using CL.WebLogic.Runtime.Models;
 using CL.WebLogic.Runtime.Services;
 using CL.WebLogic.Security.Sessions;
 using CodeLogic.Core.Results;
-using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
+using CL.WebLogic.Auth.Accounts;
 
 namespace CL.WebLogic.Auth.External;
 
@@ -98,7 +99,7 @@ public sealed class WebExternalLoginFlow
             || state.ExpiresAt < _time.GetUtcNow().ToUnixTimeSeconds()
             || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(state.State), returned)
             || !_providers.TryGetValue(state.Provider, out var p))
-            return Result<WebExternalLoginOutcome>.Failure(Error.Validation("weblogic.auth.external_state", "The sign-in attempt expired; try again."));
+            return Result<WebExternalLoginOutcome>.Failure(Error.Validation(WebAuthErrorCodes.ExternalState, "The sign-in attempt expired; try again."));
 
         var challenge = new WebExternalChallenge { CallbackUrl = state.CallbackUrl, State = state.State, Nonce = state.Nonce, CodeVerifier = state.CodeVerifier ?? string.Empty };
         var info = await p.HandleCallbackAsync(request, challenge, cancellationToken).ConfigureAwait(false);
@@ -130,7 +131,7 @@ public sealed class WebExternalLoginFlow
         ArgumentNullException.ThrowIfNull(user);
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         if (!await Links().RemoveExternalLoginAsync(user.Id, provider, cancellationToken).ConfigureAwait(false))
-            return Result.Failure(Error.NotFound("weblogic.auth.external_login_not_found", "That account is not linked."));
+            return Result.Failure(Error.NotFound(WebAuthErrorCodes.ExternalLoginNotFound, "That account is not linked."));
         _context?.Events.Publish(new ExternalLoginChangedEvent(user.Id, provider, Linked: false));
         return Result.Success();
     }

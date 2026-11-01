@@ -14,9 +14,9 @@ public sealed class MiniBlogConfig : ConfigModelBase
     [ConfigField(Label = "Posts per page", Group = "Blog", Order = 2, Min = 1, Max = 50)]
     public int PageSize { get; set; } = 5;
 
-    /// <summary>The CL.MySQL2 connection.</summary>
+    /// <summary>The CL.Data connection (config.data.json → connections).</summary>
     [ConfigField(Label = "Connection", Group = "Data", Order = 10, RequiresRestart = true)]
-    public string ConnectionId { get; set; } = "Default";
+    public string ConnectionName { get; set; } = "Default";
 
     /// <summary>The editor account created on first start (password from DEMO_ADMIN_PASSWORD, or generated and logged once).</summary>
     [ConfigField(Label = "Admin User", Group = "Accounts", Order = 20)]

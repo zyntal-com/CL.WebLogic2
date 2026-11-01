@@ -1,5 +1,52 @@
 # Changelog
 
+## 5.0.0-preview (unreleased)
+
+WebLogic 5.0 follows CodeLogic 5.0 and has no compatibility layer. See
+[Upgrading to 5.0](docs/guides/upgrading-to-5.md).
+
+### Breaking
+
+- **.NET 11, C# 15 and CodeLogic 5.0** (previews). Every package targets `net11.0` and depends on
+  `CodeLogic` 5.x; all CodeLogic and WebLogic packages move together.
+- **Strong-named.** Every assembly is signed with the shared CodeLogic key.
+- **`CodeLogic.WebLogic.Data` replaces `CodeLogic.WebLogic.MySql`.** CL.MySQL2 is gone in CodeLogic 5; the
+  stores now run on the provider-neutral CL.Data core (MySQL, PostgreSQL, SQL Server or SQLite) and the app
+  references and loads one provider. Renames: `UseMySqlStores` → `UseDataStores(connectionName = "Default")`,
+  `PersistKeysToMySql` → `PersistKeysToDatabase(connectionName = "Default")`, `WebMySqlOptions` →
+  `WebDataOptions` (`ConnectionId` → `ConnectionName`), `WebMySqlStores` → `WebDataStores`, `MySqlWebXxx` →
+  `DataWebXxx`, namespaces `CL.WebLogic.MySql.*` → `CL.WebLogic.Data.*`. The connection is configured in
+  `config.data.json` instead of `config.mysql.json`. Tables keep their `wl_*` names, but on an existing MySQL
+  database CL.Data's column types differ (`DATETIME` → `DATETIME(6)`, `TEXT`/`MEDIUMTEXT` → `LONGTEXT`): under
+  `syncMode` `production` this is logged as drift and not applied.
+- `WebLogicConfigAppliedEvent`, `WebLogicRestartRequiredEvent`, `WebContributorRegisteredEvent` and
+  `WebContributorRemovedEvent` are sealed.
+
+### Added
+
+- **`WebResult.Problem(Error? error)`** and **`WebErrorStatus`**: a failed CodeLogic result becomes a response
+  whose status follows the error's kind (validation 400, unauthorized 401, not found 404, conflict 409,
+  unavailable 503, timeout 504, internal 500). An internal error's message is never sent.
+- **`WebAuthErrorCodes`** (`CL.WebLogic.Auth.Accounts`): the auth and account error codes as constants.
+- The database stores read the primary and never the CL.Data entity cache, and keep keys case-sensitive on
+  every database (`utf8mb4_bin` on MySQL, `Latin1_General_100_BIN2` on SQL Server). Their tests run on SQLite
+  always and on MySQL, PostgreSQL and SQL Server in CI.
+
+### Changed
+
+- Locks use `System.Threading.Lock`.
+- Schema sync at startup follows the CL.Data connection's `syncMode`; changes the mode does not allow are
+  logged as drift, never applied.
+
+### Fixed
+
+- **StarterWebsite** showed a wrong current password error on the new-password field.
+- **Database stores no longer ignore a failed transaction commit**; it fails the call like any other error.
+
+### Docs
+
+- New guides: Database stores (replaces MySQL stores), Upgrading to 5.0.
+
 ## 4.9.16-preview (2026-10-30)
 
 ### Added

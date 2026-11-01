@@ -11,7 +11,7 @@ application has to supply.
 | [Authentication and accounts](authentication.md) | Stores, sign-in, two-factor, recovery codes, links, API keys, external providers, tenants |
 | [Passkeys](passkeys.md) | Passwordless sign-in, passkey as second factor and step-up, the client buttons, what is verified, testing |
 | [External logins (add-on)](external-logins.md) | Steam and OAuth 2.0 / OpenID Connect providers with presets |
-| [MySQL stores (add-on)](mysql-stores.md) | Every store and the key ring on CL.MySQL2 |
+| [Database stores (add-on)](data-stores.md) | Every store and the key ring on CL.Data: MySQL, PostgreSQL, SQL Server or SQLite |
 | [Forms](forms.md) | Form models, rendering, validation, options, uploads, wizards, anti-bot |
 | [Templates and themes](templates.md) | Syntax, encoding contexts, filters, layouts, Markdown, theme sources |
 | [Localization](localization.md) | Request cultures, texts per culture and their fallback, the culture switch, caching per culture |
@@ -24,4 +24,5 @@ application has to supply.
 | [Deployment](deployment.md) | Production checklist, proxies, Docker, DataProtection |
 | [Security model](security-model.md) | What is protected, by what, and the documented limits |
 | [Performance](performance.md) | Measured numbers, what is cached, the load tool |
+| [Upgrading to 5.0](upgrading-to-5.md) | From WebLogic 4.9: .NET 11, CodeLogic 5, the database add-on, existing MySQL tables |
 | [Migrating from 0.x](migrating.md) | Concept map from the old CL.WebLogic |

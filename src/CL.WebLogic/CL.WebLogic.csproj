@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>CL.WebLogic</RootNamespace>
     <AssemblyName>CL.WebLogic</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -41,7 +41,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <ClientBundlerPath>$(MSBuildThisFileDirectory)../../tools/CL.WebLogic.ClientBundler/bin/$(Configuration)/net10.0/CL.WebLogic.ClientBundler.dll</ClientBundlerPath>
+    <ClientBundlerPath>$(MSBuildThisFileDirectory)../../tools/CL.WebLogic.ClientBundler/bin/$(Configuration)/net11.0/CL.WebLogic.ClientBundler.dll</ClientBundlerPath>
   </PropertyGroup>
 
   <Target Name="ResolveWebLogicClientPaths">

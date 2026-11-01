@@ -7,7 +7,7 @@ namespace CL.WebLogic.Security.Services;
 public sealed class WebSecuritySettingsProvider
 {
     private readonly WebLogicConfigHolder _config;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private WebSecuritySettings? _current;
 
     /// <summary>Creates the provider.</summary>

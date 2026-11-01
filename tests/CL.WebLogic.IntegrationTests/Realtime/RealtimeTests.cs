@@ -234,6 +234,6 @@ public sealed class RealtimeTests
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var buffer = new byte[16 * 1024];
         var result = await socket.ReceiveAsync(buffer, cts.Token);
-        return JsonDocument.Parse(buffer.AsMemory(0, result.Count)).RootElement.Clone();
+        return JsonElement.Parse(buffer.AsSpan(0, result.Count));
     }
 }

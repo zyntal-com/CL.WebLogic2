@@ -66,7 +66,7 @@ public sealed partial class FormFlashTests
     }
 
     private static JsonElement Flash(string html) =>
-        JsonDocument.Parse(Config().Match(html).Groups[1].Value).RootElement.GetProperty("flash").Clone();
+        JsonElement.Parse(Config().Match(html).Groups[1].Value).GetProperty("flash").Clone();
 
     [GeneratedRegex("<script type=\"application/json\" id=\"wl-config\">(.*?)</script>", RegexOptions.Singleline)]
     private static partial Regex Config();
