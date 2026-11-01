@@ -11,8 +11,8 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
-    <CodeLogicVersion>5.0.32-preview</CodeLogicVersion>
-    <CodeLogicLibsVersion>5.0.113-preview</CodeLogicLibsVersion>
+    <CodeLogicVersion>5.0.33-preview</CodeLogicVersion>
+    <CodeLogicLibsVersion>5.0.115-preview</CodeLogicLibsVersion>
   </PropertyGroup>
 
   <!--
