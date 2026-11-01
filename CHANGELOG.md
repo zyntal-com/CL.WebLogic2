@@ -34,6 +34,13 @@ WebLogic 5.0 follows CodeLogic 5.0 and has no compatibility layer. See
 
 ### Changed
 
+- Builds against **CodeLogic 5.0.34-preview** and **CodeLogic.Libs 5.0.116-preview**, which carry the
+  2026-11-01 security audit fixes (masked config secrets never persisted, owner-only config files on Unix,
+  credentials on GitHelper push/pull scoped to the configured host, primary-pinned CL.Data bookkeeping reads,
+  validated backup restores, control characters rejected in CL.Storage paths, stricter CL.Mail headers and
+  attachments). No WebLogic API changes. Behaviour to note: CL.Storage local connections need an absolute
+  `rootPath`, and `CodeLogic.Development.json` is chosen by `ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT`, not
+  by an attached debugger.
 - Locks use `System.Threading.Lock`.
 - Schema sync at startup follows the CL.Data connection's `syncMode`; changes the mode does not allow are
   logged as drift, never applied.
