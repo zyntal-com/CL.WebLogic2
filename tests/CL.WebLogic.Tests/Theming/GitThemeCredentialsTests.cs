@@ -1,4 +1,8 @@
 using CL.GitHelper.Models;
+using CL.GitHelper;
+using CL.WebLogic.Hosting.Services;
+using CL.WebLogic.Testing.Services;
+using CodeLogic.Framework.Libraries;
 using CL.WebLogic.Configuration.Models;
 using CL.WebLogic.Theming.Services;
 
@@ -6,6 +10,32 @@ namespace CL.WebLogic.Tests.Theming;
 
 public sealed class GitThemeCredentialsTests
 {
+    [Fact]
+    public async Task An_uninitialized_git_library_reports_registration_failure()
+    {
+        using var context = new FakeWebLogicContext();
+        var source = new GitThemeSource(new GitResolver(), context);
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => source.SyncAsync(
+            new ThemeConfig { RepositoryUrl = "https://example.test/theme.git" }, CancellationToken.None));
+        Assert.Contains("could not be registered", error.Message);
+    }
+
+    [Fact]
+    public async Task A_cancelled_sync_stops_before_repository_registration()
+    {
+        using var context = new FakeWebLogicContext();
+        var source = new GitThemeSource(new GitResolver(), context);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => source.SyncAsync(new ThemeConfig(), cancellation.Token));
+    }
+
+    private sealed class GitResolver : IWebLibraryResolver
+    {
+        private readonly GitHelperLibrary _git = new();
+        public TLibrary? GetLibrary<TLibrary>() where TLibrary : class, ILibrary => _git as TLibrary;
+    }
+
     private static RepositoryConfiguration Repo() => new() { Id = "t", Name = "t", RepositoryUrl = "https://example.test/t.git", LocalPath = "t" };
 
     [Fact]

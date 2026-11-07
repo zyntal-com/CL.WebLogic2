@@ -1,4 +1,5 @@
 using CL.GitHelper;
+using CL.GitHelper.Errors;
 using CL.GitHelper.Models;
 using CL.WebLogic.Configuration.Models;
 using CL.WebLogic.Hosting.Services;
@@ -29,13 +30,12 @@ public sealed class GitThemeSource : IWebThemeSource
     /// <inheritdoc/>
     public async Task<string> SyncAsync(ThemeConfig config, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var git = _libraries.GetLibrary<GitHelperLibrary>()
             ?? throw new InvalidOperationException("Theme source is Git, but CL.GitHelper is not loaded. Load GitHelperLibrary before WebLogic.");
 
         var localPath = Path.Combine(_context.DataDirectory, "themes", config.RepositoryId);
-        try
-        {
-            git.RegisterRepository(Configure(new RepositoryConfiguration
+        var registration = git.RegisterRepository(Configure(new RepositoryConfiguration
             {
                 Id = config.RepositoryId,
                 Name = "WebLogic theme",
@@ -43,13 +43,13 @@ public sealed class GitThemeSource : IWebThemeSource
                 LocalPath = localPath,
                 DefaultBranch = config.Branch
             }, config));
-        }
-        catch (ArgumentException)
-        {
-            // Already registered (re-sync).
-        }
+        // An existing registration is expected on re-sync; other failures must stop startup.
+        if (registration.IsFailure && registration.Error?.Code != GitErrors.RepositoryExistsCode)
+            throw new InvalidOperationException($"Theme repository '{config.RepositoryId}' could not be registered: {registration.Error?.Message}");
 
-        var repository = await git.GetRepositoryAsync(config.RepositoryId).ConfigureAwait(false);
+        var lookup = await git.GetRepositoryAsync(config.RepositoryId).ConfigureAwait(false);
+        if (lookup.IsFailure || lookup.Value is not { } repository)
+            throw new InvalidOperationException($"Theme repository '{config.RepositoryId}' could not be opened: {lookup.Error?.Message}");
         var result = await repository.EnsureUpToDateAsync(config.Branch, cancellationToken: cancellationToken).ConfigureAwait(false);
         if (result.IsFailure || result.Value is not { } info)
         {

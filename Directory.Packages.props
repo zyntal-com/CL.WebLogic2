@@ -12,7 +12,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
     <CodeLogicVersion>5.0.34-preview</CodeLogicVersion>
-    <CodeLogicLibsVersion>5.0.116-preview</CodeLogicLibsVersion>
+    <CodeLogicLibsVersion>5.0.117-preview</CodeLogicLibsVersion>
   </PropertyGroup>
 
   <!--

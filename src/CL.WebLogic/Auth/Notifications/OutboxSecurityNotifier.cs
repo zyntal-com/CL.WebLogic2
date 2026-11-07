@@ -35,10 +35,6 @@ public sealed class OutboxSecurityNotifier : IWebSecurityNotifier, IWebDevelopme
     public async Task SendAsync(WebSecurityNotification notification, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(notification);
-        _messages.Enqueue(notification);
-        while (_messages.Count > Keep)
-            _messages.TryDequeue(out _);
-
         var config = _config.Current;
         var (subject, text, _) = SecurityNotificationText.Render(notification, config.SiteName);
         var folder = Path.Combine(_context.DataDirectory, config.Auth.Notifications.OutboxFolder);
@@ -56,6 +52,9 @@ public sealed class OutboxSecurityNotifier : IWebSecurityNotifier, IWebDevelopme
             .Append(text.Replace("\n", "\r\n", StringComparison.Ordinal))
             .ToString();
         await File.WriteAllTextAsync(file, eml, cancellationToken).ConfigureAwait(false);
+        _messages.Enqueue(notification);
+        while (_messages.Count > Keep)
+            _messages.TryDequeue(out _);
         _context.Logger.Info($"Outbox: {notification.Kind} e-mail for user {notification.UserId} written to {Path.GetFileName(file)}");
     }
 
