@@ -2,6 +2,11 @@
 
 ## 5.0.0-preview (unreleased)
 
+- Update CodeLogic.Libs dependencies to `5.0.117-preview`, including the completed security audit
+  fixes for storage, two-factor authentication, mail and network utilities.
+- Handle GitHelper repository registration and lookup results when synchronizing Git themes.
+- Publish development outbox notifications to `Messages` only after their `.eml` file is written.
+
 WebLogic 5.0 follows CodeLogic 5.0 and has no compatibility layer. See
 [Upgrading to 5.0](docs/guides/upgrading-to-5.md).
 
