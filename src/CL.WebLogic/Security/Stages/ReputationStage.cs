@@ -121,10 +121,15 @@ public sealed class ReputationStage : IWebSecurityStage, IDisposable
             ? await netUtils.Dnsbl.CheckIpAsync(ip, cancellationToken).ConfigureAwait(false)
             : await netUtils.Dnsbl.CheckIpAsync(ip, Request(zones), cancellationToken).ConfigureAwait(false);
 
-        var ttl = result.ErrorMessage is null ? TimeSpan.FromMinutes(config.CacheMinutes) : TimeSpan.FromMinutes(Math.Max(1, config.CacheMinutes / 10));
-        var listedOn = result.IsBlacklisted ? (string.IsNullOrEmpty(result.MatchedService) ? "unknown" : result.MatchedService) : "";
+        // A complete answer is cached for the configured time; a failed check, or one where some zones did not answer
+        // (Indeterminate), only briefly so it is retried soon.
+        var check = result is DnsblCheck completed ? completed : null;
+        var ttl = check is { Status: not DnsblCheckStatus.Indeterminate }
+            ? TimeSpan.FromMinutes(config.CacheMinutes)
+            : TimeSpan.FromMinutes(Math.Max(1, config.CacheMinutes / 10));
+        var listedOn = check is { IsBlacklisted: true } ? (string.IsNullOrEmpty(check.MatchedService) ? "unknown" : check.MatchedService) : "";
         cache.Set(ip, listedOn, ttl);
-        if (result.IsBlacklisted)
+        if (listedOn.Length > 0)
             _context.Logger.Info($"Client listed on DNSBL {listedOn}");
         return listedOn;
     }

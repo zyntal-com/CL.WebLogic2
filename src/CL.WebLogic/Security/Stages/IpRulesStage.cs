@@ -1,4 +1,5 @@
 using CL.NetUtils;
+using CL.NetUtils.Models;
 using CL.WebLogic.Hosting.Services;
 using CL.WebLogic.Security.Pipeline;
 using CL.WebLogic.Security.Rules;
@@ -86,8 +87,11 @@ public sealed class IpRulesStage : IWebSecurityStage
             return string.Empty;
         }
 
+        // Not found, an entry without a country (ASN/ISP databases) or a failed lookup all count as unknown.
         var result = await netUtils.GeoIp.LookupIpAsync(ip, cancellationToken).ConfigureAwait(false);
-        var country = result.IsSuccessful ? result.CountryCode!.ToUpperInvariant() : string.Empty;
+        var country = result is IpLocation location && !string.IsNullOrEmpty(location.CountryCode)
+            ? location.CountryCode.ToUpperInvariant()
+            : string.Empty;
         _countries.Set(ip, country, TimeSpan.FromHours(6));
         return country;
     }
