@@ -2,6 +2,12 @@
 
 ## 5.0.0-preview (unreleased)
 
+- Update to CodeLogic `5.0.35-preview` (libraries are disposed after they stop) and CodeLogic.Libs `5.0.118-preview`
+  / CodeLogic.Data `5.0.119-preview`: MySQL and PostgreSQL connections are reset only when they carry session state,
+  key lookups and the entity cache are faster (an update by key keeps the other rows cached), and NetUtils and
+  TwoFactorAuth return `Result<T>`.
+- TOTP validation, country rules and DNSBL reputation use the `Result<TotpMatch>`, `Result<IpLocation>` and
+  `Result<DnsblCheck>` APIs; a failed or incomplete DNSBL check is still cached only briefly.
 - Update CodeLogic.Libs dependencies to `5.0.117-preview`, including the completed security audit
   fixes for storage, two-factor authentication, mail and network utilities.
 - Handle GitHelper repository registration and lookup results when synchronizing Git themes.

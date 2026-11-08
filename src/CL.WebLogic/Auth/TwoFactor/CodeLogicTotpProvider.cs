@@ -48,13 +48,9 @@ public sealed class CodeLogicTotpProvider : IWebTotpProvider
         if (digits.Length != 6 || string.IsNullOrEmpty(secret))
             return null;
 
-        var authenticator = Services().Authenticator;
-        var result = authenticator.ValidateTotp(digits, secret);
-        if (!result.IsValid)
-            return null;
-
-        // CL.TwoFactorAuth 5 reports the absolute time step that matched (what single-use tracking needs).
-        return result.MatchedWindow ?? authenticator.GetCurrentTimeWindow() + (result.WindowOffset ?? 0);
+        // CL.TwoFactorAuth returns the matched absolute time step (what single-use tracking needs); a wrong code, a
+        // replayed one or an unreadable secret is an error.
+        return Services().Authenticator.ValidateTotp(digits, secret) is TotpMatch match ? match.MatchedWindow : null;
     }
 
     private (TwoFactorAuthenticator Authenticator, QrCodeGenerator QrCode) Services()
