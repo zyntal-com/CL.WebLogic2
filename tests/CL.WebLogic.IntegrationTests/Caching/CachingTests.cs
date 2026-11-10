@@ -31,6 +31,8 @@ public sealed class CachingTests
                     r.GetRequiredService<IWebCsrfTokens>().GetToken(r.HttpContext);
                     return ValueTask.FromResult<WebResult>(WebResult.Text("n=" + counter.Next()));
                 }).AllowAnonymous().WithOutputCache("default");
+                b.MapPage("/nonced", (r, _) => ValueTask.FromResult<WebResult>(WebResult.Text(
+                    "nonce=" + r.GetRequiredService<CL.WebLogic.Security.Headers.ICspNonceProvider>().GetNonce(r.HttpContext) + ";n=" + counter.Next()))).AllowAnonymous().WithOutputCache("default");
                 b.MapPage("/fragment", async (r, ct) =>
                     WebResult.Text(await r.Cache.GetOrAddAsync("menu", _ => ValueTask.FromResult("n=" + counter.Next()), tags: ["menu"], cancellationToken: ct))).AllowAnonymous();
             }), new Routing.Models.WebContributorDescriptor { Id = "tests.cache", Name = "Cache" });
@@ -44,6 +46,30 @@ public sealed class CachingTests
 
         Assert.Equal("n=1", await host.Client.GetStringAsync("/cached"));
         Assert.Equal("n=1", await host.CreateClient().GetStringAsync("/cached"));
+    }
+
+    [Fact]
+    public async Task A_cached_page_is_served_with_the_nonce_it_was_rendered_with()
+    {
+        // Seen in production: the cached HTML kept the first request's nonce while every hit got a new one in the
+        // Content-Security-Policy header, so the browser blocked every script on the page.
+        var counter = new Counter();
+        await using var host = await StartAsync(counter);
+
+        for (var i = 0; i < 3; i++)
+        {
+            using var response = await host.CreateClient().GetAsync("/nonced");
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.EndsWith(";n=1", body);
+            var nonce = body[6..body.IndexOf(';', StringComparison.Ordinal)];
+            Assert.Contains("'nonce-" + nonce + "'", response.Headers.GetValues("Content-Security-Policy").Single());
+            Assert.False(response.Headers.Contains("X-WebLogic-Cached-Nonce"));
+        }
+
+        // A page that is not served from the cache still gets a nonce of its own.
+        using var first = await host.CreateClient().GetAsync("/nonced?a=1");
+        using var second = await host.CreateClient().GetAsync("/fragment");
+        Assert.NotEqual(first.Headers.GetValues("Content-Security-Policy").Single(), second.Headers.GetValues("Content-Security-Policy").Single());
     }
 
     [Fact]

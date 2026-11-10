@@ -1,3 +1,4 @@
+using CL.WebLogic.Security.Headers;
 using CL.WebLogic.Security.Pipeline;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.OutputCaching;
@@ -17,6 +18,8 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
     /// <summary>Shared instance (stateless).</summary>
     public static WebLogicOutputCachePolicy Instance { get; } = new();
 
+    private static readonly object ServedFromCacheKey = new();
+
     /// <inheritdoc/>
     public ValueTask CacheRequestAsync(OutputCacheContext context, CancellationToken cancellation)
     {
@@ -26,6 +29,13 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
         var cacheable = HttpMethods.IsGet(http.Request.Method) || HttpMethods.IsHead(http.Request.Method);
         var config = http.RequestServices?.GetService(typeof(Configuration.Services.WebLogicConfigHolder)) as Configuration.Services.WebLogicConfigHolder;
         cacheable &= !WebResponsePrivacy.IsPersonalRequest(http, config?.Current);
+
+        // The stored HTML holds the nonce of the request that rendered it. The output cache keeps the headers as they
+        // are when the response starts, which is before the Content-Security-Policy header is written, so the nonce
+        // travels in a header of its own: a hit gets it back and answers with the same nonce (see ResponseHardener,
+        // which also removes the header again).
+        if (cacheable && http.RequestServices?.GetService(typeof(ICspNonceProvider)) is ICspNonceProvider nonces)
+            http.Response.Headers[CspNonceProvider.CachedNonceHeader] = nonces.GetNonce(http);
 
         context.EnableOutputCaching = true;
         context.AllowCacheLookup = cacheable;
@@ -40,7 +50,12 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
     }
 
     /// <inheritdoc/>
-    public ValueTask ServeFromCacheAsync(OutputCacheContext context, CancellationToken cancellation) => ValueTask.CompletedTask;
+    public ValueTask ServeFromCacheAsync(OutputCacheContext context, CancellationToken cancellation)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.HttpContext.Items[ServedFromCacheKey] = true;
+        return ValueTask.CompletedTask;
+    }
 
     /// <inheritdoc/>
     public ValueTask ServeResponseAsync(OutputCacheContext context, CancellationToken cancellation)
@@ -50,6 +65,9 @@ public sealed class WebLogicOutputCachePolicy : IOutputCachePolicy
             context.AllowCacheStorage = false;
         return ValueTask.CompletedTask;
     }
+
+    /// <summary>True when this response comes from the output cache.</summary>
+    internal static bool IsServedFromCache(HttpContext http) => http.Items.ContainsKey(ServedFromCacheKey);
 
     /// <summary>True when the response may be shared with other visitors.</summary>
     public static bool IsStorable(HttpContext http)
