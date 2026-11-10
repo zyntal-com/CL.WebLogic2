@@ -99,11 +99,11 @@ jobs:
 
       # NuGet normalizes the CodeLogic PackageReference range to the restored version as
       # its lower bound. Rewrite it to the literal supported range so WebLogic keeps
-      # accepting every CodeLogic 5.x (previews included while the 5.0 line is in preview).
+      # accepting every stable CodeLogic 5.x from the first stable release (5.0.37) on.
       - name: Rewrite CodeLogic dependency range
         shell: pwsh
         run: |
-          $targetRange = '[5.0.0-preview, 6.0.0)'
+          $targetRange = '[5.0.37, 6.0.0)'
           foreach ($nupkg in Get-ChildItem artifacts -Filter '*.nupkg') {
             $tmp = "$env:RUNNER_TEMP/nupkg-$([Guid]::NewGuid())"
             New-Item -ItemType Directory -Force -Path $tmp | Out-Null

@@ -10,7 +10,6 @@ itself. Coming from the old 0.x line, read [Migrating from 0.x](migrating.md) fi
 - **CodeLogic 5 packages.** WebLogic 5.0 needs `CodeLogic` 5.x and the matching `CodeLogic.*` library
   packages (CL.Mail, CL.Storage, CL.TwoFactorAuth, CL.Data, …). Move all CodeLogic and WebLogic packages
   together; a 4.9 package next to a 5.0 one does not work.
-- While CodeLogic 5.0 is in preview, WebLogic 5.0 ships `-preview` packages too.
 
 ## Breaking changes
 

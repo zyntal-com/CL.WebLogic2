@@ -6,15 +6,16 @@
     CodeLogic.Data (the provider-neutral core) is referenced only by the optional add-on
     src/CL.WebLogic.Data (its own package). Database providers (CodeLogic.Data.MySql, ...) are
     referenced only by samples and tests: the app chooses and loads its provider.
-    CodeLogic 5.0 is in preview, so WebLogic 5.0 ships -preview packages until it is stable.
+    CodeLogic 5.0 is stable (5.0.37 and later); WebLogic 5.0 depends on stable CodeLogic packages only.
   -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
-    <CodeLogicVersion>5.0.35-preview</CodeLogicVersion>
-    <CodeLogicLibsVersion>5.0.118-preview</CodeLogicLibsVersion>
-    <!-- CodeLogic.Libs releases pack only the libraries that changed, so the Data packages can be ahead of the rest. -->
-    <CodeLogicDataVersion>5.0.120-preview</CodeLogicDataVersion>
+    <CodeLogicVersion>5.0.37</CodeLogicVersion>
+    <CodeLogicLibsVersion>5.0.121</CodeLogicLibsVersion>
+    <!-- CodeLogic.Libs releases pack only the libraries that changed, so the Data packages can be ahead of the rest
+         (the first stable release packed all of them at one version). -->
+    <CodeLogicDataVersion>5.0.121</CodeLogicDataVersion>
   </PropertyGroup>
 
   <!--
