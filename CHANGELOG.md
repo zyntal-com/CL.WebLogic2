@@ -1,7 +1,15 @@
 # Changelog
 
-## 5.0.0-preview (unreleased)
+## 5.0 (2026-11-10)
 
+The first stable 5.0 release, published the day .NET 11.0.0 was released. The `5.0.x-preview` packages before it
+were built with .NET 11 release candidates and CodeLogic previews.
+
+- Built with the released .NET 11 SDK (`11.0.100`; `global.json` no longer accepts prerelease SDKs), on stable
+  CodeLogic `5.0.37` and stable CodeLogic.Libs packages. Published packages depend on CodeLogic `[5.0.37, 6.0.0)`.
+- CodeLogic.Data: an entity-cache fix (a transaction that mixed a write by key with a
+  set-based write on the same table could leave stale key lookups cached), compiled queries no longer plan again for
+  every transaction or tenant view, and reads, cache hits and writes allocate less.
 - Update to CodeLogic `5.0.35-preview` (libraries are disposed after they stop) and CodeLogic.Libs `5.0.118-preview`
   / CodeLogic.Data `5.0.119-preview`: MySQL and PostgreSQL connections are reset only when they carry session state,
   key lookups and the entity cache are faster (an update by key keeps the other rows cached), and NetUtils and
@@ -18,7 +26,7 @@ WebLogic 5.0 follows CodeLogic 5.0 and has no compatibility layer. See
 
 ### Breaking
 
-- **.NET 11, C# 15 and CodeLogic 5.0** (previews). Every package targets `net11.0` and depends on
+- **.NET 11, C# 15 and CodeLogic 5.0.** Every package targets `net11.0` and depends on
   `CodeLogic` 5.x; all CodeLogic and WebLogic packages move together.
 - **Strong-named.** Every assembly is signed with the shared CodeLogic key.
 - **`CodeLogic.WebLogic.Data` replaces `CodeLogic.WebLogic.MySql`.** CL.MySQL2 is gone in CodeLogic 5; the

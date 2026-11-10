@@ -8,8 +8,8 @@ ASP.NET Core endpoints, an ordered security pipeline, auth flow helpers (passwor
 TOTP, magic links, API keys, external providers), templates, forms, widgets and realtime — while
 the application keeps ownership of persistence and policy.
 
-> **Status:** preview (5.0.x, on the CodeLogic 5.0 previews). See `CHANGELOG.md` for what has
-> landed and [Upgrading to 5.0](docs/guides/upgrading-to-5.md) when coming from 4.9. The previous
+> **Status:** stable (5.0.x, on CodeLogic 5.0 and .NET 11). See `CHANGELOG.md` for what is in it
+> and [Upgrading to 5.0](docs/guides/upgrading-to-5.md) when coming from 4.9. The previous
 > `CL.WebLogic` 0.x line is not compatible.
 
 ## Principles
