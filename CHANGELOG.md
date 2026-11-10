@@ -5,6 +5,10 @@
 The first stable 5.0 release, published the day .NET 11.0.0 was released. The `5.0.x-preview` packages before it
 were built with .NET 11 release candidates and CodeLogic previews.
 
+- **Fix: pages served from the output cache had every script and style blocked by the browser.** The cached HTML kept
+  the nonce of the request that rendered it, while each hit got a new nonce in its `Content-Security-Policy` header.
+  A hit now answers with the nonce the page was rendered with. (The nonce is therefore shared by the visitors who get
+  that cache entry, for as long as the entry lives.)
 - Built with the released .NET 11 SDK (`11.0.100`; `global.json` no longer accepts prerelease SDKs), on stable
   CodeLogic `5.0.37` and stable CodeLogic.Libs packages. Published packages depend on CodeLogic `[5.0.37, 6.0.0)`.
 - CodeLogic.Data: an entity-cache fix (a transaction that mixed a write by key with a

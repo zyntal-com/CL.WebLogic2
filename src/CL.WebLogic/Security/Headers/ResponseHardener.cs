@@ -56,6 +56,15 @@ public sealed class ResponseHardener
         var settings = security.Settings;
         var config = settings.Config.Headers;
 
+        // A page from the output cache has the nonce of the request that rendered it in its HTML: answer with that
+        // one, or the browser blocks every script and style on the page. The carrier header never leaves the server.
+        if (headers.TryGetValue(CspNonceProvider.CachedNonceHeader, out var cachedNonce))
+        {
+            headers.Remove(CspNonceProvider.CachedNonceHeader);
+            if (Caching.Services.WebLogicOutputCachePolicy.IsServedFromCache(httpContext))
+                CspNonceProvider.Adopt(httpContext, cachedNonce.ToString());
+        }
+
         foreach (var name in ManagedHeaders)
         {
             if (headers.ContainsKey(name) && !security.HeaderOverrides.ContainsKey(name))

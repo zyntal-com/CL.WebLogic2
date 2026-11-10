@@ -21,6 +21,22 @@ public sealed class CspNonceProvider : ICspNonceProvider
         return nonce;
     }
 
+    /// <summary>
+    /// Internal response header that carries a page's nonce into the output cache. Response hardening removes it
+    /// before the response leaves, so clients never see it.
+    /// </summary>
+    internal const string CachedNonceHeader = "X-WebLogic-Cached-Nonce";
+
+    /// <summary>
+    /// Makes <paramref name="nonce"/> this request's nonce: a page served from the output cache keeps the nonce in
+    /// its HTML, so the Content-Security-Policy header has to name that one. Ignored when it is not a nonce.
+    /// </summary>
+    internal static void Adopt(HttpContext httpContext, string? nonce)
+    {
+        if (nonce is { Length: > 0 and <= 128 } && Base64Url.IsValid(nonce))
+            httpContext.Items[ItemKey] = nonce;
+    }
+
     /// <summary>The nonce when one was issued for this request, else null (used by response hardening).</summary>
     public static string? Peek(HttpContext httpContext) =>
         httpContext.Items.TryGetValue(ItemKey, out var existing) ? existing as string : null;
