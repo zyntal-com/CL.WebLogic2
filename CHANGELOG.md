@@ -22,7 +22,7 @@ WebLogic 5.0 follows CodeLogic 5.0 and has no compatibility layer. See
 
 ### Breaking
 
-- **.NET 11, C# 15 and CodeLogic 5.0** (previews). Every package targets `net11.0` and depends on
+- **.NET 11, C# 15 and CodeLogic 5.0** (.NET 11 is released; CodeLogic 5.0 is in preview). Every package targets `net11.0` and depends on
   `CodeLogic` 5.x; all CodeLogic and WebLogic packages move together.
 - **Strong-named.** Every assembly is signed with the shared CodeLogic key.
 - **`CodeLogic.WebLogic.Data` replaces `CodeLogic.WebLogic.MySql`.** CL.MySQL2 is gone in CodeLogic 5; the
