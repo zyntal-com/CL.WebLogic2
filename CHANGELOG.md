@@ -2,6 +2,10 @@
 
 ## 5.0.0-preview (unreleased)
 
+- Built with the released .NET 11 SDK (`11.0.100`; `global.json` no longer accepts prerelease SDKs).
+- Update to CodeLogic.Data `5.0.120-preview`: an entity-cache fix (a transaction that mixed a write by key with a
+  set-based write on the same table could leave stale key lookups cached), compiled queries no longer plan again for
+  every transaction or tenant view, and reads, cache hits and writes allocate less.
 - Update to CodeLogic `5.0.35-preview` (libraries are disposed after they stop) and CodeLogic.Libs `5.0.118-preview`
   / CodeLogic.Data `5.0.119-preview`: MySQL and PostgreSQL connections are reset only when they carry session state,
   key lookups and the entity cache are faster (an update by key keeps the other rows cached), and NetUtils and

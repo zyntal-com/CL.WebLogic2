@@ -14,7 +14,7 @@
     <CodeLogicVersion>5.0.35-preview</CodeLogicVersion>
     <CodeLogicLibsVersion>5.0.118-preview</CodeLogicLibsVersion>
     <!-- CodeLogic.Libs releases pack only the libraries that changed, so the Data packages can be ahead of the rest. -->
-    <CodeLogicDataVersion>5.0.119-preview</CodeLogicDataVersion>
+    <CodeLogicDataVersion>5.0.120-preview</CodeLogicDataVersion>
   </PropertyGroup>
 
   <!--
