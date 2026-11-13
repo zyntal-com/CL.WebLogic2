@@ -16,6 +16,7 @@ public sealed partial class WebFieldValidator
 {
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
     private readonly WebFormMessages _messages;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Regex> _patterns = new(StringComparer.Ordinal);
 
     /// <summary>Creates the validator.</summary>
     public WebFieldValidator(WebFormMessages messages) => _messages = messages ?? throw new ArgumentNullException(nameof(messages));
@@ -83,7 +84,7 @@ public sealed partial class WebFieldValidator
             {
                 try
                 {
-                    if (!Regex.IsMatch(text, "^(?:" + field.Pattern + ")$", RegexOptions.CultureInvariant, PatternTimeout))
+                    if (!PatternRegex(field.Pattern).IsMatch(text))
                         errors.Add(key, field.PatternMessage ?? _messages.Format("pattern", field.Label));
                 }
                 catch (RegexMatchTimeoutException)
@@ -122,6 +123,10 @@ public sealed partial class WebFieldValidator
         System.Collections.ICollection c => c.Count == 0,
         _ => false
     };
+
+    // Patterns come from the model's attributes, so the set is small and fixed; parse each once.
+    private Regex PatternRegex(string pattern) =>
+        _patterns.GetOrAdd(pattern, static p => new Regex("^(?:" + p + ")$", RegexOptions.CultureInvariant, PatternTimeout));
 
     private static bool IsHttpUrl(string text) =>
         Uri.TryCreate(text, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
