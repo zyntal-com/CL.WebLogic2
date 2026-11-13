@@ -34,7 +34,7 @@ public sealed class PageResult : WebResult
     public override async Task ExecuteAsync(WebRequestContext request, CancellationToken cancellationToken)
     {
         var renderer = request.Services.GetRequiredService<IWebTemplateRenderer>();
-        var html = await renderer.RenderAsync(new TemplateRenderRequest
+        using var html = await renderer.RenderBufferedAsync(new TemplateRenderRequest
         {
             TemplatePath = TemplatePath,
             Model = Model,
@@ -49,6 +49,6 @@ public sealed class PageResult : WebResult
         if (IsFragment)
             response.Headers["X-WebLogic-Fragment"] = "1";
         response.ContentType = "text/html; charset=utf-8";
-        await response.WriteAsync(html, cancellationToken).ConfigureAwait(false);
+        await html.WriteToAsync(response.BodyWriter, cancellationToken).ConfigureAwait(false);
     }
 }

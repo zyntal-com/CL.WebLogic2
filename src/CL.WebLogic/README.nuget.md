@@ -1,6 +1,6 @@
 # CodeLogic.WebLogic
 
-Web application toolkit for [CodeLogic](https://github.com/zyntal-com/CodeLogic) 4.9.
+Web application toolkit for [CodeLogic](https://github.com/zyntal-com/CodeLogic) 5.0.
 
 - Real ASP.NET Core endpoints for pages, APIs, fragments and SSE — mixes freely with minimal APIs
 - An ordered, extensible security pipeline (proxy trust, hosts, HTTPS, IP rules, reputation, rate

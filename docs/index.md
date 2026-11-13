@@ -1,6 +1,6 @@
 # CodeLogic.WebLogic
 
-WebLogic is the web toolkit for [CodeLogic](https://github.com/zyntal-com/CodeLogic) 4.9. It gives a
+WebLogic is the web toolkit for [CodeLogic](https://github.com/zyntal-com/CodeLogic) 5.0. It gives a
 CodeLogic application the runtime parts of a web stack and leaves the decisions to the application.
 
 | You get | You decide |

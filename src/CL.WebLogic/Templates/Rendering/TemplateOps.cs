@@ -170,12 +170,36 @@ public static class TemplateOps
     /// <summary>Renders <paramref name="block"/> into a string instead of the current output.</summary>
     public static async ValueTask<string> RenderToStringAsync(TemplateRenderContext context, TemplateBlock block)
     {
+        var buffer = await RenderToBuilderAsync(context, block).ConfigureAwait(false);
+        try
+        {
+            return buffer.ToString();
+        }
+        finally
+        {
+            context.Services.Builders.Return(buffer);
+        }
+    }
+
+    /// <summary>
+    /// Renders <paramref name="block"/> into a pooled builder instead of the current output. The caller owns the builder and
+    /// must give it back with <c>context.Services.Builders.Return</c> once it has been copied out.
+    /// </summary>
+    internal static async ValueTask<System.Text.StringBuilder> RenderToBuilderAsync(TemplateRenderContext context, TemplateBlock block)
+    {
+        var pool = context.Services.Builders;
         var saved = context.Output;
-        context.Output = new System.Text.StringBuilder();
+        var buffer = pool.Get();
+        context.Output = buffer;
         try
         {
             await block(context).ConfigureAwait(false);
-            return context.Output.ToString();
+            return buffer;
+        }
+        catch
+        {
+            pool.Return(buffer);
+            throw;
         }
         finally
         {
@@ -190,7 +214,10 @@ public static class TemplateOps
         switch (keyword)
         {
             case TemplateKeyword.RenderBody:
-                output.Append(context.RenderBody);
+                if (context.RenderBodyBuffer is { } body)
+                    output.Append(body);
+                else
+                    output.Append(context.RenderBody);
                 break;
             case TemplateKeyword.RenderHead:
                 output.Append(WebPageHeadRenderer.Render(
@@ -252,7 +279,9 @@ public static class TemplateOps
     /// <summary>Writes a section captured from the child template.</summary>
     public static void WriteSection(TemplateRenderContext context, string name)
     {
-        if (context.Sections.TryGetValue(name, out var html))
+        if (context.SectionBuffers is { } buffers && buffers.TryGetValue(name, out var buffer))
+            context.Output.Append(buffer);
+        else if (context.Sections.TryGetValue(name, out var html))
             context.Output.Append(html);
     }
 

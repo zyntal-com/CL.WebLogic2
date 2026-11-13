@@ -1,6 +1,8 @@
 using CL.WebLogic.Content.Services;
 using CL.WebLogic.Localization.Services;
+using System.Text;
 using CL.WebLogic.Security.Headers;
+using Microsoft.Extensions.ObjectPool;
 
 namespace CL.WebLogic.Templates.Rendering;
 
@@ -35,6 +37,13 @@ public sealed class TemplateRenderServices
         Sanitizer = sanitizer;
         Forms = forms ?? NullTemplateFormRenderer.Instance;
     }
+
+    /// <summary>
+    /// Pooled output buffers: a page renders through a few large builders (the document, the child body and sections
+    /// of a layout), and reusing them keeps their grown capacity instead of reallocating chunks on every request.
+    /// Builders above 256 K characters are dropped rather than kept.
+    /// </summary>
+    internal ObjectPool<StringBuilder> Builders { get; } = new DefaultObjectPoolProvider().CreateStringBuilderPool(initialCapacity: 8192, maximumRetainedCapacity: 256 * 1024);
 
     /// <summary>Loads partials and layouts.</summary>
     public ITemplateLoader Loader { get; }

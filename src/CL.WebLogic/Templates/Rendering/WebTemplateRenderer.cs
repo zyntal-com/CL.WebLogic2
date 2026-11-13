@@ -32,6 +32,24 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
     /// <inheritdoc/>
     public async Task<string> RenderAsync(TemplateRenderRequest request, CancellationToken cancellationToken)
     {
+        var buffer = await RenderToBufferAsync(request, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return buffer.ToString();
+        }
+        finally
+        {
+            _services.Builders.Return(buffer);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<RenderedTemplate> RenderBufferedAsync(TemplateRenderRequest request, CancellationToken cancellationToken) =>
+        new(await RenderToBufferAsync(request, cancellationToken).ConfigureAwait(false), _services.Builders);
+
+    /// <summary>Renders into a pooled builder; the caller returns it to <c>_services.Builders</c>.</summary>
+    private async Task<StringBuilder> RenderToBufferAsync(TemplateRenderRequest request, CancellationToken cancellationToken)
+    {
         ArgumentNullException.ThrowIfNull(request);
         var path = TemplatePath.Normalize(request.TemplatePath);
         using var activity = _metrics?.StartTemplateRender(path);
@@ -54,21 +72,29 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
             Globals = globals,
             HttpContext = request.HttpContext,
             Meta = request.Meta,
-            Output = new StringBuilder(4096),
+            Output = _services.Builders.Get(),
             Services = _services,
             CancellationToken = cancellationToken
         };
 
-        if (request.IgnoreLayout)
+        try
         {
-            TemplateOps.Enter(context, path);
-            await template.Body(context).ConfigureAwait(false);
+            if (request.IgnoreLayout)
+            {
+                TemplateOps.Enter(context, path);
+                await template.Body(context).ConfigureAwait(false);
+            }
+            else
+            {
+                await RenderWithLayoutsAsync(context, template, request.DefaultLayout).ConfigureAwait(false);
+            }
+            return context.Output;
         }
-        else
+        catch
         {
-            await RenderWithLayoutsAsync(context, template, request.DefaultLayout).ConfigureAwait(false);
+            _services.Builders.Return(context.Output);
+            throw;
         }
-        return context.Output.ToString();
     }
 
     /// <summary>
@@ -81,7 +107,8 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
     {
         var current = template;
         var pageLayout = template.LayoutPath ?? (string.IsNullOrWhiteSpace(defaultLayout) ? null : "/" + defaultLayout.TrimStart('/'));
-        var sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var sections = new Dictionary<string, StringBuilder>(StringComparer.OrdinalIgnoreCase);
+        var bodies = new List<StringBuilder>();
         var visited = new List<string>();
 
         try
@@ -92,15 +119,22 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
                 visited.Add(current.Path);
                 context.TemplatePath = current.Path;
 
-                var body = await TemplateOps.RenderToStringAsync(context, current.Body).ConfigureAwait(false);
+                // Body and sections stay in pooled builders and are appended builder-to-builder by the layout:
+                // no intermediate string per layer. They are given back once the whole document is rendered.
+                var body = await TemplateOps.RenderToBuilderAsync(context, current.Body).ConfigureAwait(false);
+                bodies.Add(body);
                 foreach (var (name, block) in current.Sections)
                 {
                     if (!sections.ContainsKey(name))
-                        sections[name] = await TemplateOps.RenderToStringAsync(context, block).ConfigureAwait(false);
+                    {
+                        var section = await TemplateOps.RenderToBuilderAsync(context, block).ConfigureAwait(false);
+                        sections[name] = section;
+                        bodies.Add(section);
+                    }
                 }
 
-                context.RenderBody = body;
-                context.Sections = sections;
+                context.RenderBodyBuffer = body;
+                context.SectionBuffers = sections;
                 var layoutPath = TemplatePath.Normalize(nextLayout, current.Path);
                 current = await context.Services.Loader.LoadAsync(layoutPath, context.CancellationToken).ConfigureAwait(false);
             }
@@ -115,6 +149,10 @@ public sealed class WebTemplateRenderer : IWebTemplateRenderer
         {
             foreach (var path in visited)
                 TemplateOps.Leave(context, path);
+            context.RenderBodyBuffer = null;
+            context.SectionBuffers = null;
+            foreach (var buffer in bodies)
+                context.Services.Builders.Return(buffer);
         }
     }
 }

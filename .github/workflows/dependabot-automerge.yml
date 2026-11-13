@@ -5,7 +5,7 @@ name: Dependabot auto-merge
 #   github-actions  - auto-merged at every level. A bad Actions bump breaks CI loudly
 #                     rather than shipping anything.
 #   nuget           - patch and minor only. These go INTO the build output.
-#   CodeLogic minor - never. A CodeLogic minor moves the 4.x line this toolkit is
+#   CodeLogic minor - never. A CodeLogic minor moves the 5.x line this toolkit is
 #                     versioned against, so it is a deliberate version.txt decision.
 
 on:
