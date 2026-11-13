@@ -40,6 +40,12 @@ public sealed class TemplateRenderContext
     /// <summary>The child body for the layout's <c>{renderbody}</c>.</summary>
     public string? RenderBody { get; set; }
 
+    /// <summary>The child body as a pooled buffer; wins over <see cref="RenderBody"/> so a layout appends it without a string copy.</summary>
+    internal StringBuilder? RenderBodyBuffer { get; set; }
+
+    /// <summary>Rendered sections as pooled buffers; consulted before <see cref="Sections"/>.</summary>
+    internal Dictionary<string, StringBuilder>? SectionBuffers { get; set; }
+
     /// <summary>Path of the outermost template of the document (its top layout, or the page itself without one); null for fragments.</summary>
     public string? DocumentTemplatePath { get; internal set; }
 

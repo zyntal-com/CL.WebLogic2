@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -59,7 +60,7 @@ public abstract partial class WebFormRenderer
         var value = values.Count > 0 ? values[0] ?? "" : "";
         var describedBy = string.Join(' ', new[] { string.IsNullOrEmpty(field.Help) ? null : id + "-help", invalid ? errorId : null }.Where(s => s is not null));
         var options = request.ProviderOptions.TryGetValue(field.Name, out var loaded) ? loaded : field.Options;
-        var html = new StringBuilder();
+        var html = _services.Builders.Get();
 
         switch (field.Type)
         {
@@ -153,7 +154,9 @@ public abstract partial class WebFormRenderer
                 html.Append('>');
                 break;
         }
-        return html.ToString();
+        var control = html.ToString();
+        _services.Builders.Return(html);
+        return control;
     }
 
     private static void Common(StringBuilder html, WebFieldDefinition field, string key, string id, bool invalid, string describedBy)
@@ -235,11 +238,18 @@ public abstract partial class WebFormRenderer
     }
 
     /// <summary>A theme override (<c>forms/fields/{type}.html</c>) for the field's inner markup, or null.</summary>
+    private static readonly FrozenDictionary<WebFieldType, string> FieldTemplatePaths =
+        Enum.GetValues<WebFieldType>().ToDictionary(t => t, t => "forms/fields/" + t.ToString().ToLowerInvariant()).ToFrozenDictionary();
+
+    // One precomputed path per field type: no per-field ToString/ToLowerInvariant/concat allocations.
+    private static string FieldTemplatePath(WebFieldType type) =>
+        FieldTemplatePaths.TryGetValue(type, out var path) ? path : "forms/fields/" + type.ToString().ToLowerInvariant();
+
     private async ValueTask<string?> ThemedAsync(WebFormRenderRequest request, WebFieldDefinition field, string key, string id, StringValues values,
         IReadOnlyList<string> errors, string control, string errorId, CancellationToken cancellationToken)
     {
         var templates = _services.Templates;
-        var path = "forms/fields/" + field.Type.ToString().ToLowerInvariant();
+        var path = FieldTemplatePath(field.Type);
         if (templates is null || !templates.Exists(path))
             return null;
         var model = new Dictionary<string, object?>

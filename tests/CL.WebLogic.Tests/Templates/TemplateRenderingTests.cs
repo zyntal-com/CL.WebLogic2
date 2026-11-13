@@ -90,6 +90,26 @@ public sealed class TemplateRenderingTests
         Assert.Equal("<html><b>page</b><body><main><h1>Hi</h1></main></body></html>", html);
     }
 
+    // Page, layout and section buffers are pooled: parallel renders and repeated renders must never see each other's text.
+    [Theory, MemberData(nameof(Engines))]
+    public async Task Layout_buffers_are_not_shared_between_renders(string engine)
+    {
+        var renderer = Renderer(engine);
+        renderer.Templates
+            .Add("layouts/base", "<html>{rendersection:head}<body>{renderbody}</body></html>")
+            .Add("layouts/main", "{layout:layouts/base}<main>{renderbody}</main>{section:head}<i>main</i>{/section}")
+            .Add("templates/page", "{layout:layouts/main}{section:head}<b>{model:title}</b>{/section}<h1>{model:title}</h1>");
+
+        var renders = await Task.WhenAll(Enumerable.Range(0, 200).Select(async i =>
+        {
+            var title = "t" + i;
+            return (title, html: await Task.Run(() => renderer.RenderAsync("templates/page", Model(("title", title)))));
+        }));
+
+        foreach (var (title, html) in renders)
+            Assert.Equal($"<html><b>{title}</b><body><main><h1>{title}</h1></main></body></html>", html);
+    }
+
     [Theory, MemberData(nameof(Engines))]
     public async Task Img_src_allows_raster_data_images_only(string engine)
     {

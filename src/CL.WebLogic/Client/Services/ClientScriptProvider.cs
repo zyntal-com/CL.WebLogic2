@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using CL.WebLogic.Configuration.Models;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Runtime.Models;
 using CL.WebLogic.Runtime.Services;
@@ -22,6 +24,8 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
     private readonly WebLogicConfigHolder _config;
     private readonly IHostEnvironment _environment;
     private readonly WebFlash? _flash;
+    private readonly Lock _cacheLock = new();
+    private JsonCache _json = new(null);
 
     /// <summary>Creates the provider.</summary>
     public ClientScriptProvider(ClientAssetCatalog catalog, WebLogicConfigHolder config, IHostEnvironment environment, WebFlash? flash = null)
@@ -72,8 +76,39 @@ public sealed class ClientScriptProvider : ITemplateScriptProvider
     /// <summary>The client configuration JSON with a one-shot <paramref name="flash"/> message (shown as a toast).</summary>
     public string ConfigJson(string basePath, bool navigation, string? layout, WebFlashMessage? flash)
     {
-        var csrf = _config.Current.Security.Csrf;
-        var realtime = _config.Current.Realtime;
+        // Everything but the flash message depends only on the active configuration, the base path, navigation and the
+        // layout, so the serialized block is reused until the configuration is swapped. A flash is one-shot: never cached.
+        if (flash is not null)
+            return BuildConfigJson(_config.Current, basePath, navigation, layout, flash);
+
+        var current = _config.Current;
+        var cache = _json;
+        if (!ReferenceEquals(cache.Config, current))
+        {
+            lock (_cacheLock)
+            {
+                if (!ReferenceEquals(_json.Config, current))
+                    _json = new JsonCache(current);
+                cache = _json;
+            }
+        }
+        if (cache.Entries.Count >= 256)
+            cache.Entries.Clear();
+        return cache.Entries.GetOrAdd((basePath, navigation, layout), static (key, state) =>
+            state.Self.BuildConfigJson(state.Config, key.BasePath, key.Navigation, key.Layout, null), (Self: this, Config: current));
+    }
+
+    private sealed class JsonCache(object? config)
+    {
+        public object? Config { get; } = config;
+
+        public ConcurrentDictionary<(string BasePath, bool Navigation, string? Layout), string> Entries { get; } = new();
+    }
+
+    private string BuildConfigJson(WebLogicConfig config, string basePath, bool navigation, string? layout, WebFlashMessage? flash)
+    {
+        var csrf = config.Security.Csrf;
+        var realtime = config.Realtime;
         var payload = new Dictionary<string, object?>
         {
             ["version"] = _catalog.Version,

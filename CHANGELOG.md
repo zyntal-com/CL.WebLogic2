@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- **Faster rendering, much less garbage.** A page renders through pooled `StringBuilder`s, a layout appends the page
+  body and sections builder to builder instead of through an intermediate string per layer, forms and their controls
+  use pooled builders too, the `{weblogic_scripts}` configuration JSON is serialized once per configuration instead of
+  per request (a one-shot flash message is never cached), and `PageResult` encodes the finished page to UTF-8 straight
+  from the buffer into the response instead of first copying it into one large string. A rendered page allocates about a
+  third of what it did (StarterWebsite, per request: `/` ~95 KB to ~34 KB, `/account/login` ~94 KB to ~39 KB, `/forms`
+  ~235 KB to ~78 KB) and the heavier pages serve 10-25% more requests per second. Output is unchanged.
+- New: `IWebTemplateRenderer.RenderBufferedAsync` returns a `RenderedTemplate` (dispose it after writing) so a custom
+  result can do the same. The default implementation renders to a string, so existing implementations keep working.
+- Regexes that are built at run time are now reused: path globs (widget placement, sitemap exclusions) are compiled
+  once, and a form field's `Pattern` is parsed once per validator instead of per request. Form field override templates
+  no longer allocate their path on every field.
+- Version labels in the docs, README, package description and sample theme now say 5.0.
+
 ## 5.0 (2026-11-10)
 
 The first stable 5.0 release, published the day .NET 11.0.0 was released. The `5.0.x-preview` packages before it

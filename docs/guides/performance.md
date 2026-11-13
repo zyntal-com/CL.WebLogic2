@@ -24,6 +24,9 @@ numbers, which is the point of the limit.
 - Compiled templates (re-checked at most every `theme.templateChangeCheckSeconds`), including whether
   optional templates (field overrides, error pages) exist.
 - Asset resolution (2 s) and file content for assets up to 256 KB.
+- Output buffers: pages render through pooled builders (a layout appends the page body and sections without an
+  intermediate string) and `PageResult` writes the buffer to the response as UTF-8 without a final string copy, so a
+  render allocates a few small objects instead of copying the page once per layer.
 - Form definitions per model type, the client bundle (precompressed), JSON serializer options.
 - Security settings compiled once per configuration (CIDR sets, CSP template, policies).
 - Permissions are resolved only when a rule needs them; sessions are only loaded when used.

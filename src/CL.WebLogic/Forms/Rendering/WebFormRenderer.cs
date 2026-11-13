@@ -46,7 +46,7 @@ public abstract partial class WebFormRenderer : IWebFormRenderer
         var action = request.Action ?? ((request.HttpContext?.Request.PathBase.Value ?? "") + (request.HttpContext?.Request.Path.Value ?? ""));
         var hasFiles = fields.Any(f => f.Type == WebFieldType.File || (f.Repeater?.Fields.Any(c => c.Type == WebFieldType.File) ?? false));
 
-        var html = new StringBuilder();
+        var html = _services.Builders.Get();
         html.Append("<form id=\"").Append(A(formId)).Append("\" class=\"").Append(A(Join(Classes.Form, request.CssClass)))
             .Append("\" method=\"post\" action=\"").Append(A(action)).Append("\" data-wl-form=\"").Append(A(definition.Id)).Append('"');
         if (hasFiles)
@@ -79,7 +79,9 @@ public abstract partial class WebFormRenderer : IWebFormRenderer
         html.Append("<button type=\"submit\" class=\"").Append(A(Classes.Submit)).Append("\">")
             .Append(A(request.SubmitLabel ?? (last ? definition.SubmitLabel : "Next"))).Append("</button></div>\n");
         html.Append("</form>");
-        return html.ToString();
+        var result = html.ToString();
+        _services.Builders.Return(html);
+        return result;
     }
 
     /// <summary>The id of the form element.</summary>

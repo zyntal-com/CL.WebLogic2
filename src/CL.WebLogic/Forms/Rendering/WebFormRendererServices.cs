@@ -1,9 +1,11 @@
+using System.Text;
 using CL.WebLogic.Configuration.Services;
 using CL.WebLogic.Forms.AntiBot;
 using CL.WebLogic.Forms.Validation;
 using CL.WebLogic.Security.Antiforgery;
 using CL.WebLogic.Templates.Rendering;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.ObjectPool;
 
 namespace CL.WebLogic.Forms.Rendering;
 
@@ -15,6 +17,9 @@ public sealed class WebFormRendererServices(
     WebLogicConfigHolder config,
     IServiceProvider services)
 {
+    /// <summary>Pooled builders for the form and its controls (reused, so they keep their grown capacity).</summary>
+    internal ObjectPool<StringBuilder> Builders { get; } = new DefaultObjectPoolProvider().CreateStringBuilderPool(initialCapacity: 4096, maximumRetainedCapacity: 256 * 1024);
+
     /// <summary>CSRF tokens.</summary>
     public IWebCsrfTokens Csrf { get; } = csrf;
 
