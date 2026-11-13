@@ -73,7 +73,7 @@ public sealed class RenderedTemplateTests
     public async Task A_disposed_page_cannot_be_written_and_its_builder_goes_back_to_the_pool()
     {
         var builder = Pool.Get();
-        builder.Append("x");
+        builder.Append('x');
         var page = new RenderedTemplate(builder, Pool);
         page.Dispose();
         page.Dispose();
