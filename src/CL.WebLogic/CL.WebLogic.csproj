@@ -6,7 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
     <PackageId>CodeLogic.WebLogic</PackageId>
-    <Description>Web application toolkit for CodeLogic 4 — routing, templates, forms, an ordered security pipeline, auth flows and realtime. No third-party dependencies beyond CodeLogic.*.</Description>
+    <Description>Web application toolkit for CodeLogic 5 — routing, templates, forms, an ordered security pipeline, auth flows and realtime. No third-party dependencies beyond CodeLogic.*.</Description>
     <PackageTags>codelogic;web;aspnetcore;templates;forms;security;realtime;plugins</PackageTags>
     <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
